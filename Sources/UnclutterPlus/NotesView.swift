@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct NotesView: View {
-    @StateObject private var notesManager = NotesManager()
+    // 使用 ObservedObject 而不是 StateObject，因为我们使用单例
+    @ObservedObject private var notesManager = NotesManager.shared
     @State private var selectedNote: Note?
     @State private var showingNewNoteDialog = false
     @State private var newNoteTitle = ""
@@ -48,13 +49,18 @@ struct NotesView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 1) {
+                        VStack(spacing: 1) {  // 使用 VStack 替代 LazyVStack
                             ForEach(notesManager.notes) { note in
                                 NoteListItemView(
                                     note: note,
                                     isSelected: selectedNote?.id == note.id
                                 ) {
-                                    selectedNote = note
+                                    // 切换笔记时立即响应
+                                    if selectedNote?.id != note.id {  // 避免重复选中
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            selectedNote = note
+                                        }
+                                    }
                                 } onDelete: {
                                     if selectedNote?.id == note.id {
                                         selectedNote = nil
@@ -63,11 +69,13 @@ struct NotesView: View {
                                 }
                             }
                         }
+                        .padding(.vertical, 1)  // 添加小间距避免边缘点击问题
                     }
                 }
             }
             .frame(width: 250)
             .background(.regularMaterial)
+            .zIndex(1)  // 提高列表的 z-index 优先级
             
             Divider()
             
@@ -123,6 +131,8 @@ struct NoteListItemView: View {
     let onSelect: () -> Void
     let onDelete: () -> Void
     
+    @State private var isHovered = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(note.title)
@@ -144,11 +154,24 @@ struct NoteListItemView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             Rectangle()
-                .fill(isSelected ? Color.accentColor : Color.clear)
+                .fill(isSelected ? Color.accentColor : 
+                      isHovered ? Color.gray.opacity(0.1) : Color.clear)
         )
+        .contentShape(Rectangle())  // 确保整个区域可点击
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        // 使用同时响应的点击手势
         .onTapGesture {
             onSelect()
         }
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    // 备用点击处理
+                    onSelect()
+                }
+        )
         .contextMenu {
             Button("Delete", role: .destructive) {
                 onDelete()
