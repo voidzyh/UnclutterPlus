@@ -44,15 +44,7 @@ struct AppKitTextEditor: NSViewRepresentable {
         // 初始文本
         textView.string = text
         
-        // NSTextView 默认就接收键盘事件，无需设置
-        
-        // 在初始化后立即尝试获取焦点
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            if let window = textView.window {
-                window.makeFirstResponder(textView)
-                print("TextEditor: Attempting to become first responder")
-            }
-        }
+        // 不自动获取焦点，让用户点击时才获取
         
         return scrollView
     }
@@ -60,14 +52,20 @@ struct AppKitTextEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         
+        // 只在文本真正不同时才更新，避免重置光标
         if textView.string != text {
+            // 保存当前光标位置
+            let selectedRange = textView.selectedRange()
+            
             textView.string = text
-        }
-        
-        // 每次更新时都尝试获取焦点
-        if let window = textView.window, window.isKeyWindow {
-            DispatchQueue.main.async {
-                window.makeFirstResponder(textView)
+            
+            // 恢复光标位置（如果在有效范围内）
+            if selectedRange.location <= text.count {
+                let newRange = NSRange(
+                    location: min(selectedRange.location, text.count),
+                    length: 0
+                )
+                textView.setSelectedRange(newRange)
             }
         }
     }
@@ -78,6 +76,7 @@ struct AppKitTextEditor: NSViewRepresentable {
     
     class Coordinator: NSObject, NSTextViewDelegate {
         let parent: AppKitTextEditor
+        private var isUpdating = false
         
         init(_ parent: AppKitTextEditor) {
             self.parent = parent
@@ -86,9 +85,14 @@ struct AppKitTextEditor: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             
+            // 避免循环更新
+            guard !isUpdating else { return }
+            
             DispatchQueue.main.async {
+                self.isUpdating = true
                 self.parent.text = textView.string
                 self.parent.onTextChange?(textView.string)
+                self.isUpdating = false
             }
         }
         

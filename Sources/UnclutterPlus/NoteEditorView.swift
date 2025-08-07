@@ -21,10 +21,10 @@ struct NoteEditorView: View {
     
     // 监听 note 的变化并更新状态
     private func updateStateFromNote() {
-        if title != note.title {
+        // 保存当前状态以避免不必要的更新
+        let needsUpdate = title != note.title || content != note.content
+        if needsUpdate {
             title = note.title
-        }
-        if content != note.content {
             content = note.content
         }
     }
@@ -110,20 +110,27 @@ struct NoteEditorView: View {
             updateStateFromNote()
         }
         .onChange(of: note.id) { _, _ in
+            // 切换笔记时立即更新，不等待保存
+            saveTimer?.invalidate()  // 取消之前的保存
             updateStateFromNote()
         }
     }
     
     private func saveNote() {
-        var updatedNote = note
-        updatedNote.title = title.isEmpty ? "Untitled" : title
-        updatedNote.content = content
-        onUpdate(updatedNote)
+        // 只在内容真正改变时才保存
+        let newTitle = title.isEmpty ? "Untitled" : title
+        if note.title != newTitle || note.content != content {
+            var updatedNote = note
+            updatedNote.title = newTitle
+            updatedNote.content = content
+            onUpdate(updatedNote)
+        }
     }
     
     private func saveNoteDebounced() {
         saveTimer?.invalidate()
-        saveTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+        // 增加去抖时间到 1.5 秒，减少频繁保存
+        saveTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
             saveNote()
         }
     }

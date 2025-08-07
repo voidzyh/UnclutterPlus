@@ -40,21 +40,24 @@ struct Note: Identifiable, Codable {
 }
 
 class NotesManager: ObservableObject {
+    static let shared = NotesManager()
+    
     @Published var notes: [Note] = []
     
     private let userDefaults = UserDefaults.standard
     private let notesKey = "SavedNotes"
+    private var hasInitialized = false
     
-    init() {
-        print("NotesManager: 初始化")
+    private init() {
+        print("NotesManager: 初始化 (单例)")
         loadNotes()
-        print("NotesManager: 已加载 \(notes.count) 个笔记")
+        hasInitialized = true
     }
     
     func createNote(title: String) -> Note {
         print("NotesManager: 创建新笔记: \(title)")
         let note = Note(title: title)
-        notes.insert(note, at: 0)
+        notes.insert(note, at: 0)  // 新笔记添加到顶部，更容易找到
         saveNotes()
         print("NotesManager: 现有 \(notes.count) 个笔记")
         return note
@@ -62,15 +65,30 @@ class NotesManager: ObservableObject {
     
     func updateNote(_ updatedNote: Note) {
         if let index = notes.firstIndex(where: { $0.id == updatedNote.id }) {
-            var note = updatedNote
-            note.modifiedAt = Date()
-            notes[index] = note
+            let oldNote = notes[index]
             
-            // 将更新的笔记移到顶部
-            notes.remove(at: index)
-            notes.insert(note, at: 0)
+            // 检查内容是否真的改变了
+            let hasChanged = oldNote.title != updatedNote.title || 
+                           oldNote.content != updatedNote.content
             
-            saveNotes()
+            // 只有内容真正改变时才更新
+            if hasChanged {
+                var note = updatedNote
+                note.modifiedAt = Date()
+                
+                // 只在标题变化或内容有重大改变时才移到顶部
+                let shouldMoveToTop = oldNote.title != note.title || 
+                                      abs(oldNote.content.count - note.content.count) > 50
+                
+                if shouldMoveToTop && index > 0 {
+                    notes.remove(at: index)
+                    notes.insert(note, at: 0)
+                } else {
+                    notes[index] = note
+                }
+                
+                saveNotes()
+            }
         }
     }
     
@@ -95,23 +113,29 @@ class NotesManager: ObservableObject {
     }
     
     private func loadNotes() {
-        guard let data = userDefaults.data(forKey: notesKey) else {
-            // 如果没有保存的笔记，创建一些示例笔记
-            createSampleNotes()
-            return
-        }
-        
-        do {
-            notes = try JSONDecoder().decode([Note].self, from: data)
-            // 按修改时间排序
-            notes.sort { $0.modifiedAt > $1.modifiedAt }
-        } catch {
-            print("Error loading notes: \(error)")
-            createSampleNotes()
+        // 尝试加载保存的笔记
+        if let data = userDefaults.data(forKey: notesKey) {
+            do {
+                notes = try JSONDecoder().decode([Note].self, from: data)
+                // 按创建时间排序（新的在前）
+                notes.sort { $0.createdAt > $1.createdAt }
+                print("NotesManager: 加载了 \(notes.count) 个笔记")
+            } catch {
+                print("Error loading notes: \(error)")
+                notes = []
+            }
+        } else {
+            // 没有保存的笔记，保持空列表
+            notes = []
+            print("NotesManager: 没有找到保存的笔记")
         }
     }
     
+    // 不再自动创建示例笔记
     private func createSampleNotes() {
+        // 这个方法保留但不使用
+        return
+        /*
         let sampleNotes = [
             Note(title: "Welcome to UnclutterPlus", content: """
 # Welcome to UnclutterPlus Notes! 🎉
@@ -213,5 +237,6 @@ Horizontal rule
         
         notes = sampleNotes
         saveNotes()
+        */
     }
 }
