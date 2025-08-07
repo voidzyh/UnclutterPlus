@@ -19,7 +19,8 @@ let package = Package(
             name: "UnclutterPlus",
             dependencies: [
             ],
-            path: "Sources"
+            path: "Sources",
+            exclude: ["UnclutterPlus/Info.plist"]
         ),
         .testTarget(
             name: "UnclutterPlusTests", 
