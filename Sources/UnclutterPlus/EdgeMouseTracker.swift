@@ -1,11 +1,14 @@
 import Cocoa
 
 class EdgeMouseTracker {
-    private var eventMonitor: Any?
+    private var globalEventMonitor: Any?
+    private var localEventMonitor: Any?
     private let onEdgeTriggered: () -> Void
     private let edgeThreshold: CGFloat = 5.0
     private var lastTriggerTime: Date = Date.distantPast
     private let cooldownInterval: TimeInterval = 1.0
+    private var lastLogTime: Date = Date.distantPast
+    private let logCooldownInterval: TimeInterval = 5.0
     
     init(onEdgeTriggered: @escaping () -> Void) {
         self.onEdgeTriggered = onEdgeTriggered
@@ -20,17 +23,17 @@ class EdgeMouseTracker {
         print("Starting mouse tracking...")
         
         // 添加全局事件监听
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
             self?.handleMouseMove(event)
         }
         
         // 也添加本地事件监听（作为备选）
-        NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
             self?.handleMouseMove(event)
             return event
         }
         
-        if eventMonitor != nil {
+        if globalEventMonitor != nil {
             print("鼠标追踪已启动")
         } else {
             print("警告：鼠标追踪启动失败 - 可能需要辅助功能权限")
@@ -38,9 +41,13 @@ class EdgeMouseTracker {
     }
     
     private func stopTracking() {
-        if let monitor = eventMonitor {
+        if let monitor = globalEventMonitor {
             NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
+            globalEventMonitor = nil
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            localEventMonitor = nil
         }
     }
     
@@ -56,9 +63,13 @@ class EdgeMouseTracker {
                          mouseLocation.x >= screenFrame.minX &&
                          mouseLocation.x <= screenFrame.maxX
         
-        // 调试输出
+        // 减少调试输出频率
         if isAtTopEdge {
-            print("Mouse at top edge: \(mouseLocation), screen: \(screenFrame)")
+            let now = Date()
+            if now.timeIntervalSince(lastLogTime) > logCooldownInterval {
+                lastLogTime = now
+                print("Mouse at top edge: \(mouseLocation), screen: \(screenFrame)")
+            }
         }
         
         if isAtTopEdge {
@@ -70,12 +81,27 @@ class EdgeMouseTracker {
                     self.onEdgeTriggered()
                 }
             } else {
-                print("在冷却时间内，忽略触发")
+                // 减少冷却时间日志输出
+                let now = Date()
+                if now.timeIntervalSince(lastLogTime) > logCooldownInterval {
+                    lastLogTime = now
+                    print("在冷却时间内，忽略触发")
+                }
             }
         }
     }
     
     private func findScreenForPoint(_ point: CGPoint) -> NSScreen? {
+        // 先检查是否在主屏幕上，提高性能
+        if let mainScreen = NSScreen.main {
+            let frame = mainScreen.frame
+            if point.x >= frame.minX && point.x <= frame.maxX &&
+               point.y >= frame.minY && point.y <= frame.maxY {
+                return mainScreen
+            }
+        }
+        
+        // 再检查其他屏幕
         for screen in NSScreen.screens {
             let frame = screen.frame
             if point.x >= frame.minX && point.x <= frame.maxX &&
@@ -83,6 +109,8 @@ class EdgeMouseTracker {
                 return screen
             }
         }
-        return NSScreen.main // 如果找不到，回退到主屏幕
+        
+        // 如果都找不到，返回主屏幕
+        return NSScreen.main
     }
 }

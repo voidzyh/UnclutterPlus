@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct NoteEditorView: View {
     let note: Note
@@ -57,6 +58,7 @@ struct NoteEditorView: View {
                 MarkdownToolbar { action in
                     insertMarkdown(action)
                 }
+                .disabled(false)  // 确保按钮可点击
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -68,15 +70,14 @@ struct NoteEditorView: View {
             HStack(spacing: 0) {
                 // 左侧：文本编辑器
                 VStack(alignment: .leading, spacing: 0) {
-                    TextEditor(text: $content)
-                        .font(.system(.body, design: .monospaced))
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .focused($isContentFocused)
-                        .padding()
-                        .onChange(of: content) { _, _ in
-                            saveNoteDebounced()
-                        }
+                    AppKitTextEditor(
+                        text: $content,
+                        font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+                    ) { newText in
+                        // 在文本变化时保存
+                        saveNoteDebounced()
+                    }
+                    .padding()
                 }
                 .frame(maxWidth: showPreview ? .infinity : nil)
                 
@@ -107,15 +108,9 @@ struct NoteEditorView: View {
         }
         .onAppear {
             updateStateFromNote()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isContentFocused = true
-            }
         }
         .onChange(of: note.id) { _, _ in
             updateStateFromNote()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isContentFocused = true
-            }
         }
     }
     

@@ -1,39 +1,37 @@
 import Cocoa
 import SwiftUI
 
-class CustomWindow: NSWindow {
+// 使用 NSPanel 以更好地支持浮动窗口的键盘输入
+class KeyboardSupportPanel: NSPanel {
     override var canBecomeKey: Bool {
         return true
     }
     
     override var canBecomeMain: Bool {
-        return true
+        return false
     }
     
-    // 添加这些方法来确保键盘事件正确处理
     override var acceptsFirstResponder: Bool {
         return true
     }
     
     override func becomeKey() {
         super.becomeKey()
-        // 确保内容视图可以接收键盘事件
-        self.makeFirstResponder(self.contentView)
+        print("Panel became key window")
+        // 确保窗口内容获得焦点
+        if let contentView = self.contentView {
+            self.makeFirstResponder(contentView)
+        }
     }
     
-    // 确保键盘事件能够传递到 SwiftUI 视图
-    override func keyDown(with event: NSEvent) {
-        // 让 SwiftUI 处理键盘事件
-        if let contentView = self.contentView {
-            contentView.keyDown(with: event)
-        } else {
-            super.keyDown(with: event)
-        }
+    override func resignKey() {
+        super.resignKey()
+        print("Panel resigned key window")
     }
 }
 
 class WindowManager: NSObject {
-    private var window: NSWindow?
+    private var window: NSPanel?
     private var mouseTracker: EdgeMouseTracker?
     
     override init() {
@@ -45,15 +43,20 @@ class WindowManager: NSObject {
     private func setupWindow() {
         let contentView = MainContentView()
         
-        window = CustomWindow(
+        window = KeyboardSupportPanel(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 300),
-            styleMask: [.titled, .closable, .resizable],
+            styleMask: [.titled, .closable, .resizable, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
         
-        window?.contentView = NSHostingView(rootView: contentView)
+        let hostingView = NSHostingView(rootView: contentView)
+        window?.contentView = hostingView
         window?.level = .floating
+        window?.isFloatingPanel = true  // 设置为浮动面板
+        window?.hidesOnDeactivate = false  // 失去焦点时不隐藏
+        window?.becomesKeyOnlyIfNeeded = false  // 总是可以成为 key window
+        window?.worksWhenModal = true  // 在模态窗口时也工作
         window?.isOpaque = true
         window?.backgroundColor = NSColor.controlBackgroundColor
         window?.hasShadow = true
@@ -103,9 +106,16 @@ class WindowManager: NSObject {
                 window.makeKey()
                 NSApp.activate(ignoringOtherApps: true)
                 
-                // 添加短暂延迟确保焦点正确设置
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    window.makeFirstResponder(window.contentView)
+                // floating窗口需要更多时间和特殊处理
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    // 强制激活应用程序和窗口
+                    NSApp.activate(ignoringOtherApps: true)
+                    window.makeKey()
+                    
+                    if let hostingView = window.contentView as? NSHostingView<MainContentView> {
+                        window.makeFirstResponder(hostingView)
+                        print("Floating window setup complete")
+                    }
                 }
                 
                 print("Window is now key and active")
@@ -181,14 +191,30 @@ class WindowManager: NSObject {
         
         let screenFrame = screen.frame
         let windowFrame = window.frame
-        let x = screenFrame.midX - (windowFrame.width / 2)
-        let y = screenFrame.maxY - windowFrame.height - 10
         
-        window.setFrameOrigin(NSPoint(x: x, y: y))
-        print("Window positioned on screen: \(screenFrame)")
+        // 确保窗口在屏幕边界内
+        let margin: CGFloat = 10
+        let maxX = screenFrame.maxX - windowFrame.width - margin
+        let minX = screenFrame.minX + margin
+        let x = max(minX, min(maxX, screenFrame.midX - (windowFrame.width / 2)))
+        let y = screenFrame.maxY - windowFrame.height - margin
+        
+        let newOrigin = NSPoint(x: x, y: y)
+        window.setFrameOrigin(newOrigin)
+        print("Window positioned at: \(newOrigin) on screen: \(screenFrame)")
     }
     
     private func findScreenForPoint(_ point: CGPoint) -> NSScreen? {
+        // 先检查主屏幕
+        if let mainScreen = NSScreen.main {
+            let frame = mainScreen.frame
+            if point.x >= frame.minX && point.x <= frame.maxX &&
+               point.y >= frame.minY && point.y <= frame.maxY {
+                return mainScreen
+            }
+        }
+        
+        // 再检查其他屏幕
         for screen in NSScreen.screens {
             let frame = screen.frame
             if point.x >= frame.minX && point.x <= frame.maxX &&
@@ -196,6 +222,7 @@ class WindowManager: NSObject {
                 return screen
             }
         }
+        
         return NSScreen.main
     }
 }
