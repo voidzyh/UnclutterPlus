@@ -5,11 +5,11 @@
     <key>CFBundleName</key>
     <string>UnclutterPlus</string>
     <key>CFBundleIdentifier</key>
-    <string>com.example.UnclutterPlus</string>
+    <string>com.voidzyh.UnclutterPlus</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>0.1.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>0.1.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
