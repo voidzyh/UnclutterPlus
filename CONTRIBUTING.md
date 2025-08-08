@@ -39,6 +39,33 @@ cd UnclutterPlus
 open Package.swift
 ```
 
+### 构建和测试
+```bash
+# 构建项目
+swift build
+
+# 运行测试
+swift test
+
+# 创建发布版本
+./scripts/build.sh
+```
+
+## 发布流程
+
+### 创建新版本
+使用发布脚本创建新版本：
+```bash
+./scripts/release.sh
+```
+
+或手动创建：
+1. 更新 `VERSION` 文件
+2. 更新 `CHANGELOG.md`
+3. 创建标签并推送
+
+详细说明请参考 [Release Guide](docs/RELEASE.md)。
+
 ## 代码规范
 
 - 使用 Swift 官方代码风格

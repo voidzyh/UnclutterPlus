@@ -39,6 +39,13 @@ A modern macOS productivity app inspired by Unclutter, featuring enhanced Markdo
 
 ### Installation
 
+#### Download Pre-built Release
+
+1. Go to the [Releases](https://github.com/voidzyh/UnclutterPlus/releases) page
+2. Download the latest `UnclutterPlus-vX.X.X.dmg` file
+3. Open the DMG and drag UnclutterPlus to your Applications folder
+4. Launch UnclutterPlus from Applications
+
 #### Requirements
 - macOS 12.0 or later
 - Xcode 14.0 or later (for building from source)
@@ -51,12 +58,17 @@ git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 ```
 
-2. Build with Swift Package Manager:
+2. Build with the provided script:
+```bash
+./scripts/build.sh
+```
+
+3. Or build with Swift Package Manager:
 ```bash
 swift build -c release
 ```
 
-3. Or open in Xcode and build:
+4. Or open in Xcode and build:
 ```bash
 open Package.swift
 ```
@@ -106,6 +118,13 @@ open Package.swift
 
 ### 安装说明
 
+#### 下载预构建版本
+
+1. 访问 [Releases](https://github.com/voidzyh/UnclutterPlus/releases) 页面
+2. 下载最新的 `UnclutterPlus-vX.X.X.dmg` 文件
+3. 打开 DMG 文件，将 UnclutterPlus 拖拽到应用程序文件夹
+4. 从应用程序文件夹启动 UnclutterPlus
+
 #### 系统要求
 - macOS 12.0 或更高版本
 - Xcode 14.0 或更高版本（从源码构建时需要）
@@ -118,12 +137,17 @@ git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 ```
 
-2. 使用 Swift Package Manager 构建：
+2. 使用构建脚本：
+```bash
+./scripts/build.sh
+```
+
+3. 或使用 Swift Package Manager 构建：
 ```bash
 swift build -c release
 ```
 
-3. 或在 Xcode 中打开并构建：
+4. 或在 Xcode 中打开并构建：
 ```bash
 open Package.swift
 ```
