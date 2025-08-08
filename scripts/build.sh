@@ -50,6 +50,14 @@ fi
 # 复制 Info.plist
 cp "Sources/$APP_NAME/Info.plist" "$APP_BUNDLE/Contents/"
 
+# 复制图标文件
+if [ -f "Sources/$APP_NAME/Resources/$APP_NAME.icns" ]; then
+    cp "Sources/$APP_NAME/Resources/$APP_NAME.icns" "$APP_BUNDLE/Contents/Resources/"
+    echo "✅ App icon included"
+else
+    echo "⚠️  Warning: No app icon found"
+fi
+
 # 设置可执行权限
 chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 
