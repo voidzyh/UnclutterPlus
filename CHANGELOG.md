@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.1] - 2025-08-08
+
+### Added
+- 🎨 添加现代化应用图标
+  - 蓝色渐变背景，符合 macOS 设计风格
+  - 玻璃效果和阴影增加视觉深度
+  - 图标表现三个核心功能：文件管理、剪贴板、笔记
+  - 支持所有 macOS 要求的分辨率 (16x16 至 1024x1024)
+
+### Changed
+- 🔧 更新构建脚本，自动在应用包中包含图标文件
+- ⚙️ 在 Info.plist 中添加图标文件引用
+
 ## [1.0.0] - 2025-08-08
 
 ### Changed

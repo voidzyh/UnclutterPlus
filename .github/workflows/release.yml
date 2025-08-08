@@ -67,6 +67,14 @@ jobs:
         # 复制 Info.plist
         cp "Sources/${{ env.APP_NAME }}/Info.plist" "${{ env.APP_NAME }}.app/Contents/"
         
+        # 复制图标文件
+        if [ -f "Sources/${{ env.APP_NAME }}/Resources/${{ env.APP_NAME }}.icns" ]; then
+          cp "Sources/${{ env.APP_NAME }}/Resources/${{ env.APP_NAME }}.icns" "${{ env.APP_NAME }}.app/Contents/Resources/"
+          echo "✅ App icon included"
+        else
+          echo "⚠️  Warning: No app icon found"
+        fi
+        
         # 更新 Info.plist 中的版本信息
         /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.VERSION }}" "${{ env.APP_NAME }}.app/Contents/Info.plist"
         /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.version.outputs.VERSION }}" "${{ env.APP_NAME }}.app/Contents/Info.plist"
@@ -125,15 +133,36 @@ jobs:
       run: |
         # 从 CHANGELOG.md 提取发布说明
         if [[ -f "CHANGELOG.md" ]]; then
-          # 提取 [Unreleased] 部分作为发布说明
-          awk '/## \[Unreleased\]/{flag=1; next} /## \[/{flag=0} flag' CHANGELOG.md > release_notes.txt
+          # 提取当前版本的发布说明
+          VERSION_NUMBER="${{ steps.version.outputs.VERSION }}"
+          VERSION_NUMBER=${VERSION_NUMBER#v}  # 移除 'v' 前缀
+          
+          # 查找当前版本的部分
+          awk "/## \[$VERSION_NUMBER\]/{flag=1; next} /## \[/{if(flag) exit} flag" CHANGELOG.md > release_notes.txt
+          
+          # 如果没有找到当前版本的说明，生成默认内容
           if [[ ! -s release_notes.txt ]]; then
-            echo "### Changes" > release_notes.txt
-            echo "- Bug fixes and improvements" >> release_notes.txt
+            echo "## UnclutterPlus ${{ steps.version.outputs.VERSION }}" > release_notes.txt
+            echo "" >> release_notes.txt
+            echo "一款现代化的 macOS 生产力应用，灵感来源于 Unclutter，提供增强的文件管理、剪贴板历史和 Markdown 笔记功能。" >> release_notes.txt
+            echo "" >> release_notes.txt
+            echo "### 主要功能" >> release_notes.txt
+            echo "- 🗂️ **文件管理**: 临时文件存储，支持拖拽操作和智能文件图标" >> release_notes.txt
+            echo "- 📋 **剪贴板历史**: 多格式支持，智能搜索，持久化存储" >> release_notes.txt
+            echo "- 📝 **Markdown 笔记**: 实时预览，语法高亮，自动保存" >> release_notes.txt
+            echo "- 🖥️ **系统集成**: 屏幕边缘手势触发，多屏幕支持，流畅动画" >> release_notes.txt
+            echo "" >> release_notes.txt
+            echo "### 系统要求" >> release_notes.txt
+            echo "- macOS 12.0 或更高版本" >> release_notes.txt
+            echo "" >> release_notes.txt
+            echo "### 安装说明" >> release_notes.txt
+            echo "1. 下载 DMG 文件" >> release_notes.txt
+            echo "2. 双击打开，将 UnclutterPlus 拖拽到应用程序文件夹" >> release_notes.txt
+            echo "3. 启动应用，鼠标移至屏幕顶部边缘并向下滑动或滚轮即可激活" >> release_notes.txt
           fi
         else
-          echo "### ${{ env.APP_NAME }} ${{ steps.version.outputs.VERSION }}" > release_notes.txt
-          echo "- New release with latest features and improvements" >> release_notes.txt
+          echo "## ${{ env.APP_NAME }} ${{ steps.version.outputs.VERSION }}" > release_notes.txt
+          echo "- 新版本发布，包含最新功能和改进" >> release_notes.txt
         fi
         
         echo "Release notes:"
