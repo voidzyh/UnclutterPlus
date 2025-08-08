@@ -80,9 +80,13 @@ class WindowManager: NSObject {
     }
     
     private func setupEdgeTracking() {
-        mouseTracker = EdgeMouseTracker { [weak self] in
-            self?.showWindow()
-        }
+        mouseTracker = EdgeMouseTracker(
+            onEdgeTriggered: { [weak self] in
+                self?.showWindow()
+            },
+            scrollDirection: .both,           // 支持双向滚轮触发
+            gestureType: .twoFingerDown      // 只支持双指下滑
+        )
     }
     
     func showWindow() {
@@ -143,15 +147,38 @@ class WindowManager: NSObject {
         
         let screenFrame = screen.frame
         let windowFrame = window.frame
-        let startY = screenFrame.maxY
-        let endY = screenFrame.maxY - windowFrame.height - 10
         
+        // 动画起点：屏幕上方边缘外
+        let startY = screenFrame.maxY + 20
+        // 最终位置：考虑多屏布局
+        let margin: CGFloat = 10
+        let allScreens = NSScreen.screens
+        let hasScreenAbove = allScreens.contains { otherScreen in
+            let otherFrame = otherScreen.frame
+            return otherFrame != screenFrame && 
+                   otherFrame.minY > screenFrame.maxY &&
+                   otherFrame.intersects(CGRect(x: screenFrame.minX - 100, 
+                                               y: screenFrame.maxY, 
+                                               width: screenFrame.width + 200, 
+                                               height: 1))
+        }
+        
+        let endY = hasScreenAbove ? 
+            screenFrame.maxY - windowFrame.height - margin * 3 :
+            screenFrame.maxY - windowFrame.height - margin
+        
+        // 设置起始位置和透明度
         window.setFrameOrigin(NSPoint(x: windowFrame.origin.x, y: startY))
+        window.alphaValue = 0.0
         
+        // 执行流畅的滑入动画
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.3
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            context.duration = 0.25  // 稍微快一点，更响应
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.25, 0.1, 0.25, 1.0)  // 自定义贝塞尔曲线，更自然
+            context.allowsImplicitAnimation = true
+            
             window.animator().setFrameOrigin(NSPoint(x: windowFrame.origin.x, y: endY))
+            window.animator().alphaValue = 1.0
         } completionHandler: {
             completion?()
         }
@@ -171,13 +198,21 @@ class WindowManager: NSObject {
         
         let screenFrame = screen.frame
         let windowFrame = window.frame
-        let endY = screenFrame.maxY
         
+        // 滑出目标：屏幕上方边缘外，比滑入时更远一些
+        let endY = screenFrame.maxY + 30
+        
+        // 执行快速且流畅的滑出动画
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            context.duration = 0.18  // 比滑入稍快，感觉更响应
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.4, 0.0, 0.6, 1.0)  // 快速开始，平滑结束
+            context.allowsImplicitAnimation = true
+            
             window.animator().setFrameOrigin(NSPoint(x: windowFrame.origin.x, y: endY))
+            window.animator().alphaValue = 0.8  // 淡出但不完全透明，保持可见性直到隐藏
         } completionHandler: {
+            // 确保窗口完全隐藏后再回调
+            window.alphaValue = 1.0  // 重置透明度为下次显示做准备
             completion()
         }
     }
@@ -192,16 +227,53 @@ class WindowManager: NSObject {
         let screenFrame = screen.frame
         let windowFrame = window.frame
         
-        // 确保窗口在屏幕边界内
+        // 分析多屏布局：检查是否有上下屏幕关系
+        let allScreens = NSScreen.screens
+        let hasScreenAbove = allScreens.contains { otherScreen in
+            let otherFrame = otherScreen.frame
+            // 检查是否有屏幕在当前屏幕上方（Y坐标更大）
+            return otherFrame != screenFrame && 
+                   otherFrame.minY > screenFrame.maxY &&
+                   otherFrame.intersects(CGRect(x: screenFrame.minX - 100, 
+                                               y: screenFrame.maxY, 
+                                               width: screenFrame.width + 200, 
+                                               height: 1))
+        }
+        
+        let hasScreenBelow = allScreens.contains { otherScreen in
+            let otherFrame = otherScreen.frame
+            // 检查是否有屏幕在当前屏幕下方（Y坐标更小）
+            return otherFrame != screenFrame && 
+                   otherFrame.maxY < screenFrame.minY &&
+                   otherFrame.intersects(CGRect(x: screenFrame.minX - 100, 
+                                               y: screenFrame.minY - 1, 
+                                               width: screenFrame.width + 200, 
+                                               height: 1))
+        }
+        
+        // 计算窗口位置
         let margin: CGFloat = 10
         let maxX = screenFrame.maxX - windowFrame.width - margin
         let minX = screenFrame.minX + margin
         let x = max(minX, min(maxX, screenFrame.midX - (windowFrame.width / 2)))
-        let y = screenFrame.maxY - windowFrame.height - margin
+        
+        // 根据屏幕布局调整Y位置
+        let y: CGFloat
+        if hasScreenAbove {
+            // 如果上方有屏幕，窗口从当前屏幕顶部向下一些显示，避免遮挡上方屏幕
+            y = screenFrame.maxY - windowFrame.height - margin * 3
+            print("多屏布局：上方有屏幕，调整窗口位置避免遮挡")
+        } else {
+            // 标准位置：紧贴屏幕顶部
+            y = screenFrame.maxY - windowFrame.height - margin
+        }
         
         let newOrigin = NSPoint(x: x, y: y)
         window.setFrameOrigin(newOrigin)
-        print("Window positioned at: \(newOrigin) on screen: \(screenFrame)")
+        
+        print("窗口定位: \(newOrigin)")
+        print("屏幕信息: \(screenFrame)")
+        print("布局分析: 上方有屏幕=\(hasScreenAbove), 下方有屏幕=\(hasScreenBelow)")
     }
     
     private func findScreenForPoint(_ point: CGPoint) -> NSScreen? {
