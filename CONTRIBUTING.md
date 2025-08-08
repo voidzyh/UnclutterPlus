@@ -5,7 +5,7 @@
 ## 如何贡献
 
 ### 报告 Bug
-1. 检查 [Issues](https://github.com/Yu-Hang-Z/UnclutterPlus/issues) 确认问题未被报告
+1. 检查 [Issues](https://github.com/voidzyh/UnclutterPlus/issues) 确认问题未被报告
 2. 创建新的 Issue，包含：
    - 详细的问题描述
    - 重现步骤
@@ -34,7 +34,7 @@
 
 ### 设置步骤
 ```bash
-git clone https://github.com/Yu-Hang-Z/UnclutterPlus.git
+git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 open Package.swift
 ```

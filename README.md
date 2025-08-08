@@ -31,9 +31,10 @@ A modern macOS productivity app inspired by Unclutter, featuring enhanced Markdo
 - **Smart Preview**: Generates text previews from Markdown content
 
 #### 🖥️ System Integration
-- **Screen Edge Trigger**: Move mouse to top screen edge to activate
+- **Smart Gesture Trigger**: Scroll wheel or two-finger swipe down at screen top edge to activate, prevents accidental triggers
+- **Multi-Screen Support**: Intelligent screen layout detection with adaptive window positioning
 - **Menu Bar Integration**: Clean menu bar icon with quick access
-- **Smooth Animations**: Polished slide-down animations
+- **Enhanced Animations**: Optimized slide-in/out animations with transparency effects
 - **Window Management**: Configurable window priority and focus handling
 
 ### Installation
@@ -46,7 +47,7 @@ A modern macOS productivity app inspired by Unclutter, featuring enhanced Markdo
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/UnclutterPlus.git
+git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 ```
 
@@ -62,7 +63,7 @@ open Package.swift
 
 ### Usage
 
-1. **Activation**: Move your mouse to the top edge of the screen
+1. **Activation**: Move your mouse to the top edge of the screen, then scroll wheel or swipe down with two fingers
 2. **Navigation**: Use the three tabs (Files, Clipboard, Notes)
 3. **Files**: Drag and drop files for temporary storage
 4. **Clipboard**: Automatic clipboard history with search
@@ -97,9 +98,10 @@ open Package.swift
 - **智能预览**：从 Markdown 内容生成文本预览
 
 #### 🖥️ 系统集成
-- **屏幕边缘触发**：鼠标移动到屏幕顶部边缘激活
+- **智能手势触发**：屏幕顶部边缘滚轮或双指下滑激活，避免误触发
+- **多屏幕支持**：智能检测屏幕布局，自适应窗口位置
 - **菜单栏集成**：简洁的菜单栏图标，快速访问
-- **流畅动画**：精美的下滑动画效果
+- **增强动画**：优化的滑入滑出动画，支持透明度变化
 - **窗口管理**：可配置的窗口优先级和焦点处理
 
 ### 安装说明
@@ -112,7 +114,7 @@ open Package.swift
 
 1. 克隆仓库：
 ```bash
-git clone https://github.com/yourusername/UnclutterPlus.git
+git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 ```
 
@@ -128,7 +130,7 @@ open Package.swift
 
 ### 使用方法
 
-1. **激活应用**：将鼠标移动到屏幕顶部边缘
+1. **激活应用**：将鼠标移动到屏幕顶部边缘，然后滚动滚轮或双指向下滑动
 2. **标签导航**：使用三个标签页（文件、剪贴板、笔记）
 3. **文件功能**：拖拽文件进行临时存储
 4. **剪贴板功能**：自动剪贴板历史记录，支持搜索
