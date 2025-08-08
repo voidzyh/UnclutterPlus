@@ -19,12 +19,14 @@ let package = Package(
             name: "UnclutterPlus",
             dependencies: [
             ],
-            path: "Sources",
-            exclude: ["UnclutterPlus/Info.plist"]
+            path: "Sources/UnclutterPlus",
+            exclude: ["Info.plist"],
+            resources: [.copy("Info.plist")]
         ),
         .testTarget(
             name: "UnclutterPlusTests", 
-            dependencies: ["UnclutterPlus"]
+            dependencies: ["UnclutterPlus"],
+            path: "Tests/UnclutterPlusTests"
         ),
     ]
 )

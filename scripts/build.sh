@@ -37,7 +37,15 @@ mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 # 复制可执行文件
-cp "$BUILD_DIR/release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
+# 检查通用二进制构建路径
+if [ -f "$BUILD_DIR/apple/Products/Release/$APP_NAME" ]; then
+    cp "$BUILD_DIR/apple/Products/Release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
+elif [ -f "$BUILD_DIR/release/$APP_NAME" ]; then
+    cp "$BUILD_DIR/release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
+else
+    echo "❌ Error: Cannot find executable file"
+    exit 1
+fi
 
 # 复制 Info.plist
 cp "Sources/$APP_NAME/Info.plist" "$APP_BUNDLE/Contents/"
