@@ -31,5 +31,7 @@
 	<true/>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+	<key>CFBundleIconFile</key>
+	<string>UnclutterPlus</string>
 </dict>
 </plist>

@@ -21,7 +21,10 @@ let package = Package(
             ],
             path: "Sources/UnclutterPlus",
             exclude: ["Info.plist"],
-            resources: [.copy("Info.plist")]
+            resources: [
+                .copy("Info.plist"),
+                .copy("Resources/UnclutterPlus.icns")
+            ]
         ),
         .testTarget(
             name: "UnclutterPlusTests", 
