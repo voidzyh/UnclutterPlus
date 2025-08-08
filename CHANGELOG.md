@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+## [1.0.0] - 2025-08-08
+
 ### Changed
 - 重新设计触发机制，改为基于滚轮和双指下滑手势触发，避免频繁误触发
 - 简化触摸板支持，只保留双指向下滑动，提高响应速度
