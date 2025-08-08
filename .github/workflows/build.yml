@@ -10,6 +10,9 @@ on:
 env:
   APP_NAME: UnclutterPlus
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-14

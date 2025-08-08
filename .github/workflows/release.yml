@@ -15,6 +15,9 @@ env:
   APP_NAME: UnclutterPlus
   BUILD_PATH: .build/release
 
+permissions:
+  contents: write
+  
 jobs:
   build-and-release:
     runs-on: macos-14
