@@ -80,6 +80,11 @@ final class Preferences: ObservableObject {
         didSet { save() }
     }
     
+    // Notes auto-save interval (in seconds)
+    @Published var notesAutoSaveInterval: Double {
+        didSet { save() }
+    }
+    
     private init() {
         let defaults = UserDefaults.standard
         if let raw = defaults.string(forKey: "MarkdownThemeOption"),
@@ -103,6 +108,10 @@ final class Preferences: ObservableObject {
         } else {
             mouseScrollMode = .natural
         }
+        
+        // Load auto-save interval (default: 2.0 seconds)
+        let savedInterval = defaults.double(forKey: "NotesAutoSaveInterval")
+        notesAutoSaveInterval = savedInterval > 0 ? savedInterval : 2.0
     }
     
     private func save() {
@@ -112,6 +121,7 @@ final class Preferences: ObservableObject {
         defaults.set(enableBaseURL, forKey: "MarkdownEnableBaseURL")
         defaults.set(baseURLString, forKey: "MarkdownBaseURLString")
         defaults.set(mouseScrollMode.rawValue, forKey: "MouseScrollMode")
+        defaults.set(notesAutoSaveInterval, forKey: "NotesAutoSaveInterval")
     }
 }
 
