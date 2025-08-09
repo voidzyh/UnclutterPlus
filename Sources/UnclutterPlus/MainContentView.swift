@@ -72,7 +72,9 @@ struct TabButton: View {
     }
 }
 
+#if DEBUG && canImport(SwiftUI) && canImport(PreviewsMacros)
 #Preview {
     MainContentView()
         .frame(width: 800, height: 300)
 }
+#endif

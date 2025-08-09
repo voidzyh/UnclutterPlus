@@ -81,12 +81,32 @@ class WindowManager: NSObject {
     
     private func setupEdgeTracking() {
         mouseTracker = EdgeMouseTracker(
-            onEdgeTriggered: { [weak self] in
-                self?.showWindow()
+            onEdgeTriggered: { [weak self] direction in
+                self?.handleEdgeTrigger(direction: direction)
             },
             scrollDirection: .both,           // 支持双向滚轮触发
             gestureType: .twoFingerDown      // 只支持双指下滑
         )
+    }
+    
+    private func handleEdgeTrigger(direction: EdgeMouseTracker.ScrollDirection) {
+        guard let window = window else { return }
+        
+        switch direction {
+        case .up:
+            // 向上滚动隐藏窗口
+            if window.isVisible {
+                hideWindow()
+            }
+        case .down:
+            // 向下滚动显示窗口
+            if !window.isVisible {
+                showWindow()
+            }
+        case .both:
+            // 双向触发时切换显示状态
+            showWindow()
+        }
     }
     
     func showWindow() {

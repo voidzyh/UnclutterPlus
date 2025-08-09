@@ -102,6 +102,7 @@ struct AppKitTextEditor: NSViewRepresentable {
     }
 }
 
+#if DEBUG && canImport(SwiftUI) && canImport(PreviewsMacros)
 #Preview {
     struct PreviewWrapper: View {
         @State private var text = "Hello, World!\n\nThis is a test of the AppKit text editor."
@@ -116,3 +117,4 @@ struct AppKitTextEditor: NSViewRepresentable {
     
     return PreviewWrapper()
 }
+#endif

@@ -4,6 +4,8 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var windowManager: WindowManager?
+    private var preferencesWindowController: NSWindowController?
+    private var statusMenu: NSMenu?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("Application launched!")
@@ -30,9 +32,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "tray.2", accessibilityDescription: "UnclutterPlus")
-            button.action = #selector(statusBarButtonClicked)
-            button.target = self
         }
+
+        // Build a persistent status menu
+        let menu = NSMenu()
+        // Open
+        let openItem = NSMenuItem(title: "Open UnclutterPlus", action: #selector(openMainWindow(_:)), keyEquivalent: "")
+        openItem.target = self
+        menu.addItem(openItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Preferences
+        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences(_:)), keyEquivalent: ",")
+        prefsItem.keyEquivalentModifierMask = [.command]
+        prefsItem.target = self
+        menu.addItem(prefsItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Quit
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
+        quitItem.target = NSApp
+        menu.addItem(quitItem)
+
+        statusMenu = menu
+        statusItem?.menu = menu
     }
     
     private func setupWindowManager() {
@@ -40,36 +65,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("WindowManager 已初始化")
     }
     
-    @objc private func statusBarButtonClicked() {
-        let menu = NSMenu()
-        
-        let openItem = NSMenuItem(title: "Open UnclutterPlus", action: #selector(openMainWindow), keyEquivalent: "")
-        openItem.target = self
-        menu.addItem(openItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences), keyEquivalent: ",")
-        prefsItem.target = self
-        menu.addItem(prefsItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
-        quitItem.target = NSApp
-        menu.addItem(quitItem)
-        
-        statusItem?.menu = menu
-        statusItem?.button?.performClick(nil)
-    }
+    @objc private func statusBarButtonClicked() { /* menu shown automatically by NSStatusItem */ }
     
-    @objc private func openMainWindow() {
-        print("点击了 Open UnclutterPlus 按钮")
+    @objc private func openMainWindow(_ sender: Any?) {
         windowManager?.showWindow()
     }
     
-    @objc private func openPreferences() {
-        // TODO: 实现偏好设置窗口
-        print("Open preferences")
+    @objc func openPreferences(_ sender: Any?) {
+        DispatchQueue.main.async {
+            if self.preferencesWindowController == nil {
+                let hosting = NSHostingController(rootView: PreferencesView())
+                let window = NSWindow(contentViewController: hosting)
+                window.title = "Preferences"
+                window.styleMask = [.titled, .closable, .miniaturizable]
+                window.isReleasedWhenClosed = false
+                window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
+                window.setContentSize(NSSize(width: 520, height: 400))
+                window.center()
+                self.preferencesWindowController = NSWindowController(window: window)
+            }
+            
+            guard let windowController = self.preferencesWindowController,
+                  let window = windowController.window else { return }
+            
+            NSApp.activate(ignoringOtherApps: true)
+            window.level = .floating
+            window.makeKeyAndOrderFront(nil)
+            windowController.showWindow(nil)
+        }
     }
 }
