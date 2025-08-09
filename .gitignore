@@ -46,3 +46,7 @@ app.log
 # IDE
 .vscode/
 .idea/
+
+# Claude assistant files
+CLAUDE.md
+CLAUDE-zh.md
