@@ -6,7 +6,15 @@ struct UnclutterPlusApp: App {
     
     var body: some Scene {
         Settings {
-            EmptyView()
+            PreferencesView()
+        }
+        .commands {
+            CommandGroup(after: .appSettings) {
+                Button("Preferences...") {
+                    NSApp.sendAction(#selector(AppDelegate.openPreferences(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut(",", modifiers: [.command])
+            }
         }
     }
 }

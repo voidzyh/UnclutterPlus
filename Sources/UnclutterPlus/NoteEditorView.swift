@@ -1,5 +1,7 @@
 import SwiftUI
 import AppKit
+import MarkdownUI
+import Splash
 
 struct NoteEditorView: View {
     let note: Note
@@ -8,6 +10,8 @@ struct NoteEditorView: View {
     @State private var title: String
     @State private var content: String
     @State private var showPreview = true
+    // Markdown rendering preferences (bound to shared preferences)
+    @ObservedObject private var prefs = Preferences.shared
     @FocusState private var isTitleFocused: Bool
     @FocusState private var isContentFocused: Bool
     @State private var saveTimer: Timer?
@@ -31,88 +35,94 @@ struct NoteEditorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 标题编辑和工具栏
-            VStack(spacing: 8) {
-                HStack {
-                    TextField("Note title", text: $title)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .textFieldStyle(.plain)
-                        .focused($isTitleFocused)
-                        .onSubmit {
-                            saveNote()
-                        }
-                    
-                    Spacer()
-                    
-                    // 预览切换按钮
-                    Button(action: { showPreview.toggle() }) {
-                        Image(systemName: showPreview ? "eye.slash" : "eye")
-                            .font(.title3)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(showPreview ? "Hide Preview" : "Show Preview")
-                }
-                
-                // Markdown 工具栏
-                MarkdownToolbar { action in
-                    insertMarkdown(action)
-                }
-                .disabled(false)  // 确保按钮可点击
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.regularMaterial)
-            
+            headerSection
             Divider()
-            
-            // 编辑器和预览区域
-            HStack(spacing: 0) {
-                // 左侧：文本编辑器
-                VStack(alignment: .leading, spacing: 0) {
-                    AppKitTextEditor(
-                        text: $content,
-                        font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-                    ) { newText in
-                        // 在文本变化时保存
-                        saveNoteDebounced()
+            contentSection
+        }
+        .onChange(of: title) { _, _ in saveNoteDebounced() }
+        .onAppear { updateStateFromNote() }
+        .onChange(of: note.id) { _, _ in
+            saveTimer?.invalidate()
+            updateStateFromNote()
+        }
+        // preferences are synced via Preferences.shared
+    }
+
+    @ViewBuilder
+    private var headerSection: some View {
+        // 标题编辑和工具栏
+        VStack(spacing: 8) {
+            HStack {
+                TextField("Note title", text: $title)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .textFieldStyle(.plain)
+                    .focused($isTitleFocused)
+                    .onSubmit { saveNote() }
+
+                Spacer()
+
+                // 预览切换按钮
+                Button(action: { showPreview.toggle() }) {
+                    Image(systemName: showPreview ? "eye.slash" : "eye")
+                        .font(.title3)
+                }
+                .buttonStyle(.borderless)
+                .help(showPreview ? "Hide Preview" : "Show Preview")
+
+                // rendering controls moved to Preferences window
+            }
+
+            // Markdown 工具栏
+            MarkdownToolbar { action in
+                insertMarkdown(action)
+            }
+            .disabled(false)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial)
+    }
+
+    @ViewBuilder
+    private var contentSection: some View {
+        // 编辑器和预览区域
+        HStack(spacing: 0) {
+            // 左侧：文本编辑器
+            VStack(alignment: .leading, spacing: 0) {
+                AppKitTextEditor(
+                    text: $content,
+                    font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+                ) { _ in
+                    saveNoteDebounced()
+                }
+                .padding()
+            }
+            .frame(maxWidth: showPreview ? .infinity : nil)
+
+            if showPreview {
+                Divider()
+
+                // 右侧：MarkdownUI 真正渲染
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Preview")
+                            .font(.headline)
+                            .padding(.bottom, 8)
+
+                        Markdown(content, baseURL: prefs.enableBaseURL ? URL(string: prefs.baseURLString) : nil)
+                            .markdownTheme(prefs.markdownTheme.toMarkdownUITheme())
+                            .markdownCodeSyntaxHighlighter(
+                                .splash(theme: prefs.codeHighlightTheme.toSplashTheme(fontSize: 13))
+                            )
+                            .padding(.top, 4)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                 }
-                .frame(maxWidth: showPreview ? .infinity : nil)
-                
-                if showPreview {
-                    Divider()
-                    
-                    // 右侧：简化预览
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Preview")
-                                .font(.headline)
-                                .padding(.bottom, 8)
-                            
-                            Text(renderMarkdown(content))
-                                .font(.body)
-                                .textSelection(.enabled)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .background(.regularMaterial)
-                }
+                .frame(maxWidth: .infinity)
+                .background(.regularMaterial)
             }
-        }
-        .onChange(of: title) { _, _ in
-            saveNoteDebounced()
-        }
-        .onAppear {
-            updateStateFromNote()
-        }
-        .onChange(of: note.id) { _, _ in
-            // 切换笔记时立即更新，不等待保存
-            saveTimer?.invalidate()  // 取消之前的保存
-            updateStateFromNote()
         }
     }
     
@@ -179,29 +189,7 @@ struct NoteEditorView: View {
         content += prefix + "text"
     }
     
-    private func renderMarkdown(_ markdown: String) -> String {
-        // 简化的 Markdown 渲染，只处理基本格式
-        var result = markdown
-        
-        // 处理标题
-        result = result.replacingOccurrences(of: "# ", with: "📝 ")
-        result = result.replacingOccurrences(of: "## ", with: "📝 ")
-        result = result.replacingOccurrences(of: "### ", with: "📝 ")
-        
-        // 处理列表
-        result = result.replacingOccurrences(of: "- ", with: "• ")
-        result = result.replacingOccurrences(of: "* ", with: "• ")
-        
-        // 处理任务列表
-        result = result.replacingOccurrences(of: "- [ ] ", with: "☐ ")
-        result = result.replacingOccurrences(of: "- [x] ", with: "☑ ")
-        result = result.replacingOccurrences(of: "- [X] ", with: "☑ ")
-        
-        // 处理引用
-        result = result.replacingOccurrences(of: "> ", with: "❝ ")
-        
-        return result
-    }
+    // 使用 MarkdownUI 后不再需要手写 renderMarkdown
 }
 
 enum MarkdownAction {
@@ -210,6 +198,8 @@ enum MarkdownAction {
     case bulletList, numberedList, taskList
     case quote, codeBlock
 }
+
+// Theme enums moved to MarkdownPreferences.swift
 
 struct MarkdownToolbar: View {
     let onAction: (MarkdownAction) -> Void
@@ -256,15 +246,15 @@ struct MarkdownToolbar: View {
     
     private func ToolbarButton(
         _ text: String,
-        weight: Font.Weight = .regular,
-        style: Font.TextStyle = .body,
+        weight: SwiftUI.Font.Weight = .regular,
+        style: SwiftUI.Font.TextStyle = .body,
         strikethrough: Bool = false,
         monospaced: Bool = false,
         action: MarkdownAction
     ) -> some View {
         Button(action: { onAction(action) }) {
             Text(text)
-                .font(monospaced ? .system(.body, design: .monospaced) : .system(.body))
+                .font(monospaced ? SwiftUI.Font.system(.body, design: .monospaced) : SwiftUI.Font.system(.body))
                 .strikethrough(strikethrough)
                 .frame(minWidth: 24, minHeight: 24)
         }
@@ -281,6 +271,7 @@ struct MarkdownToolbar: View {
     }
 }
 
+#if DEBUG && canImport(SwiftUI) && canImport(PreviewsMacros)
 #Preview {
     NoteEditorView(
         note: Note(title: "Sample Note", content: "# Hello\n\nThis is **bold** text."),
@@ -288,3 +279,4 @@ struct MarkdownToolbar: View {
     )
     .frame(width: 800, height: 400)
 }
+#endif

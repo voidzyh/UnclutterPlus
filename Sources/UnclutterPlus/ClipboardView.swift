@@ -177,7 +177,9 @@ struct ClipboardItemView: View {
     }
 }
 
+#if DEBUG && canImport(SwiftUI) && canImport(PreviewsMacros)
 #Preview {
     ClipboardView()
         .frame(width: 800, height: 250)
 }
+#endif

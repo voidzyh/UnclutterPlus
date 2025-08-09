@@ -3,7 +3,7 @@ import Cocoa
 class EdgeMouseTracker {
     private var scrollEventMonitor: Any?
     private var gestureEventMonitor: Any?
-    private let onEdgeTriggered: () -> Void
+    private let onEdgeTriggered: (ScrollDirection) -> Void
     
     // 配置参数
     private let edgeThreshold: CGFloat = 50.0  // 边缘检测区域
@@ -42,7 +42,7 @@ class EdgeMouseTracker {
     private var enabledScrollDirection: ScrollDirection = .both
     private var enabledGestureType: GestureType = .twoFingerDown
     
-    init(onEdgeTriggered: @escaping () -> Void, 
+    init(onEdgeTriggered: @escaping (ScrollDirection) -> Void, 
          scrollDirection: ScrollDirection = .both,
          gestureType: GestureType = .twoFingerDown) {
         self.onEdgeTriggered = onEdgeTriggered
@@ -116,7 +116,15 @@ class EdgeMouseTracker {
             return
         }
         
-        let scrollY = event.scrollingDeltaY
+        var scrollY = event.scrollingDeltaY
+        // Adjust for mouse wheel mode; trackpad stays natural
+        if !event.hasPreciseScrollingDeltas { // likely mouse wheel
+            let mode = Preferences.shared.mouseScrollMode
+            // If user chooses traditional, invert to match natural semantics (down = negative)
+            if mode == .traditional {
+                scrollY = -scrollY
+            }
+        }
         let shouldTrigger: Bool
         
         switch enabledScrollDirection {
@@ -135,7 +143,8 @@ class EdgeMouseTracker {
                 print("滚轮触发: \(scrollY) at \(mouseLocation)")
             }
             
-            attemptTrigger(source: "滚轮[\(scrollY > 0 ? "上" : "下")]")
+            let direction: ScrollDirection = scrollY > 0 ? .up : .down
+            attemptTrigger(source: "滚轮[\(scrollY > 0 ? "上" : "下")]", direction: direction)
         }
     }
     
@@ -157,7 +166,7 @@ class EdgeMouseTracker {
             // 优先处理scrollWheel事件 - 这是最快的方式检测双指滑动
             // 触摸板双指滑动会产生hasPreciseScrollingDeltas = true的scrollWheel事件
             if event.hasPreciseScrollingDeltas {
-                let deltaY = event.scrollingDeltaY
+                let deltaY = event.scrollingDeltaY // always natural for trackpad
                 // 向下滑动产生负的deltaY
                 if deltaY < -gestureThreshold {
                     shouldTrigger = true
@@ -182,18 +191,18 @@ class EdgeMouseTracker {
             }
             
             // 立即触发，不添加额外的延迟
-            attemptTrigger(source: gestureDescription)
+            attemptTrigger(source: gestureDescription, direction: .down)
         }
     }
     
     // 统一的触发尝试方法
-    private func attemptTrigger(source: String) {
+    private func attemptTrigger(source: String, direction: ScrollDirection) {
         let now = Date()
         if now.timeIntervalSince(lastTriggerTime) > cooldownInterval {
             lastTriggerTime = now
             print("✅ 触发成功! 来源: \(source)")
             DispatchQueue.main.async {
-                self.onEdgeTriggered()
+                self.onEdgeTriggered(direction)
             }
         } else {
             let remainingTime = cooldownInterval - now.timeIntervalSince(lastTriggerTime)

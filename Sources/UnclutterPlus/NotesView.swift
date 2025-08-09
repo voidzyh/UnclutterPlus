@@ -222,7 +222,9 @@ struct NewNoteDialog: View {
     }
 }
 
+#if DEBUG && canImport(SwiftUI) && canImport(PreviewsMacros)
 #Preview {
     NotesView()
         .frame(width: 800, height: 250)
 }
+#endif
