@@ -18,6 +18,22 @@ struct PreferencesView: View {
                 }
             }
             
+            Section("Notes") {
+                HStack {
+                    Text("Auto-save interval:")
+                    Spacer()
+                    Text(String(format: "%.1fs", prefs.notesAutoSaveInterval))
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
+                }
+                
+                Slider(value: $prefs.notesAutoSaveInterval, in: 0.5...10.0, step: 0.5)
+            }
+            
+            Section(footer: Text("How long to wait before automatically saving notes while typing.").font(.footnote)) {
+                EmptyView()
+            }
+            
             Section("Mouse & Trackpad") {
                 Picker("Mouse Scroll", selection: $prefs.mouseScrollMode) {
                     ForEach(MouseScrollMode.allCases, id: \.self) { mode in

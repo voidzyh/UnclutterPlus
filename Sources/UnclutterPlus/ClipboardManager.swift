@@ -12,6 +12,7 @@ struct ClipboardItem: Identifiable, Hashable {
     let id = UUID()
     let content: ClipboardContent
     let timestamp: Date
+    var isPinned: Bool = false
     
     var systemImage: String {
         switch content {
@@ -21,6 +22,28 @@ struct ClipboardItem: Identifiable, Hashable {
             return "photo"
         case .file:
             return "doc"
+        }
+    }
+    
+    var typeColor: Color {
+        switch content {
+        case .text:
+            return .blue
+        case .image:
+            return .green
+        case .file:
+            return .orange
+        }
+    }
+    
+    var preview: String {
+        switch content {
+        case .text(let text):
+            return text.count > 100 ? String(text.prefix(100)) + "..." : text
+        case .image:
+            return "Image content"
+        case .file(let url):
+            return url.lastPathComponent
         }
     }
     
@@ -86,7 +109,7 @@ class ClipboardManager: ObservableObject {
     
     private func addItem(_ content: ClipboardContent) {
         // 检查是否已存在相同内容
-        let isDuplicate = items.contains { item in
+        if let existingIndex = items.firstIndex(where: { item in
             switch (item.content, content) {
             case (.text(let existing), .text(let new)):
                 return existing == new
@@ -97,9 +120,14 @@ class ClipboardManager: ObservableObject {
             default:
                 return false
             }
-        }
-        
-        if !isDuplicate {
+        }) {
+            // 如果已存在，移动到顶部并更新时间戳
+            let existingItem = items[existingIndex]
+            items.remove(at: existingIndex)
+            let updatedItem = ClipboardItem(content: content, timestamp: Date(), isPinned: existingItem.isPinned)
+            items.insert(updatedItem, at: 0)
+        } else {
+            // 新项目，插入到顶部
             let item = ClipboardItem(content: content, timestamp: Date())
             items.insert(item, at: 0)
             
@@ -107,9 +135,9 @@ class ClipboardManager: ObservableObject {
             if items.count > maxItems {
                 items = Array(items.prefix(maxItems))
             }
-            
-            persistItems()
         }
+        
+        persistItems()
     }
     
     func copyToClipboard(_ item: ClipboardItem) {
@@ -133,6 +161,33 @@ class ClipboardManager: ObservableObject {
         persistItems()
     }
     
+    func removeItems(_ itemsToRemove: [ClipboardItem]) {
+        let idsToRemove = Set(itemsToRemove.map { $0.id })
+        items.removeAll { idsToRemove.contains($0.id) }
+        persistItems()
+    }
+    
+    func togglePin(_ item: ClipboardItem) {
+        if let index = items.firstIndex(where: { $0.id == item.id }) {
+            var updatedItem = items[index]
+            updatedItem.isPinned.toggle()
+            items[index] = updatedItem
+            
+            // 重新排序：置顶项目在前
+            items.sort { first, second in
+                if first.isPinned && !second.isPinned {
+                    return true
+                } else if !first.isPinned && second.isPinned {
+                    return false
+                } else {
+                    return first.timestamp > second.timestamp
+                }
+            }
+            
+            persistItems()
+        }
+    }
+    
     func clearAll() {
         items.removeAll()
         persistItems()
@@ -146,7 +201,8 @@ class ClipboardManager: ObservableObject {
                 return [
                     "type": "text",
                     "content": text,
-                    "timestamp": item.timestamp.timeIntervalSince1970
+                    "timestamp": item.timestamp.timeIntervalSince1970,
+                    "isPinned": item.isPinned
                 ]
             default:
                 return nil
@@ -169,9 +225,12 @@ class ClipboardManager: ObservableObject {
                 return nil
             }
             
+            let isPinned = dict["isPinned"] as? Bool ?? false
+            
             return ClipboardItem(
                 content: .text(content),
-                timestamp: Date(timeIntervalSince1970: timestamp)
+                timestamp: Date(timeIntervalSince1970: timestamp),
+                isPinned: isPinned
             )
         }
         
