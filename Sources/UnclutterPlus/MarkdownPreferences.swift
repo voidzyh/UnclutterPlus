@@ -2,6 +2,11 @@ import Foundation
 import MarkdownUI
 import Splash
 
+// MARK: - Notification Names
+extension Notification.Name {
+    static let menuBarIconVisibilityChanged = Notification.Name("menuBarIconVisibilityChanged")
+}
+
 // MARK: - Markdown Theme Options
 enum MarkdownThemeOption: String, CaseIterable {
     case basic
@@ -85,6 +90,14 @@ final class Preferences: ObservableObject {
         didSet { save() }
     }
     
+    // Menu bar icon visibility
+    @Published var showMenuBarIcon: Bool {
+        didSet { 
+            save()
+            NotificationCenter.default.post(name: .menuBarIconVisibilityChanged, object: nil)
+        }
+    }
+    
     private init() {
         let defaults = UserDefaults.standard
         if let raw = defaults.string(forKey: "MarkdownThemeOption"),
@@ -112,6 +125,13 @@ final class Preferences: ObservableObject {
         // Load auto-save interval (default: 2.0 seconds)
         let savedInterval = defaults.double(forKey: "NotesAutoSaveInterval")
         notesAutoSaveInterval = savedInterval > 0 ? savedInterval : 2.0
+        
+        // Load menu bar icon visibility (default: true)
+        if defaults.object(forKey: "ShowMenuBarIcon") != nil {
+            showMenuBarIcon = defaults.bool(forKey: "ShowMenuBarIcon")
+        } else {
+            showMenuBarIcon = true
+        }
     }
     
     private func save() {
@@ -122,6 +142,7 @@ final class Preferences: ObservableObject {
         defaults.set(baseURLString, forKey: "MarkdownBaseURLString")
         defaults.set(mouseScrollMode.rawValue, forKey: "MouseScrollMode")
         defaults.set(notesAutoSaveInterval, forKey: "NotesAutoSaveInterval")
+        defaults.set(showMenuBarIcon, forKey: "ShowMenuBarIcon")
     }
 }
 

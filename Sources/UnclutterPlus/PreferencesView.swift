@@ -44,6 +44,31 @@ struct PreferencesView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
+            
+            Section("Appearance") {
+                Toggle("Show menu bar icon", isOn: $prefs.showMenuBarIcon)
+                
+                if !prefs.showMenuBarIcon {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("When menu bar icon is hidden:", systemImage: "info.circle")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        
+                        Text("• Click Settings button in main window")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        
+                        Text("• Right-click Dock icon for menu")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        
+                        Text("• Swipe down at top edge to show window")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
 
             Section("Base URL") {
                 Toggle("Enable Base URL", isOn: $prefs.enableBaseURL)
@@ -56,6 +81,6 @@ struct PreferencesView: View {
             }
         }
         .padding(20)
-        .frame(width: 520)
+        .frame(width: 520, height: 500)
     }
 }

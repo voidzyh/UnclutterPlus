@@ -1,24 +1,68 @@
 import SwiftUI
+import Cocoa
+
+// 全局变量存储设置窗口控制器
+var preferencesWindowController: NSWindowController?
+
+func showPreferencesWindow() {
+    if preferencesWindowController == nil {
+        let hosting = NSHostingController(rootView: PreferencesView())
+        let window = NSWindow(contentViewController: hosting)
+        window.title = "Preferences"
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+        window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
+        window.setContentSize(NSSize(width: 520, height: 500))
+        window.center()
+        preferencesWindowController = NSWindowController(window: window)
+    }
+    
+    guard let windowController = preferencesWindowController,
+          let window = windowController.window else { return }
+    
+    NSApp.activate(ignoringOtherApps: true)
+    window.level = .floating
+    window.makeKeyAndOrderFront(nil)
+    windowController.showWindow(nil)
+}
 
 struct MainContentView: View {
     @State private var selectedTab = 0
     
     var body: some View {
         VStack(spacing: 0) {
-            // 标签页选择器
-            HStack(spacing: 0) {
-                TabButton(title: "Files", systemImage: "folder", isSelected: selectedTab == 0) {
-                    selectedTab = 0
+            // 标签页选择器区域
+            ZStack {
+                // 居中的标签页按钮
+                HStack(spacing: 0) {
+                    TabButton(title: "Files", systemImage: "folder", isSelected: selectedTab == 0) {
+                        selectedTab = 0
+                    }
+                    TabButton(title: "Clipboard", systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
+                        selectedTab = 1
+                    }
+                    TabButton(title: "Notes", systemImage: "note.text", isSelected: selectedTab == 2) {
+                        selectedTab = 2
+                    }
                 }
-                TabButton(title: "Clipboard", systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
-                    selectedTab = 1
-                }
-                TabButton(title: "Notes", systemImage: "note.text", isSelected: selectedTab == 2) {
-                    selectedTab = 2
+                
+                // 右侧的设置按钮
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        // 直接创建并显示设置窗口
+                        showPreferencesWindow()
+                    }) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Preferences")
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.top, 8)
+            .padding(.vertical, 8)
             
             Divider()
             
