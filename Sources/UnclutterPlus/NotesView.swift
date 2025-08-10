@@ -55,16 +55,28 @@ struct NotesView: View {
                 
                 // 排序和工具
                 Menu {
-                    Picker("Sort by", selection: $notesManager.sortOption) {
+                    Section("Sort by") {
                         ForEach(NotesSortOption.allCases, id: \.self) { option in
-                            Text(option.rawValue).tag(option)
+                            Button(action: { notesManager.sortOption = option }) {
+                                HStack {
+                                    Text(option.rawValue)
+                                    if notesManager.sortOption == option {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
                         }
                     }
                     
                     Divider()
                     
-                    Button(notesManager.isAscending ? "Descending" : "Ascending") {
-                        notesManager.isAscending.toggle()
+                    Button(action: { notesManager.isAscending.toggle() }) {
+                        HStack {
+                            Text(notesManager.isAscending ? "Ascending" : "Descending")
+                            Spacer()
+                            Image(systemName: notesManager.isAscending ? "arrow.up" : "arrow.down")
+                        }
                     }
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
@@ -342,6 +354,7 @@ struct NoteListItemView: View {
     let onToggleSelection: () -> Void
     
     @State private var isHovered = false
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         HStack(spacing: 12) {
@@ -426,21 +439,32 @@ struct NoteListItemView: View {
                 }
             }
             
-            // 悬停操作按钮
+            // 悬停操作按钮（为鼠标用户优化）
             if isHovered && !showSelectionMode {
-                VStack {
+                HStack(spacing: 8) {
                     Button(action: onToggleFavorite) {
                         Image(systemName: note.isFavorite ? "star.fill" : "star")
-                            .font(.caption)
+                            .font(.system(size: 14))
                             .foregroundColor(note.isFavorite ? .yellow : .secondary)
                     }
                     .buttonStyle(.borderless)
                     .help(note.isFavorite ? "取消收藏" : "收藏")
                     
-                    Spacer()
+                    Button(action: { showDeleteConfirmation = true }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundColor(.red.opacity(0.8))
+                    }
+                    .buttonStyle(.borderless)
+                    .help("删除笔记")
                 }
-                .frame(width: 24)
-                .transition(.opacity.combined(with: .scale))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.05))
+                )
+                .transition(.opacity.combined(with: .scale).combined(with: .move(edge: .trailing)))
             }
         }
         .padding(.horizontal, 12)
@@ -475,6 +499,14 @@ struct NoteListItemView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: isSelected)
         .animation(.easeInOut(duration: 0.2), value: isMultiSelected)
+        .alert("删除笔记", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) { }
+            Button("删除", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("确定要删除 \"\(note.title)\" 吗？此操作无法撤销。")
+        }
     }
     
     private var backgroundMaterial: Color {

@@ -82,16 +82,28 @@ struct FilesView: View {
                 
                 // 排序选择
                 Menu {
-                    Picker("Sort by", selection: $fileManager.sortOption) {
+                    Section("Sort by") {
                         ForEach(SortOption.allCases, id: \.self) { option in
-                            Text(option.rawValue).tag(option)
+                            Button(action: { fileManager.sortOption = option }) {
+                                HStack {
+                                    Text(option.rawValue)
+                                    if fileManager.sortOption == option {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
                         }
                     }
                     
                     Divider()
                     
-                    Button(fileManager.isAscending ? "Descending" : "Ascending") {
-                        fileManager.isAscending.toggle()
+                    Button(action: { fileManager.isAscending.toggle() }) {
+                        HStack {
+                            Text(fileManager.isAscending ? "Ascending" : "Descending")
+                            Spacer()
+                            Image(systemName: fileManager.isAscending ? "arrow.up" : "arrow.down")
+                        }
                     }
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
