@@ -140,11 +140,28 @@ class EdgeMouseTracker {
             let now = Date()
             if now.timeIntervalSince(lastLogTime) > logCooldownInterval {
                 lastLogTime = now
-                print("滚轮触发: \(scrollY) at \(mouseLocation)")
+                print("滚轮触发: deltaY=\(scrollY), hasPreciseScrollingDeltas=\(event.hasPreciseScrollingDeltas)")
             }
             
-            let direction: ScrollDirection = scrollY > 0 ? .up : .down
-            attemptTrigger(source: "滚轮[\(scrollY > 0 ? "上" : "下")]", direction: direction)
+            // 区分设备类型和方向
+            let deviceType = event.hasPreciseScrollingDeltas ? "触摸板" : "鼠标"
+            
+            // 方向判断需要根据设备类型区分
+            let direction: ScrollDirection
+            let displayDirection: String
+            
+            if event.hasPreciseScrollingDeltas {
+                // 触摸板：自然滚动，向下滑动产生正值
+                direction = scrollY > 0 ? .down : .up
+                displayDirection = scrollY > 0 ? "下" : "上"
+            } else {
+                // 鼠标：已经根据用户设置调整过scrollY
+                // 无论哪种模式，调整后的scrollY: 负值=向下，正值=向上
+                direction = scrollY < 0 ? .down : .up
+                displayDirection = scrollY < 0 ? "下" : "上"
+            }
+            
+            attemptTrigger(source: "\(deviceType)[\(displayDirection)]", direction: direction)
         }
     }
     
@@ -166,16 +183,18 @@ class EdgeMouseTracker {
             // 优先处理scrollWheel事件 - 这是最快的方式检测双指滑动
             // 触摸板双指滑动会产生hasPreciseScrollingDeltas = true的scrollWheel事件
             if event.hasPreciseScrollingDeltas {
-                let deltaY = event.scrollingDeltaY // always natural for trackpad
-                // 向下滑动产生负的deltaY
-                if deltaY < -gestureThreshold {
+                let deltaY = event.scrollingDeltaY
+                // 触摸板自然滚动：手指向下滑动产生正的deltaY值
+                // 在顶部边缘，向下滑动（正值）应该显示窗口
+                if deltaY > gestureThreshold {
                     shouldTrigger = true
                 }
             }
         case .swipe:
             // 备用：处理系统级的swipe手势
             let deltaY = event.deltaY
-            if deltaY < -gestureThreshold {
+            // swipe手势的deltaY方向：向下滑动为正值（与scrollWheel一致）
+            if deltaY > gestureThreshold {
                 shouldTrigger = true
             }
         default:
