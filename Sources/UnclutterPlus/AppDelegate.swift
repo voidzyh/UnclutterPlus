@@ -45,14 +45,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Build a persistent status menu
         let menu = NSMenu()
         // Open
-        let openItem = NSMenuItem(title: "Open UnclutterPlus", action: #selector(openMainWindow(_:)), keyEquivalent: "")
+        let openItem = NSMenuItem(title: "menu.open".localized, action: #selector(openMainWindow(_:)), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
 
         menu.addItem(NSMenuItem.separator())
 
         // Preferences
-        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences(_:)), keyEquivalent: ",")
+        let prefsItem = NSMenuItem(title: "menu.preferences".localized, action: #selector(openPreferences(_:)), keyEquivalent: ",")
         prefsItem.keyEquivalentModifierMask = [.command]
         prefsItem.target = self
         menu.addItem(prefsItem)
@@ -60,7 +60,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
 
         // Quit
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "menu.quit".localized, action: #selector(NSApplication.terminate), keyEquivalent: "q")
         quitItem.target = NSApp
         menu.addItem(quitItem)
 
@@ -133,14 +133,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         
         // Open
-        let openItem = NSMenuItem(title: "Open UnclutterPlus", action: #selector(openMainWindow(_:)), keyEquivalent: "")
+        let openItem = NSMenuItem(title: "menu.open".localized, action: #selector(openMainWindow(_:)), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
         
         menu.addItem(NSMenuItem.separator())
         
         // Preferences
-        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences(_:)), keyEquivalent: "")
+        let prefsItem = NSMenuItem(title: "menu.preferences".localized, action: #selector(openPreferences(_:)), keyEquivalent: "")
         prefsItem.target = self
         menu.addItem(prefsItem)
         
@@ -157,7 +157,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         // 更新菜单项文本
         if let toggleItem = dockMenu?.items.last {
-            toggleItem.title = Preferences.shared.showMenuBarIcon ? "Hide Menu Bar Icon" : "Show Menu Bar Icon"
+            toggleItem.title = Preferences.shared.showMenuBarIcon ? "menu.hide_menubar_icon".localized : "menu.show_menubar_icon".localized
         }
         return dockMenu
     }

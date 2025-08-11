@@ -153,8 +153,8 @@ enum MouseScrollMode: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .natural: return "Natural (like trackpad)"
-        case .traditional: return "Traditional (legacy wheel)"
+        case .natural: return "preferences.mouse.natural".localized
+        case .traditional: return "preferences.mouse.traditional".localized
         }
     }
 }

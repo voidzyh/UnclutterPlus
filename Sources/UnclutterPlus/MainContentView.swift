@@ -28,6 +28,8 @@ func showPreferencesWindow() {
 
 struct MainContentView: View {
     @State private var selectedTab = 0
+    @ObservedObject private var localizationManager = LocalizationManager.shared
+    @State private var refreshID = UUID()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -35,13 +37,13 @@ struct MainContentView: View {
             ZStack {
                 // 居中的标签页按钮
                 HStack(spacing: 0) {
-                    TabButton(title: "Files", systemImage: "folder", isSelected: selectedTab == 0) {
+                    TabButton(title: "tab.files".localized, systemImage: "folder", isSelected: selectedTab == 0) {
                         selectedTab = 0
                     }
-                    TabButton(title: "Clipboard", systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
+                    TabButton(title: "tab.clipboard".localized, systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
                         selectedTab = 1
                     }
-                    TabButton(title: "Notes", systemImage: "note.text", isSelected: selectedTab == 2) {
+                    TabButton(title: "tab.notes".localized, systemImage: "note.text", isSelected: selectedTab == 2) {
                         selectedTab = 2
                     }
                 }
@@ -58,7 +60,7 @@ struct MainContentView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help("Preferences")
+                    .help("button.preferences".localized)
                 }
             }
             .padding(.horizontal, 12)
@@ -87,6 +89,10 @@ struct MainContentView: View {
                 .shadow(radius: 20)
         )
         .padding(8)
+        .id(refreshID) // 强制刷新视图
+        .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
+            refreshID = UUID() // 语言变化时刷新视图
+        }
     }
 }
 
