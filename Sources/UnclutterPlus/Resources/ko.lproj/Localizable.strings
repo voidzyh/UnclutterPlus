@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (한국어)
+  UnclutterPlus
+*/
+
+// MARK: - 탭 제목
+"tab.files" = "파일";
+"tab.clipboard" = "클립보드";
+"tab.notes" = "메모";
+
+// MARK: - 메인 윈도우
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "환경설정";
+
+// MARK: - 환경설정 윈도우
+"preferences.title" = "환경설정";
+
+// MARK: - 환경설정 섹션
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "메모";
+"preferences.section.mouse_trackpad" = "마우스 및 트랙패드";
+"preferences.section.appearance" = "외관";
+"preferences.section.base_url" = "기본 URL";
+"preferences.section.language" = "언어";
+
+// MARK: - Markdown 설정
+"preferences.markdown.theme" = "테마";
+"preferences.markdown.code_highlight" = "코드 하이라이트";
+
+// MARK: - 메모 설정
+"preferences.notes.autosave_interval" = "자동 저장 간격:";
+"preferences.notes.autosave_help" = "입력 중 메모를 자동으로 저장하기 전까지 기다리는 시간입니다.";
+
+// MARK: - 마우스 및 트랙패드 설정
+"preferences.mouse.scroll_mode" = "마우스 스크롤";
+"preferences.mouse.natural" = "내추럴 (트랙패드와 같음)";
+"preferences.mouse.traditional" = "기존 방식 (레거시 휠)";
+"preferences.trackpad.help" = "트랙패드 제스처는 항상 내추럴을 사용합니다.";
+
+// MARK: - 외관 설정
+"preferences.appearance.show_menubar" = "메뉴 바 아이콘 표시";
+"preferences.appearance.menubar_hidden_info" = "메뉴 바 아이콘이 숨겨진 경우:";
+"preferences.appearance.menubar_hidden_tip1" = "• 메인 윈도우의 설정 버튼 클릭";
+"preferences.appearance.menubar_hidden_tip2" = "• Dock 아이콘을 우클릭하여 메뉴 표시";
+"preferences.appearance.menubar_hidden_tip3" = "• 상단 가장자리에서 아래로 스와이프하여 윈도우 표시";
+
+// MARK: - 기본 URL 설정
+"preferences.base_url.enable" = "기본 URL 활성화";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "기본 URL은 Markdown의 상대 링크와 이미지 주소 해결에 사용됩니다";
+
+// MARK: - 언어 설정
+"preferences.language.select" = "언어";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "简体中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "언어 변경을 적용하려면 재시작이 필요합니다";
+
+// MARK: - 메뉴 항목
+"menu.open" = "UnclutterPlus 열기";
+"menu.preferences" = "환경설정...";
+"menu.quit" = "종료";
+"menu.show_menubar_icon" = "메뉴 바 아이콘 표시";
+"menu.hide_menubar_icon" = "메뉴 바 아이콘 숨기기";
+
+// MARK: - 파일 뷰
+"files.drop_area.title" = "파일을 여기에 드롭";
+"files.drop_area.subtitle" = "파일을 드래그 앤 드롭하여 임시 저장";
+"files.no_files" = "저장된 파일이 없습니다";
+"files.sort.by" = "정렬 기준";
+"files.sort.name" = "이름";
+"files.sort.date" = "날짜";
+"files.sort.size" = "크기";
+"files.contextmenu.reveal" = "Finder에서 보기";
+"files.contextmenu.open" = "열기";
+"files.contextmenu.delete" = "삭제";
+
+// MARK: - 클립보드 뷰
+"clipboard.empty" = "클립보드 기록이 없습니다";
+"clipboard.item.copied" = "복사됨";
+"clipboard.contextmenu.copy" = "복사";
+"clipboard.contextmenu.delete" = "삭제";
+
+// MARK: - 메모 뷰
+"notes.new" = "새 메모";
+"notes.search.placeholder" = "메모 검색...";
+"notes.empty" = "메모가 아직 없습니다";
+"notes.empty.hint" = "\"새 메모\"를 클릭하여 첫 번째 메모를 생성하세요";
+"notes.sort.by" = "정렬 기준";
+"notes.sort.title" = "제목";
+"notes.sort.date_modified" = "수정 날짜";
+"notes.sort.date_created" = "생성 날짜";
+"notes.untitled" = "제목 없음";
+"notes.delete.confirm.title" = "메모 삭제";
+"notes.delete.confirm.message" = "이 메모를 삭제하시겠습니까?";
+"notes.delete.confirm.button" = "삭제";
+"notes.cancel" = "취소";
+"notes.contextmenu.favorite" = "즐겨찾기";
+"notes.contextmenu.unfavorite" = "즐겨찾기 해제";
+"notes.contextmenu.delete" = "삭제";
+
+// MARK: - 공통
+"common.loading" = "로딩 중...";
+"common.error" = "오류";
+"common.ok" = "확인";
+"common.cancel" = "취소";
+"common.save" = "저장";
+"common.delete" = "삭제";
+"common.edit" = "편집";
+"common.done" = "완료";

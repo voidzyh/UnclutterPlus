@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (日本語)
+  UnclutterPlus
+*/
+
+// MARK: - タブタイトル
+"tab.files" = "ファイル";
+"tab.clipboard" = "クリップボード";
+"tab.notes" = "メモ";
+
+// MARK: - メインウィンドウ
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "設定";
+
+// MARK: - 設定ウィンドウ
+"preferences.title" = "設定";
+
+// MARK: - 設定セクション
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "メモ";
+"preferences.section.mouse_trackpad" = "マウス＆トラックパッド";
+"preferences.section.appearance" = "外観";
+"preferences.section.base_url" = "ベースURL";
+"preferences.section.language" = "言語";
+
+// MARK: - Markdown設定
+"preferences.markdown.theme" = "テーマ";
+"preferences.markdown.code_highlight" = "コードハイライト";
+
+// MARK: - メモ設定
+"preferences.notes.autosave_interval" = "自動保存間隔：";
+"preferences.notes.autosave_help" = "入力中にメモを自動保存するまでの待機時間。";
+
+// MARK: - マウス＆トラックパッド設定
+"preferences.mouse.scroll_mode" = "マウススクロール";
+"preferences.mouse.natural" = "ナチュラル（トラックパッドと同じ）";
+"preferences.mouse.traditional" = "従来型（レガシーホイール）";
+"preferences.trackpad.help" = "トラックパッドジェスチャは常にナチュラルを使用します。";
+
+// MARK: - 外観設定
+"preferences.appearance.show_menubar" = "メニューバーアイコンを表示";
+"preferences.appearance.menubar_hidden_info" = "メニューバーアイコンが非表示の場合：";
+"preferences.appearance.menubar_hidden_tip1" = "• メインウィンドウの設定ボタンをクリック";
+"preferences.appearance.menubar_hidden_tip2" = "• Dockアイコンを右クリックしてメニューを表示";
+"preferences.appearance.menubar_hidden_tip3" = "• 上端で下にスワイプしてウィンドウを表示";
+
+// MARK: - ベースURL設定
+"preferences.base_url.enable" = "ベースURLを有効にする";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "ベースURLはMarkdownの相対リンクと画像アドレスの解決に使用されます";
+
+// MARK: - 言語設定
+"preferences.language.select" = "言語";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "简体中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "言語の変更を有効にするには再起動が必要です";
+
+// MARK: - メニュー項目
+"menu.open" = "UnclutterPlusを開く";
+"menu.preferences" = "設定...";
+"menu.quit" = "終了";
+"menu.show_menubar_icon" = "メニューバーアイコンを表示";
+"menu.hide_menubar_icon" = "メニューバーアイコンを非表示";
+
+// MARK: - ファイルビュー
+"files.drop_area.title" = "ファイルをここにドロップ";
+"files.drop_area.subtitle" = "ファイルをドラッグ＆ドロップして一時保存";
+"files.no_files" = "保存されたファイルはありません";
+"files.sort.by" = "並び順";
+"files.sort.name" = "名前";
+"files.sort.date" = "日付";
+"files.sort.size" = "サイズ";
+"files.contextmenu.reveal" = "Finderで表示";
+"files.contextmenu.open" = "開く";
+"files.contextmenu.delete" = "削除";
+
+// MARK: - クリップボードビュー
+"clipboard.empty" = "クリップボード履歴はありません";
+"clipboard.item.copied" = "コピー済み";
+"clipboard.contextmenu.copy" = "コピー";
+"clipboard.contextmenu.delete" = "削除";
+
+// MARK: - メモビュー
+"notes.new" = "新しいメモ";
+"notes.search.placeholder" = "メモを検索...";
+"notes.empty" = "メモがまだありません";
+"notes.empty.hint" = "「新しいメモ」をクリックして最初のメモを作成";
+"notes.sort.by" = "並び順";
+"notes.sort.title" = "タイトル";
+"notes.sort.date_modified" = "更新日";
+"notes.sort.date_created" = "作成日";
+"notes.untitled" = "無題";
+"notes.delete.confirm.title" = "メモを削除";
+"notes.delete.confirm.message" = "このメモを削除してもよろしいですか？";
+"notes.delete.confirm.button" = "削除";
+"notes.cancel" = "キャンセル";
+"notes.contextmenu.favorite" = "お気に入り";
+"notes.contextmenu.unfavorite" = "お気に入りを削除";
+"notes.contextmenu.delete" = "削除";
+
+// MARK: - 共通
+"common.loading" = "読み込み中...";
+"common.error" = "エラー";
+"common.ok" = "OK";
+"common.cancel" = "キャンセル";
+"common.save" = "保存";
+"common.delete" = "削除";
+"common.edit" = "編集";
+"common.done" = "完了";

@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (简体中文)
+  UnclutterPlus
+*/
+
+// MARK: - 标签页标题
+"tab.files" = "文件";
+"tab.clipboard" = "剪贴板";
+"tab.notes" = "笔记";
+
+// MARK: - 主窗口
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "偏好设置";
+
+// MARK: - 设置窗口
+"preferences.title" = "偏好设置";
+
+// MARK: - 设置分组
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "笔记";
+"preferences.section.mouse_trackpad" = "鼠标和触控板";
+"preferences.section.appearance" = "外观";
+"preferences.section.base_url" = "基础 URL";
+"preferences.section.language" = "语言";
+
+// MARK: - Markdown 设置
+"preferences.markdown.theme" = "主题";
+"preferences.markdown.code_highlight" = "代码高亮";
+
+// MARK: - 笔记设置
+"preferences.notes.autosave_interval" = "自动保存间隔：";
+"preferences.notes.autosave_help" = "输入时自动保存笔记前的等待时间。";
+
+// MARK: - 鼠标和触控板设置
+"preferences.mouse.scroll_mode" = "鼠标滚动";
+"preferences.mouse.natural" = "自然（类似触控板）";
+"preferences.mouse.traditional" = "传统（传统滚轮）";
+"preferences.trackpad.help" = "触控板手势始终使用自然方向。";
+
+// MARK: - 外观设置
+"preferences.appearance.show_menubar" = "显示菜单栏图标";
+"preferences.appearance.menubar_hidden_info" = "当菜单栏图标隐藏时：";
+"preferences.appearance.menubar_hidden_tip1" = "• 点击主窗口中的设置按钮";
+"preferences.appearance.menubar_hidden_tip2" = "• 右键点击 Dock 图标显示菜单";
+"preferences.appearance.menubar_hidden_tip3" = "• 在顶部边缘向下滑动显示窗口";
+
+// MARK: - 基础 URL 设置
+"preferences.base_url.enable" = "启用基础 URL";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "基础 URL 用于解析 Markdown 相对链接与图片地址";
+
+// MARK: - 语言设置
+"preferences.language.select" = "语言";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "简体中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "需要重启应用以使语言更改生效";
+
+// MARK: - 菜单项
+"menu.open" = "打开 UnclutterPlus";
+"menu.preferences" = "偏好设置...";
+"menu.quit" = "退出";
+"menu.show_menubar_icon" = "显示菜单栏图标";
+"menu.hide_menubar_icon" = "隐藏菜单栏图标";
+
+// MARK: - 文件视图
+"files.drop_area.title" = "拖放文件到此处";
+"files.drop_area.subtitle" = "拖放文件以临时存储";
+"files.no_files" = "没有存储的文件";
+"files.sort.by" = "排序方式";
+"files.sort.name" = "名称";
+"files.sort.date" = "日期";
+"files.sort.size" = "大小";
+"files.contextmenu.reveal" = "在 Finder 中显示";
+"files.contextmenu.open" = "打开";
+"files.contextmenu.delete" = "删除";
+
+// MARK: - 剪贴板视图
+"clipboard.empty" = "无剪贴板历史";
+"clipboard.item.copied" = "已复制";
+"clipboard.contextmenu.copy" = "复制";
+"clipboard.contextmenu.delete" = "删除";
+
+// MARK: - 笔记视图
+"notes.new" = "新建笔记";
+"notes.search.placeholder" = "搜索笔记...";
+"notes.empty" = "还没有笔记";
+"notes.empty.hint" = "点击\"新建笔记\"创建您的第一条笔记";
+"notes.sort.by" = "排序方式";
+"notes.sort.title" = "标题";
+"notes.sort.date_modified" = "修改日期";
+"notes.sort.date_created" = "创建日期";
+"notes.untitled" = "无标题";
+"notes.delete.confirm.title" = "删除笔记";
+"notes.delete.confirm.message" = "确定要删除这条笔记吗？";
+"notes.delete.confirm.button" = "删除";
+"notes.cancel" = "取消";
+"notes.contextmenu.favorite" = "收藏";
+"notes.contextmenu.unfavorite" = "取消收藏";
+"notes.contextmenu.delete" = "删除";
+
+// MARK: - 通用
+"common.loading" = "加载中...";
+"common.error" = "错误";
+"common.ok" = "确定";
+"common.cancel" = "取消";
+"common.save" = "保存";
+"common.delete" = "删除";
+"common.edit" = "编辑";
+"common.done" = "完成";

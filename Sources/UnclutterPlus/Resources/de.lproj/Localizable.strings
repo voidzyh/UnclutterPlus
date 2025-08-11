@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (Deutsch)
+  UnclutterPlus
+*/
+
+// MARK: - Tab-Titel
+"tab.files" = "Dateien";
+"tab.clipboard" = "Zwischenablage";
+"tab.notes" = "Notizen";
+
+// MARK: - Hauptfenster
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "Einstellungen";
+
+// MARK: - Einstellungsfenster
+"preferences.title" = "Einstellungen";
+
+// MARK: - Einstellungsabschnitte
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "Notizen";
+"preferences.section.mouse_trackpad" = "Maus & Trackpad";
+"preferences.section.appearance" = "Erscheinungsbild";
+"preferences.section.base_url" = "Basis-URL";
+"preferences.section.language" = "Sprache";
+
+// MARK: - Markdown-Einstellungen
+"preferences.markdown.theme" = "Design";
+"preferences.markdown.code_highlight" = "Code-Hervorhebung";
+
+// MARK: - Notizen-Einstellungen
+"preferences.notes.autosave_interval" = "Automatisches Speichern-Intervall:";
+"preferences.notes.autosave_help" = "Wartezeit vor automatischem Speichern der Notizen beim Tippen.";
+
+// MARK: - Maus & Trackpad-Einstellungen
+"preferences.mouse.scroll_mode" = "Maus-Scrolling";
+"preferences.mouse.natural" = "Natürlich (wie Trackpad)";
+"preferences.mouse.traditional" = "Traditionell (Legacy-Rad)";
+"preferences.trackpad.help" = "Trackpad-Gesten verwenden immer natürlich.";
+
+// MARK: - Erscheinungsbild-Einstellungen
+"preferences.appearance.show_menubar" = "Menüleisten-Symbol anzeigen";
+"preferences.appearance.menubar_hidden_info" = "Wenn das Menüleisten-Symbol ausgeblendet ist:";
+"preferences.appearance.menubar_hidden_tip1" = "• Einstellungen-Schaltfläche im Hauptfenster klicken";
+"preferences.appearance.menubar_hidden_tip2" = "• Rechtsklick auf Dock-Symbol für Menü";
+"preferences.appearance.menubar_hidden_tip3" = "• Am oberen Rand nach unten wischen, um Fenster anzuzeigen";
+
+// MARK: - Basis-URL-Einstellungen
+"preferences.base_url.enable" = "Basis-URL aktivieren";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "Die Basis-URL wird verwendet, um relative Links und Bildadressen in Markdown aufzulösen";
+
+// MARK: - Sprach-Einstellungen
+"preferences.language.select" = "Sprache";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "简体中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "Neustart erforderlich, damit die Sprachänderung wirksam wird";
+
+// MARK: - Menü-Elemente
+"menu.open" = "UnclutterPlus öffnen";
+"menu.preferences" = "Einstellungen...";
+"menu.quit" = "Beenden";
+"menu.show_menubar_icon" = "Menüleisten-Symbol anzeigen";
+"menu.hide_menubar_icon" = "Menüleisten-Symbol ausblenden";
+
+// MARK: - Dateien-Ansicht
+"files.drop_area.title" = "Dateien hier ablegen";
+"files.drop_area.subtitle" = "Dateien per Drag & Drop zur temporären Speicherung";
+"files.no_files" = "Keine gespeicherten Dateien";
+"files.sort.by" = "Sortieren nach";
+"files.sort.name" = "Name";
+"files.sort.date" = "Datum";
+"files.sort.size" = "Größe";
+"files.contextmenu.reveal" = "Im Finder anzeigen";
+"files.contextmenu.open" = "Öffnen";
+"files.contextmenu.delete" = "Löschen";
+
+// MARK: - Zwischenablage-Ansicht
+"clipboard.empty" = "Keine Zwischenablage-Historie";
+"clipboard.item.copied" = "Kopiert";
+"clipboard.contextmenu.copy" = "Kopieren";
+"clipboard.contextmenu.delete" = "Löschen";
+
+// MARK: - Notizen-Ansicht
+"notes.new" = "Neue Notiz";
+"notes.search.placeholder" = "Notizen suchen...";
+"notes.empty" = "Noch keine Notizen";
+"notes.empty.hint" = "Klicken Sie auf \"Neue Notiz\", um Ihre erste Notiz zu erstellen";
+"notes.sort.by" = "Sortieren nach";
+"notes.sort.title" = "Titel";
+"notes.sort.date_modified" = "Änderungsdatum";
+"notes.sort.date_created" = "Erstellungsdatum";
+"notes.untitled" = "Ohne Titel";
+"notes.delete.confirm.title" = "Notiz löschen";
+"notes.delete.confirm.message" = "Sind Sie sicher, dass Sie diese Notiz löschen möchten?";
+"notes.delete.confirm.button" = "Löschen";
+"notes.cancel" = "Abbrechen";
+"notes.contextmenu.favorite" = "Favorit";
+"notes.contextmenu.unfavorite" = "Aus Favoriten entfernen";
+"notes.contextmenu.delete" = "Löschen";
+
+// MARK: - Allgemein
+"common.loading" = "Laden...";
+"common.error" = "Fehler";
+"common.ok" = "OK";
+"common.cancel" = "Abbrechen";
+"common.save" = "Speichern";
+"common.delete" = "Löschen";
+"common.edit" = "Bearbeiten";
+"common.done" = "Fertig";

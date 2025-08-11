@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "UnclutterPlus",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
@@ -29,7 +30,15 @@ let package = Package(
             exclude: ["Info.plist"],
             resources: [
                 .copy("Info.plist"),
-                .copy("Resources/UnclutterPlus.icns")
+                .copy("Resources/UnclutterPlus.icns"),
+                .copy("Resources/en.lproj"),
+                .copy("Resources/zh-Hans.lproj"),
+                .copy("Resources/zh-Hant.lproj"),
+                .copy("Resources/ja.lproj"),
+                .copy("Resources/ko.lproj"),
+                .copy("Resources/fr.lproj"),
+                .copy("Resources/de.lproj"),
+                .copy("Resources/es.lproj")
             ]
         ),
         .testTarget(
