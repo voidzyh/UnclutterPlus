@@ -31,14 +31,14 @@ let package = Package(
             resources: [
                 .copy("Info.plist"),
                 .copy("Resources/UnclutterPlus.icns"),
-                .copy("Resources/en.lproj"),
-                .copy("Resources/zh-Hans.lproj"),
-                .copy("Resources/zh-Hant.lproj"),
-                .copy("Resources/ja.lproj"),
-                .copy("Resources/ko.lproj"),
-                .copy("Resources/fr.lproj"),
-                .copy("Resources/de.lproj"),
-                .copy("Resources/es.lproj")
+                .process("Resources/en.lproj"),
+                .process("Resources/zh-Hans.lproj"),
+                .process("Resources/zh-Hant.lproj"),
+                .process("Resources/ja.lproj"),
+                .process("Resources/ko.lproj"),
+                .process("Resources/fr.lproj"),
+                .process("Resources/de.lproj"),
+                .process("Resources/es.lproj")
             ]
         ),
         .testTarget(
