@@ -6,12 +6,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windowManager: WindowManager?
     private var preferencesWindowController: NSWindowController?
     private var statusMenu: NSMenu?
+    private var dockMenu: NSMenu?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("Application launched!")
         setupStatusBar()
         setupWindowManager()
         setupGlobalHotkey()
+        setupDockMenu()
+        setupNotificationObservers()
     }
     
     private func setupGlobalHotkey() {
@@ -26,9 +29,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         print("已设置全局快捷键 Command+Shift+U")
     }
-    
     private func setupStatusBar() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // 只在需要显示时创建状态栏项目
+        if Preferences.shared.showMenuBarIcon {
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        } else {
+            statusItem = nil
+            return
+        }
         
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "tray.2", accessibilityDescription: "UnclutterPlus")
@@ -71,7 +79,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowManager?.showWindow()
     }
     
-    @objc func openPreferences(_ sender: Any?) {
+    @objc public func openPreferences(_ sender: Any?) {
+        print("openPreferences called")
         DispatchQueue.main.async {
             if self.preferencesWindowController == nil {
                 let hosting = NSHostingController(rootView: PreferencesView())
@@ -80,7 +89,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.styleMask = [.titled, .closable, .miniaturizable]
                 window.isReleasedWhenClosed = false
                 window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
-                window.setContentSize(NSSize(width: 520, height: 400))
+                window.setContentSize(NSSize(width: 520, height: 500))
                 window.center()
                 self.preferencesWindowController = NSWindowController(window: window)
             }
@@ -93,5 +102,78 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
             windowController.showWindow(nil)
         }
+    }
+    
+    private func setupNotificationObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(menuBarIconVisibilityChanged),
+            name: .menuBarIconVisibilityChanged,
+            object: nil
+        )
+    }
+    
+    @objc private func menuBarIconVisibilityChanged() {
+        if Preferences.shared.showMenuBarIcon {
+            // 显示菜单栏图标
+            if statusItem == nil {
+                setupStatusBar()
+            }
+        } else {
+            // 隐藏菜单栏图标
+            if let item = statusItem {
+                NSStatusBar.system.removeStatusItem(item)
+                statusItem = nil
+            }
+        }
+    }
+    
+    private func setupDockMenu() {
+        // 创建 Dock 菜单
+        let menu = NSMenu()
+        
+        // Open
+        let openItem = NSMenuItem(title: "Open UnclutterPlus", action: #selector(openMainWindow(_:)), keyEquivalent: "")
+        openItem.target = self
+        menu.addItem(openItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // Preferences
+        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences(_:)), keyEquivalent: "")
+        prefsItem.target = self
+        menu.addItem(prefsItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // Show/Hide Menu Bar Icon
+        let toggleMenuItem = NSMenuItem(title: "", action: #selector(toggleMenuBarIcon(_:)), keyEquivalent: "")
+        toggleMenuItem.target = self
+        menu.addItem(toggleMenuItem)
+        
+        dockMenu = menu
+    }
+    
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        // 更新菜单项文本
+        if let toggleItem = dockMenu?.items.last {
+            toggleItem.title = Preferences.shared.showMenuBarIcon ? "Hide Menu Bar Icon" : "Show Menu Bar Icon"
+        }
+        return dockMenu
+    }
+    
+    // 处理 Dock 图标点击
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // 点击 Dock 图标时打开主窗口
+        windowManager?.showWindow()
+        return true
+    }
+    
+    @objc private func toggleMenuBarIcon(_ sender: Any?) {
+        Preferences.shared.showMenuBarIcon.toggle()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
