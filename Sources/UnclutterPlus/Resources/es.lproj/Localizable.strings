@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (Español)
+  UnclutterPlus
+*/
+
+// MARK: - Títulos de pestañas
+"tab.files" = "Archivos";
+"tab.clipboard" = "Portapapeles";
+"tab.notes" = "Notas";
+
+// MARK: - Ventana principal
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "Preferencias";
+
+// MARK: - Ventana de preferencias
+"preferences.title" = "Preferencias";
+
+// MARK: - Secciones de preferencias
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "Notas";
+"preferences.section.mouse_trackpad" = "Ratón y trackpad";
+"preferences.section.appearance" = "Apariencia";
+"preferences.section.base_url" = "URL base";
+"preferences.section.language" = "Idioma";
+
+// MARK: - Configuración de Markdown
+"preferences.markdown.theme" = "Tema";
+"preferences.markdown.code_highlight" = "Resaltado de código";
+
+// MARK: - Configuración de notas
+"preferences.notes.autosave_interval" = "Intervalo de guardado automático:";
+"preferences.notes.autosave_help" = "Tiempo de espera antes de guardar automáticamente las notas mientras escribes.";
+
+// MARK: - Configuración de ratón y trackpad
+"preferences.mouse.scroll_mode" = "Desplazamiento del ratón";
+"preferences.mouse.natural" = "Natural (como trackpad)";
+"preferences.mouse.traditional" = "Tradicional (rueda clásica)";
+"preferences.trackpad.help" = "Los gestos del trackpad siempre usan modo natural.";
+
+// MARK: - Configuración de apariencia
+"preferences.appearance.show_menubar" = "Mostrar ícono en barra de menús";
+"preferences.appearance.menubar_hidden_info" = "Cuando el ícono de la barra de menús está oculto:";
+"preferences.appearance.menubar_hidden_tip1" = "• Haz clic en el botón Configuración en la ventana principal";
+"preferences.appearance.menubar_hidden_tip2" = "• Clic derecho en el ícono del Dock para el menú";
+"preferences.appearance.menubar_hidden_tip3" = "• Desliza hacia abajo en el borde superior para mostrar la ventana";
+
+// MARK: - Configuración de URL base
+"preferences.base_url.enable" = "Habilitar URL base";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "La URL base se utiliza para resolver enlaces relativos y direcciones de imágenes en Markdown";
+
+// MARK: - Configuración de idioma
+"preferences.language.select" = "Idioma";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "简体中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "Se requiere reiniciar para que el cambio de idioma surta efecto";
+
+// MARK: - Elementos del menú
+"menu.open" = "Abrir UnclutterPlus";
+"menu.preferences" = "Preferencias...";
+"menu.quit" = "Salir";
+"menu.show_menubar_icon" = "Mostrar ícono en barra de menús";
+"menu.hide_menubar_icon" = "Ocultar ícono de barra de menús";
+
+// MARK: - Vista de archivos
+"files.drop_area.title" = "Soltar archivos aquí";
+"files.drop_area.subtitle" = "Arrastra y suelta archivos para almacenarlos temporalmente";
+"files.no_files" = "No hay archivos almacenados";
+"files.sort.by" = "Ordenar por";
+"files.sort.name" = "Nombre";
+"files.sort.date" = "Fecha";
+"files.sort.size" = "Tamaño";
+"files.contextmenu.reveal" = "Mostrar en Finder";
+"files.contextmenu.open" = "Abrir";
+"files.contextmenu.delete" = "Eliminar";
+
+// MARK: - Vista del portapapeles
+"clipboard.empty" = "Sin historial del portapapeles";
+"clipboard.item.copied" = "Copiado";
+"clipboard.contextmenu.copy" = "Copiar";
+"clipboard.contextmenu.delete" = "Eliminar";
+
+// MARK: - Vista de notas
+"notes.new" = "Nueva nota";
+"notes.search.placeholder" = "Buscar notas...";
+"notes.empty" = "Aún no hay notas";
+"notes.empty.hint" = "Haz clic en \"Nueva nota\" para crear tu primera nota";
+"notes.sort.by" = "Ordenar por";
+"notes.sort.title" = "Título";
+"notes.sort.date_modified" = "Fecha de modificación";
+"notes.sort.date_created" = "Fecha de creación";
+"notes.untitled" = "Sin título";
+"notes.delete.confirm.title" = "Eliminar nota";
+"notes.delete.confirm.message" = "¿Estás seguro de que quieres eliminar esta nota?";
+"notes.delete.confirm.button" = "Eliminar";
+"notes.cancel" = "Cancelar";
+"notes.contextmenu.favorite" = "Favorito";
+"notes.contextmenu.unfavorite" = "Quitar de favoritos";
+"notes.contextmenu.delete" = "Eliminar";
+
+// MARK: - Común
+"common.loading" = "Cargando...";
+"common.error" = "Error";
+"common.ok" = "OK";
+"common.cancel" = "Cancelar";
+"common.save" = "Guardar";
+"common.delete" = "Eliminar";
+"common.edit" = "Editar";
+"common.done" = "Hecho";

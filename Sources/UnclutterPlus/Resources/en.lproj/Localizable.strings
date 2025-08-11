@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (English)
+  UnclutterPlus
+*/
+
+// MARK: - Tab Titles
+"tab.files" = "Files";
+"tab.clipboard" = "Clipboard";
+"tab.notes" = "Notes";
+
+// MARK: - Main Window
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "Preferences";
+
+// MARK: - Preferences Window
+"preferences.title" = "Preferences";
+
+// MARK: - Preferences Sections
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "Notes";
+"preferences.section.mouse_trackpad" = "Mouse & Trackpad";
+"preferences.section.appearance" = "Appearance";
+"preferences.section.base_url" = "Base URL";
+"preferences.section.language" = "Language";
+
+// MARK: - Markdown Settings
+"preferences.markdown.theme" = "Theme";
+"preferences.markdown.code_highlight" = "Code Highlight";
+
+// MARK: - Notes Settings
+"preferences.notes.autosave_interval" = "Auto-save interval:";
+"preferences.notes.autosave_help" = "How long to wait before automatically saving notes while typing.";
+
+// MARK: - Mouse & Trackpad Settings
+"preferences.mouse.scroll_mode" = "Mouse Scroll";
+"preferences.mouse.natural" = "Natural (like trackpad)";
+"preferences.mouse.traditional" = "Traditional (legacy wheel)";
+"preferences.trackpad.help" = "Trackpad gestures always use Natural.";
+
+// MARK: - Appearance Settings
+"preferences.appearance.show_menubar" = "Show menu bar icon";
+"preferences.appearance.menubar_hidden_info" = "When menu bar icon is hidden:";
+"preferences.appearance.menubar_hidden_tip1" = "• Click Settings button in main window";
+"preferences.appearance.menubar_hidden_tip2" = "• Right-click Dock icon for menu";
+"preferences.appearance.menubar_hidden_tip3" = "• Swipe down at top edge to show window";
+
+// MARK: - Base URL Settings
+"preferences.base_url.enable" = "Enable Base URL";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "Base URL is used to resolve relative links and image addresses in Markdown";
+
+// MARK: - Language Settings
+"preferences.language.select" = "Language";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "简体中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "Restart required for language change to take effect";
+
+// MARK: - Menu Items
+"menu.open" = "Open UnclutterPlus";
+"menu.preferences" = "Preferences...";
+"menu.quit" = "Quit";
+"menu.show_menubar_icon" = "Show Menu Bar Icon";
+"menu.hide_menubar_icon" = "Hide Menu Bar Icon";
+
+// MARK: - Files View
+"files.drop_area.title" = "Drop Files Here";
+"files.drop_area.subtitle" = "Drag and drop files to temporarily store them";
+"files.no_files" = "No files stored";
+"files.sort.by" = "Sort by";
+"files.sort.name" = "Name";
+"files.sort.date" = "Date";
+"files.sort.size" = "Size";
+"files.contextmenu.reveal" = "Reveal in Finder";
+"files.contextmenu.open" = "Open";
+"files.contextmenu.delete" = "Delete";
+
+// MARK: - Clipboard View
+"clipboard.empty" = "No clipboard history";
+"clipboard.item.copied" = "Copied";
+"clipboard.contextmenu.copy" = "Copy";
+"clipboard.contextmenu.delete" = "Delete";
+
+// MARK: - Notes View
+"notes.new" = "New Note";
+"notes.search.placeholder" = "Search notes...";
+"notes.empty" = "No notes yet";
+"notes.empty.hint" = "Click \"New Note\" to create your first note";
+"notes.sort.by" = "Sort by";
+"notes.sort.title" = "Title";
+"notes.sort.date_modified" = "Date Modified";
+"notes.sort.date_created" = "Date Created";
+"notes.untitled" = "Untitled";
+"notes.delete.confirm.title" = "Delete Note";
+"notes.delete.confirm.message" = "Are you sure you want to delete this note?";
+"notes.delete.confirm.button" = "Delete";
+"notes.cancel" = "Cancel";
+"notes.contextmenu.favorite" = "Favorite";
+"notes.contextmenu.unfavorite" = "Unfavorite";
+"notes.contextmenu.delete" = "Delete";
+
+// MARK: - Common
+"common.loading" = "Loading...";
+"common.error" = "Error";
+"common.ok" = "OK";
+"common.cancel" = "Cancel";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.edit" = "Edit";
+"common.done" = "Done";

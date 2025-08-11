@@ -1,0 +1,115 @@
+/* 
+  Localizable.strings (繁體中文)
+  UnclutterPlus
+*/
+
+// MARK: - 標籤頁標題
+"tab.files" = "檔案";
+"tab.clipboard" = "剪貼簿";
+"tab.notes" = "筆記";
+
+// MARK: - 主視窗
+"window.main.title" = "UnclutterPlus";
+"button.preferences" = "偏好設定";
+
+// MARK: - 設定視窗
+"preferences.title" = "偏好設定";
+
+// MARK: - 設定分組
+"preferences.section.markdown" = "Markdown";
+"preferences.section.notes" = "筆記";
+"preferences.section.mouse_trackpad" = "滑鼠與觸控板";
+"preferences.section.appearance" = "外觀";
+"preferences.section.base_url" = "基礎 URL";
+"preferences.section.language" = "語言";
+
+// MARK: - Markdown 設定
+"preferences.markdown.theme" = "主題";
+"preferences.markdown.code_highlight" = "程式碼高亮";
+
+// MARK: - 筆記設定
+"preferences.notes.autosave_interval" = "自動儲存間隔：";
+"preferences.notes.autosave_help" = "輸入時自動儲存筆記前的等待時間。";
+
+// MARK: - 滑鼠與觸控板設定
+"preferences.mouse.scroll_mode" = "滑鼠捲動";
+"preferences.mouse.natural" = "自然（類似觸控板）";
+"preferences.mouse.traditional" = "傳統（傳統滾輪）";
+"preferences.trackpad.help" = "觸控板手勢始終使用自然方向。";
+
+// MARK: - 外觀設定
+"preferences.appearance.show_menubar" = "顯示選單列圖示";
+"preferences.appearance.menubar_hidden_info" = "當選單列圖示隱藏時：";
+"preferences.appearance.menubar_hidden_tip1" = "• 點擊主視窗中的設定按鈕";
+"preferences.appearance.menubar_hidden_tip2" = "• 右鍵點擊 Dock 圖示顯示選單";
+"preferences.appearance.menubar_hidden_tip3" = "• 在頂部邊緣向下滑動顯示視窗";
+
+// MARK: - 基礎 URL 設定
+"preferences.base_url.enable" = "啟用基礎 URL";
+"preferences.base_url.placeholder" = "https://example.com/assets/";
+"preferences.base_url.help" = "基礎 URL 用於解析 Markdown 相對連結與圖片地址";
+
+// MARK: - 語言設定
+"preferences.language.select" = "語言";
+"preferences.language.english" = "English";
+"preferences.language.chinese" = "簡體中文";
+"preferences.language.japanese" = "日本語";
+"preferences.language.korean" = "한국어";
+"preferences.language.french" = "Français";
+"preferences.language.german" = "Deutsch";
+"preferences.language.spanish" = "Español";
+"preferences.language.traditional_chinese" = "繁體中文";
+"preferences.language.restart_required" = "需要重新啟動應用程式以使語言更改生效";
+
+// MARK: - 選單項目
+"menu.open" = "開啟 UnclutterPlus";
+"menu.preferences" = "偏好設定...";
+"menu.quit" = "結束";
+"menu.show_menubar_icon" = "顯示選單列圖示";
+"menu.hide_menubar_icon" = "隱藏選單列圖示";
+
+// MARK: - 檔案檢視
+"files.drop_area.title" = "拖放檔案到此處";
+"files.drop_area.subtitle" = "拖放檔案以臨時儲存";
+"files.no_files" = "沒有儲存的檔案";
+"files.sort.by" = "排序方式";
+"files.sort.name" = "名稱";
+"files.sort.date" = "日期";
+"files.sort.size" = "大小";
+"files.contextmenu.reveal" = "在 Finder 中顯示";
+"files.contextmenu.open" = "開啟";
+"files.contextmenu.delete" = "刪除";
+
+// MARK: - 剪貼簿檢視
+"clipboard.empty" = "無剪貼簿歷史";
+"clipboard.item.copied" = "已複製";
+"clipboard.contextmenu.copy" = "複製";
+"clipboard.contextmenu.delete" = "刪除";
+
+// MARK: - 筆記檢視
+"notes.new" = "新增筆記";
+"notes.search.placeholder" = "搜尋筆記...";
+"notes.empty" = "還沒有筆記";
+"notes.empty.hint" = "點擊「新增筆記」建立您的第一個筆記";
+"notes.sort.by" = "排序方式";
+"notes.sort.title" = "標題";
+"notes.sort.date_modified" = "修改日期";
+"notes.sort.date_created" = "建立日期";
+"notes.untitled" = "無標題";
+"notes.delete.confirm.title" = "刪除筆記";
+"notes.delete.confirm.message" = "確定要刪除這個筆記嗎？";
+"notes.delete.confirm.button" = "刪除";
+"notes.cancel" = "取消";
+"notes.contextmenu.favorite" = "收藏";
+"notes.contextmenu.unfavorite" = "取消收藏";
+"notes.contextmenu.delete" = "刪除";
+
+// MARK: - 通用
+"common.loading" = "載入中...";
+"common.error" = "錯誤";
+"common.ok" = "確定";
+"common.cancel" = "取消";
+"common.save" = "儲存";
+"common.delete" = "刪除";
+"common.edit" = "編輯";
+"common.done" = "完成";
