@@ -83,12 +83,31 @@ struct NotesView: View {
                 }
                 .menuStyle(.borderlessButton)
                 
-                Button(action: { showingNewNoteDialog = true }) {
-                    Image(systemName: "plus")
+                // 收藏按钮（针对选中的笔记）
+                if let selectedNote = selectedNote {
+                    Button(action: { 
+                        notesManager.toggleFavorite(selectedNote)
+                    }) {
+                        Image(systemName: selectedNote.isFavorite ? "star.fill" : "star")
+                            .foregroundColor(selectedNote.isFavorite ? .yellow : .secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .help(selectedNote.isFavorite ? "取消收藏" : "收藏")
+                    
+                    // 删除按钮（针对选中的笔记）
+                    Button(action: { 
+                        let noteToDelete = selectedNote
+                        self.selectedNote = nil
+                        notesManager.deleteNote(noteToDelete)
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("删除笔记")
                 }
-                .buttonStyle(.borderless)
-                .help("New Note")
                 
+                // 多选模式按钮
                 Button(action: {
                     isMultiSelectMode.toggle()
                     if !isMultiSelectMode {
@@ -143,6 +162,11 @@ struct NotesView: View {
         HStack(spacing: 0) {
             // 左侧：笔记列表
             VStack(spacing: 0) {
+                // 新建笔记按钮
+                NewNoteButton(action: { showingNewNoteDialog = true })
+                
+                Divider()
+                
                 // 统计信息
                 HStack {
                     Text("\(notesManager.filteredNotes.count) notes")
@@ -357,24 +381,23 @@ struct NoteListItemView: View {
     @State private var showDeleteConfirmation = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // 选择框或收藏星标
-            VStack {
-                if showSelectionMode {
-                    Button(action: onToggleSelection) {
-                        Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(isMultiSelected ? .accentColor : .secondary)
-                            .font(.title3)
-                    }
-                    .buttonStyle(.plain)
-                } else if note.isFavorite {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                        .font(.caption)
+        HStack(spacing: 8) {
+            // 左侧选择框（多选模式）
+            if showSelectionMode {
+                Button(action: onToggleSelection) {
+                    Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isMultiSelected ? .accentColor : .secondary)
+                        .font(.title3)
                 }
-                Spacer()
+                .buttonStyle(.plain)
             }
-            .frame(width: 20)
+            
+            // 收藏标识（非多选模式）
+            if !showSelectionMode && note.isFavorite {
+                Image(systemName: "star.fill")
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .white : .yellow)
+            }
             
             // 笔记内容
             VStack(alignment: .leading, spacing: 6) {
@@ -387,6 +410,7 @@ struct NoteListItemView: View {
                     
                     Spacer()
                     
+                    // 标签
                     if !note.tags.isEmpty {
                         HStack(spacing: 4) {
                             ForEach(Array(note.tags.prefix(2)), id: \.self) { tag in
@@ -404,67 +428,41 @@ struct NoteListItemView: View {
                     }
                 }
                 
+                // 预览文本
                 if !note.preview.isEmpty {
                     Text(note.preview)
                         .font(.body)
-                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                        .foregroundColor(isSelected ? .white.opacity(0.9) : .secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
                 
+                // 元信息
                 HStack {
                     Text(note.modifiedAt.formatted(.relative(presentation: .named)))
                         .font(.caption)
-                        .foregroundColor(isSelected ? .white.opacity(0.7) : .gray)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
                     
                     Text("•")
                         .font(.caption)
-                        .foregroundColor(isSelected ? .white.opacity(0.7) : .gray)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
                     
                     Text("\(note.wordCount) words")
                         .font(.caption)
-                        .foregroundColor(isSelected ? .white.opacity(0.7) : .gray)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
                     
                     if note.readingTime > 1 {
                         Text("•")
                             .font(.caption)
-                            .foregroundColor(isSelected ? .white.opacity(0.7) : .gray)
+                            .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
                         
                         Text("\(note.readingTime) min read")
                             .font(.caption)
-                            .foregroundColor(isSelected ? .white.opacity(0.7) : .gray)
+                            .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
                     }
                     
                     Spacer()
                 }
-            }
-            
-            // 悬停操作按钮（为鼠标用户优化）
-            if isHovered && !showSelectionMode {
-                HStack(spacing: 8) {
-                    Button(action: onToggleFavorite) {
-                        Image(systemName: note.isFavorite ? "star.fill" : "star")
-                            .font(.system(size: 14))
-                            .foregroundColor(note.isFavorite ? .yellow : .secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(note.isFavorite ? "取消收藏" : "收藏")
-                    
-                    Button(action: { showDeleteConfirmation = true }) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 14))
-                            .foregroundColor(.red.opacity(0.8))
-                    }
-                    .buttonStyle(.borderless)
-                    .help("删除笔记")
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.black.opacity(0.05))
-                )
-                .transition(.opacity.combined(with: .scale).combined(with: .move(edge: .trailing)))
             }
         }
         .padding(.horizontal, 12)
@@ -486,27 +484,8 @@ struct NoteListItemView: View {
         .onTapGesture {
             onSelect()
         }
-        .contextMenu {
-            Button(note.isFavorite ? "取消收藏" : "收藏") {
-                onToggleFavorite()
-            }
-            
-            Divider()
-            
-            Button("删除", role: .destructive) {
-                onDelete()
-            }
-        }
         .animation(.easeInOut(duration: 0.2), value: isSelected)
         .animation(.easeInOut(duration: 0.2), value: isMultiSelected)
-        .alert("删除笔记", isPresented: $showDeleteConfirmation) {
-            Button("取消", role: .cancel) { }
-            Button("删除", role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text("确定要删除 \"\(note.title)\" 吗？此操作无法撤销。")
-        }
     }
     
     private var backgroundMaterial: Color {
@@ -741,6 +720,70 @@ struct FlowResult {
         }
         
         self.size = CGSize(width: maxWidth, height: y + lineHeight)
+    }
+}
+
+struct NewNoteButton: View {
+    let action: () -> Void
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 32, height: 32)
+                        .shadow(color: Color.accentColor.opacity(0.3), radius: isHovered ? 4 : 2, y: 2)
+                    
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .rotationEffect(.degrees(isHovered ? 90 : 0))
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("新建笔记")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text("创建新的 Markdown 笔记")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary.opacity(0.5))
+                    .offset(x: isHovered ? 2 : 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.accentColor.opacity(isHovered ? 0.12 : 0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.accentColor.opacity(isHovered ? 0.3 : 0.2), lineWidth: 1)
+            )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isHovered = hovering
+            }
+        }
     }
 }
 

@@ -63,6 +63,7 @@ class ClipboardManager: ObservableObject {
     private var timer: Timer?
     private let maxItems = 100
     private let pasteboard = NSPasteboard.general
+    private let config = ConfigurationManager.shared
     
     init() {
         startMonitoring()
@@ -194,6 +195,9 @@ class ClipboardManager: ObservableObject {
     }
     
     private func persistItems() {
+        // 获取存储路径
+        let storageURL = config.clipboardStoragePath.appendingPathComponent("history.plist")
+        
         // 只持久化文本内容（图片和文件太大）
         let textItems = items.compactMap { item -> [String: Any]? in
             switch item.content {
@@ -209,31 +213,40 @@ class ClipboardManager: ObservableObject {
             }
         }
         
-        UserDefaults.standard.set(textItems, forKey: "ClipboardHistory")
+        // 保存到文件
+        do {
+            let data = try PropertyListSerialization.data(fromPropertyList: Array(textItems.prefix(50)), format: .xml, options: 0)
+            try data.write(to: storageURL)
+        } catch {
+            print("Failed to persist clipboard items: \(error)")
+        }
     }
     
     private func loadPersistedItems() {
-        guard let data = UserDefaults.standard.array(forKey: "ClipboardHistory") as? [[String: Any]] else {
-            return
-        }
+        let storageURL = config.clipboardStoragePath.appendingPathComponent("history.plist")
         
-        let loadedItems = data.compactMap { dict -> ClipboardItem? in
-            guard let type = dict["type"] as? String,
-                  let content = dict["content"] as? String,
-                  let timestamp = dict["timestamp"] as? TimeInterval,
-                  type == "text" else {
-                return nil
+        // 尝试从文件加载
+        if let data = try? Data(contentsOf: storageURL),
+           let array = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [[String: Any]] {
+            
+            let loadedItems = array.compactMap { dict -> ClipboardItem? in
+                guard let type = dict["type"] as? String,
+                      let content = dict["content"] as? String,
+                      let timestamp = dict["timestamp"] as? TimeInterval,
+                      type == "text" else {
+                    return nil
             }
             
             let isPinned = dict["isPinned"] as? Bool ?? false
             
-            return ClipboardItem(
-                content: .text(content),
-                timestamp: Date(timeIntervalSince1970: timestamp),
-                isPinned: isPinned
-            )
+                return ClipboardItem(
+                    content: .text(content),
+                    timestamp: Date(timeIntervalSince1970: timestamp),
+                    isPinned: isPinned
+                )
+            }
+            
+            items = loadedItems.sorted { $0.timestamp > $1.timestamp }
         }
-        
-        items = loadedItems.sorted { $0.timestamp > $1.timestamp }
     }
 }
