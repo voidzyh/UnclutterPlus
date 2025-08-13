@@ -129,6 +129,14 @@
 "preferences.clipboard.auto_cleanup" = "자동 정리 활성화됨";
 "preferences.clipboard.auto_cleanup_help" = "만료된 클립보드 항목을 자동으로 삭제";
 
+// MARK: - 시작 기본 필터 패널 설정
+"preferences.clipboard.default_filter" = "시작 기본 필터 패널";
+"preferences.clipboard.default_filter.help" = "클립보드 페이지 로드 시 기본으로 펼쳐질 필터 패널 선택";
+"preferences.clipboard.persistent.type" = "콘텐츠 유형";
+"preferences.clipboard.persistent.date" = "날짜 범위";
+"preferences.clipboard.persistent.source" = "소스 앱";
+"preferences.clipboard.persistent.sort" = "정렬 옵션";
+
 // MARK: - 메모 뷰
 "notes.new" = "새 메모";
 "notes.search.placeholder" = "메모 검색...";

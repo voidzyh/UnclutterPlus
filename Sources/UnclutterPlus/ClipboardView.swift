@@ -20,6 +20,22 @@ struct ClipboardView: View {
     @State private var showSourceFilter: Bool = false
     @State private var showDateFilter: Bool = false
     @State private var showSortFilter: Bool = false
+    
+    // 根据配置设置默认展开的筛选器
+    private func setDefaultFilter() {
+        switch config.clipboardDefaultFilter {
+        case "type":
+            showTypeFilter = true
+        case "date":
+            showDateFilter = true
+        case "source":
+            showSourceFilter = true
+        case "sort":
+            showSortFilter = true
+        default:
+            showTypeFilter = true
+        }
+    }
     // 工具栏悬停状态
     @State private var hoveredToolbar: String? = nil
     
@@ -255,8 +271,6 @@ struct ClipboardView: View {
                     .onHover { isHover in
                         hoveredToolbar = isHover ? "source" : (hoveredToolbar == "source" ? nil : hoveredToolbar)
                     }
-
-                    Spacer()
 
                     // 排序
                     Button(action: {
@@ -500,6 +514,7 @@ struct ClipboardView: View {
         }
         .onAppear {
             updateFilteredItems()
+            setDefaultFilter()
         }
         .onChange(of: searchText) { _, _ in
             updateFilteredItems()

@@ -231,6 +231,15 @@ struct PreferencesView: View {
                     Toggle("preferences.clipboard.auto_cleanup".localized, isOn: .constant(true))
                         .disabled(true)
                         .help("preferences.clipboard.auto_cleanup_help".localized)
+                    
+                    // 启动默认筛选器配置
+                    Picker("preferences.clipboard.default_filter".localized, selection: $config.clipboardDefaultFilter) {
+                        Text("preferences.clipboard.persistent.type".localized).tag("type")
+                        Text("preferences.clipboard.persistent.date".localized).tag("date")
+                        Text("preferences.clipboard.persistent.source".localized).tag("source")
+                        Text("preferences.clipboard.persistent.sort".localized).tag("sort")
+                    }
+                    .help("preferences.clipboard.persistent_filter.help".localized)
                 }
                 .padding(.top, 8)
             }

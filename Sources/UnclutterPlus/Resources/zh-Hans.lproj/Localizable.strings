@@ -168,6 +168,14 @@
 "preferences.clipboard.auto_cleanup" = "自动清理已启用";
 "preferences.clipboard.auto_cleanup_help" = "自动删除过期的剪贴板项目";
 
+// MARK: - 启动默认筛选器设置
+"preferences.clipboard.default_filter" = "启动默认筛选面板";
+"preferences.clipboard.default_filter.help" = "选择剪贴板页面加载时默认展开的筛选面板";
+"preferences.clipboard.persistent.type" = "内容类型";
+"preferences.clipboard.persistent.date" = "日期范围";
+"preferences.clipboard.persistent.source" = "来源应用";
+"preferences.clipboard.persistent.sort" = "排序选项";
+
 // MARK: - 笔记视图
 "notes.new" = "新建笔记";
 "notes.search.placeholder" = "搜索笔记...";

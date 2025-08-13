@@ -28,6 +28,8 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("clipboard.maxAge") var clipboardMaxAge: TimeInterval = 30 * 24 * 60 * 60 // 30天
     @AppStorage("clipboard.showUseCount") var showUseCount: Bool = true
     @AppStorage("clipboard.sortBy") var clipboardSortBy: String = "time" // "time", "useCount"
+    // 启动默认筛选器：type/date/source/sort (启动时默认展开类型筛选)
+    @AppStorage("clipboard.defaultFilter") var clipboardDefaultFilter: String = "type"
     
     private init() {}
     

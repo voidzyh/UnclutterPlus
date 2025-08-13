@@ -273,3 +273,11 @@
 "preferences.clipboard.show_use_count_help" = "Mostrar etiquetas de frecuencia de uso en elementos del portapapeles";
 "preferences.clipboard.auto_cleanup" = "Limpieza automática habilitada";
 "preferences.clipboard.auto_cleanup_help" = "Eliminar automáticamente elementos del portapapeles expirados";
+
+// MARK: - Configuración del panel de filtro por defecto
+"preferences.clipboard.default_filter" = "Panel de filtro por defecto";
+"preferences.clipboard.default_filter.help" = "Elegir qué panel de filtro expandir por defecto al cargar la página del portapapeles";
+"preferences.clipboard.persistent.type" = "Tipo de contenido";
+"preferences.clipboard.persistent.date" = "Rango de fechas";
+"preferences.clipboard.persistent.source" = "Aplicación de origen";
+"preferences.clipboard.persistent.sort" = "Opciones de ordenación";
