@@ -122,10 +122,51 @@
 "files.contextmenu.delete" = "删除";
 
 // MARK: - 剪贴板视图
-"clipboard.empty" = "无剪贴板历史";
-"clipboard.item.copied" = "已复制";
-"clipboard.contextmenu.copy" = "复制";
-"clipboard.contextmenu.delete" = "删除";
+"clipboard.search.placeholder" = "搜索剪贴板历史...";
+"clipboard.empty.title" = "无剪贴板历史";
+"clipboard.empty.search.title" = "没有匹配的项目";
+"clipboard.item.image.content" = "图片内容";
+"clipboard.item.image.dimensions" = "尺寸";
+"clipboard.item.characters" = "字符";
+"clipboard.item.pin" = "置顶";
+"clipboard.item.unpin" = "取消置顶";
+"clipboard.item.copy" = "复制到剪贴板";
+"clipboard.item.delete" = "删除";
+"clipboard.item.expand" = "展开";
+"clipboard.item.collapse" = "收起";
+"clipboard.multi_select.enter" = "进入选择模式";
+"clipboard.multi_select.exit" = "退出选择模式";
+"clipboard.multi_select.delete_selected" = "删除已选";
+"clipboard.multi_select.clear_all" = "清空全部";
+"clipboard.multi_select.items" = "项目";
+"clipboard.multi_select.selected" = "已选";
+
+// MARK: - 剪贴板过滤
+"clipboard.filter.all" = "全部";
+"clipboard.filter.text" = "文本";
+"clipboard.filter.image" = "图片";
+"clipboard.filter.file" = "文件";
+"clipboard.filter.today" = "今天";
+"clipboard.filter.week" = "本周";
+"clipboard.filter.month" = "本月";
+"clipboard.filter.type" = "类型";
+"clipboard.filter.source" = "来源";
+"clipboard.filter.date" = "日期";
+"clipboard.filter.select_app" = "选择应用";
+
+// MARK: - 剪贴板排序
+"clipboard.sort.title" = "排序";
+"clipboard.sort.time" = "时间";
+"clipboard.sort.use_count" = "使用频次";
+
+// MARK: - 剪贴板偏好设置
+"preferences.clipboard.max_age" = "最大保存时间：";
+"preferences.clipboard.days" = "天";
+"preferences.clipboard.max_age_help" = "超过此时间的剪贴板项目将被自动删除（置顶项目会被保留）";
+"preferences.clipboard.show_use_count" = "显示使用频次标签";
+"preferences.clipboard.show_use_count_help" = "在剪贴板项目上显示使用频次标签";
+"preferences.clipboard.auto_cleanup" = "自动清理已启用";
+"preferences.clipboard.auto_cleanup_help" = "自动删除过期的剪贴板项目";
 
 // MARK: - 笔记视图
 "notes.new" = "新建笔记";
@@ -154,3 +195,72 @@
 "common.delete" = "删除";
 "common.edit" = "编辑";
 "common.done" = "完成";
+
+// MARK: - 窗口行为设置
+"preferences.section.window_behavior" = "窗口行为";
+"preferences.window.auto_hide_after_action" = "操作后自动隐藏窗口";
+"preferences.window.auto_hide_after_action.help" = "执行文件打开、剪贴板复制等操作后自动隐藏窗口";
+"preferences.window.hide_on_lost_focus" = "失去焦点时自动隐藏";
+"preferences.window.hide_on_lost_focus.help" = "当窗口失去焦点时自动隐藏（编辑笔记时除外）";
+"preferences.window.hide_delay" = "隐藏延迟：";
+"common.seconds" = "秒";
+
+// MARK: - 功能状态
+"features.no_enabled.title" = "没有启用的功能";
+"features.no_enabled.description" = "请在设置中启用至少一个功能";
+"features.open_settings" = "打开设置";
+
+// MARK: - 笔记视图补充
+"notes.filtered" = "(已筛选)";
+"notes.selected" = "已选";
+"notes.delete_selected" = "删除已选";
+"notes.select_all" = "全选";
+"notes.new_note" = "新建笔记";
+"notes.create_new_markdown" = "创建新的 Markdown 笔记";
+
+// MARK: - 排序
+"sort.by" = "排序方式";
+"sort.ascending" = "升序";
+"sort.descending" = "降序";
+
+// MARK: - 界面消息
+"ui.create_first_note" = "创建第一条笔记";
+"ui.try_different_search" = "尝试不同的搜索词";
+"ui.select_note_to_edit" = "选择笔记进行编辑";
+"ui.choose_note_from_sidebar" = "从侧边栏选择笔记开始";
+"ui.focus_mode" = "专注模式";
+"ui.select_note_from_toolbar" = "从工具栏选择笔记进入专注模式";
+"ui.browse_notes" = "浏览笔记";
+"ui.copy_something_to_see" = "复制一些内容以在此处查看";
+
+// MARK: - 笔记统计
+"note.words" = "字";
+"note.min_read" = "分钟阅读";
+"note.characters" = "字符";
+
+// MARK: - 新建笔记对话框
+"dialog.new_note.title" = "创建新笔记";
+"dialog.new_note.description" = "添加标题和标签来组织您的笔记";
+"dialog.new_note.title_label" = "标题";
+"dialog.new_note.title_placeholder" = "输入笔记标题...";
+"dialog.new_note.tags_label" = "标签";
+"dialog.new_note.available_tags" = "可用标签：";
+"dialog.new_note.add_new_tag_placeholder" = "添加新标签...";
+"dialog.new_note.add" = "添加";
+"dialog.new_note.cancel" = "取消";
+"dialog.new_note.create" = "创建笔记";
+
+// MARK: - 通用笔记
+"note.untitled" = "无标题";
+
+// MARK: - 笔记数量
+"notes.count" = "笔记";
+"notes.no_notes_yet" = "还没有笔记";
+"notes.no_matching_notes" = "没有匹配的笔记";
+
+// MARK: - 搜索
+"search.notes.placeholder" = "搜索笔记...";
+
+// MARK: - 警告框按钮
+"alert.ok" = "确定";
+"alert.reset" = "重置";

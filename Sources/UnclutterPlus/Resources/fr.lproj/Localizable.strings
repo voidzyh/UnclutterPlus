@@ -113,3 +113,163 @@
 "common.delete" = "Supprimer";
 "common.edit" = "Modifier";
 "common.done" = "Terminé";
+
+// MARK: - Paramètres de comportement de fenêtre
+"preferences.section.window_behavior" = "Comportement de la fenêtre";
+"preferences.window.auto_hide_after_action" = "Masquer automatiquement la fenêtre après les actions";
+"preferences.window.auto_hide_after_action.help" = "Masquer automatiquement la fenêtre après l'ouverture de fichiers, la copie dans le presse-papiers, etc.";
+"preferences.window.hide_on_lost_focus" = "Masquer automatiquement lors de la perte de focus";
+"preferences.window.hide_on_lost_focus.help" = "Masquer automatiquement la fenêtre lorsqu'elle perd le focus (sauf lors de l'édition de notes)";
+"preferences.window.hide_delay" = "Délai de masquage :";
+"common.seconds" = "secondes";
+
+// MARK: - Onglets des préférences
+"preferences.tab.general" = "Général";
+"preferences.tab.features" = "Fonctionnalités";
+"preferences.tab.storage" = "Stockage";
+"preferences.tab.advanced" = "Avancé";
+
+// MARK: - Sections des préférences
+"preferences.section.language" = "Langue";
+"preferences.section.appearance" = "Apparence";
+"preferences.section.interaction" = "Interaction";
+"preferences.section.features" = "Activation des fonctionnalités";
+"preferences.section.files" = "Fichiers";
+"preferences.section.clipboard" = "Presse-papiers";
+"preferences.section.storage_location" = "Emplacements de stockage";
+"preferences.section.data_management" = "Gestion des données";
+"preferences.section.developer" = "Options développeur";
+
+// MARK: - Activation des fonctionnalités
+"preferences.features.enable_files" = "Activer la gestion des fichiers";
+"preferences.features.enable_clipboard" = "Activer l'historique du presse-papiers";
+"preferences.features.enable_notes" = "Activer les notes";
+"preferences.features.description" = "Activez ou désactivez les fonctionnalités. Les données sont préservées lorsque les fonctionnalités sont désactivées.";
+
+// MARK: - Paramètres de stockage
+"preferences.storage.custom_path" = "Utiliser un chemin personnalisé";
+"preferences.storage.choose_folder" = "Choisir...";
+"preferences.storage.default_path" = "Chemin par défaut :";
+"preferences.storage.current_path" = "Chemin actuel :";
+"preferences.storage.space_used" = "Espace utilisé :";
+"preferences.storage.files_location" = "Emplacement de stockage des fichiers";
+"preferences.storage.clipboard_location" = "Emplacement de stockage du presse-papiers";
+"preferences.storage.notes_location" = "Emplacement de stockage des notes";
+"preferences.storage.migrate_data" = "Migrer les données";
+"preferences.storage.reset_paths" = "Réinitialiser aux valeurs par défaut";
+"preferences.storage.invalid_path" = "Chemin invalide";
+"preferences.storage.path_not_writable" = "Le chemin sélectionné n'est pas accessible en écriture. Veuillez choisir un autre emplacement.";
+
+// MARK: - Gestion des données
+"preferences.data.clear_files" = "Effacer tous les fichiers";
+"preferences.data.clear_clipboard" = "Effacer l'historique du presse-papiers";
+"preferences.data.clear_notes" = "Supprimer toutes les notes";
+"preferences.data.export" = "Exporter les données";
+"preferences.data.import" = "Importer les données";
+"preferences.data.reset_all" = "Réinitialiser tous les paramètres";
+"preferences.data.reset_confirm" = "Êtes-vous sûr de vouloir réinitialiser tous les paramètres aux valeurs par défaut ?";
+"preferences.data.clear_confirm" = "Cette action ne peut pas être annulée. Continuer ?";
+
+// MARK: - État des fonctionnalités
+"features.no_enabled.title" = "Aucune fonctionnalité activée";
+"features.no_enabled.description" = "Veuillez activer au moins une fonctionnalité dans les paramètres";
+"features.open_settings" = "Ouvrir les paramètres";
+
+// MARK: - Vue des notes supplémentaire
+"notes.filtered" = "(filtré)";
+"notes.selected" = "sélectionné";
+"notes.delete_selected" = "Supprimer la sélection";
+"notes.select_all" = "Tout sélectionner";
+"notes.new_note" = "Nouvelle note";
+"notes.create_new_markdown" = "Créer une nouvelle note Markdown";
+
+// MARK: - Tri
+"sort.by" = "Trier par";
+"sort.ascending" = "Croissant";
+"sort.descending" = "Décroissant";
+
+// MARK: - Recherche
+"search.notes.placeholder" = "Rechercher des notes...";
+
+// MARK: - Dialogue nouvelle note
+"dialog.new_note.title" = "Créer une nouvelle note";
+"dialog.new_note.description" = "Ajoutez un titre et des étiquettes pour organiser votre note";
+"dialog.new_note.title_label" = "Titre";
+"dialog.new_note.title_placeholder" = "Entrez le titre de la note...";
+"dialog.new_note.tags_label" = "Étiquettes";
+"dialog.new_note.available_tags" = "Étiquettes disponibles :";
+"dialog.new_note.add_new_tag_placeholder" = "Ajouter une nouvelle étiquette...";
+"dialog.new_note.add" = "Ajouter";
+"dialog.new_note.cancel" = "Annuler";
+"dialog.new_note.create" = "Créer la note";
+
+// MARK: - Note commune
+"note.untitled" = "Sans titre";
+
+// MARK: - Statistiques des notes
+"notes.count" = "notes";
+"notes.no_notes_yet" = "Aucune note pour le moment";
+"notes.no_matching_notes" = "Aucune note correspondante";
+"note.words" = "mots";
+"note.min_read" = "min de lecture";
+"note.characters" = "caractères";
+
+// MARK: - Messages UI
+"ui.create_first_note" = "Créer la première note";
+"ui.try_different_search" = "Essayez un autre terme de recherche";
+"ui.select_note_to_edit" = "Sélectionnez une note à éditer";
+"ui.choose_note_from_sidebar" = "Choisissez une note dans la barre latérale pour commencer";
+"ui.focus_mode" = "Mode focus";
+"ui.select_note_from_toolbar" = "Sélectionnez une note dans la barre d'outils pour entrer en mode focus";
+"ui.browse_notes" = "Parcourir les notes";
+"ui.copy_something_to_see" = "Copiez quelque chose pour le voir ici";
+
+// MARK: - Boutons d'alerte
+"alert.ok" = "OK";
+"alert.reset" = "Réinitialiser";
+
+// MARK: - Vue du Presse-papiers
+"clipboard.search.placeholder" = "Rechercher dans l'historique du presse-papiers...";
+"clipboard.empty.title" = "Aucun historique du presse-papiers";
+"clipboard.empty.search.title" = "Aucun élément correspondant";
+"clipboard.item.image.content" = "Contenu d'image";
+"clipboard.item.image.dimensions" = "dimensions";
+"clipboard.item.characters" = "caractères";
+"clipboard.item.pin" = "Épingler";
+"clipboard.item.unpin" = "Désépingler";
+"clipboard.item.copy" = "Copier dans le presse-papiers";
+"clipboard.item.delete" = "Supprimer";
+"clipboard.item.expand" = "Développer";
+"clipboard.item.collapse" = "Réduire";
+"clipboard.multi_select.enter" = "Entrer en mode sélection";
+"clipboard.multi_select.exit" = "Quitter le mode sélection";
+"clipboard.multi_select.delete_selected" = "Supprimer la sélection";
+"clipboard.multi_select.clear_all" = "Tout effacer";
+"clipboard.multi_select.items" = "éléments";
+"clipboard.multi_select.selected" = "sélectionnés";
+
+// MARK: - Filtres du Presse-papiers
+"clipboard.filter.all" = "Tout";
+"clipboard.filter.text" = "Texte";
+"clipboard.filter.image" = "Image";
+"clipboard.filter.file" = "Fichier";
+"clipboard.filter.today" = "Aujourd'hui";
+"clipboard.filter.week" = "Cette semaine";
+"clipboard.filter.month" = "Ce mois";
+"clipboard.filter.type" = "Type";
+"clipboard.filter.source" = "Source";
+"clipboard.filter.date" = "Date";
+
+// MARK: - Tri du Presse-papiers
+"clipboard.sort.title" = "Trier";
+"clipboard.sort.time" = "Temps";
+"clipboard.sort.use_count" = "Fréquence d'utilisation";
+
+// MARK: - Préférences du Presse-papiers
+"preferences.clipboard.max_age" = "Période de rétention maximale :";
+"preferences.clipboard.days" = "jours";
+"preferences.clipboard.max_age_help" = "Les éléments du presse-papiers plus anciens que cette période seront automatiquement supprimés (les éléments épinglés sont préservés)";
+"preferences.clipboard.show_use_count" = "Afficher les étiquettes de fréquence d'utilisation";
+"preferences.clipboard.show_use_count_help" = "Afficher les étiquettes de fréquence d'utilisation sur les éléments du presse-papiers";
+"preferences.clipboard.auto_cleanup" = "Nettoyage automatique activé";
+"preferences.clipboard.auto_cleanup_help" = "Supprimer automatiquement les éléments du presse-papiers expirés";

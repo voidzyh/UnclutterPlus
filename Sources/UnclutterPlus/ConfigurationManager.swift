@@ -19,6 +19,16 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("storage.clipboard.useCustomPath") var useCustomClipboardPath: Bool = false
     @AppStorage("storage.notes.useCustomPath") var useCustomNotesPath: Bool = false
     
+    // 窗口自动隐藏设置
+    @AppStorage("window.autoHideAfterAction") var autoHideAfterAction: Bool = true
+    @AppStorage("window.hideOnLostFocus") var hideOnLostFocus: Bool = true
+    @AppStorage("window.hideDelay") var hideDelay: Double = 0.5
+    
+    // 剪贴板设置
+    @AppStorage("clipboard.maxAge") var clipboardMaxAge: TimeInterval = 30 * 24 * 60 * 60 // 30天
+    @AppStorage("clipboard.showUseCount") var showUseCount: Bool = true
+    @AppStorage("clipboard.sortBy") var clipboardSortBy: String = "time" // "time", "useCount"
+    
     private init() {}
     
     // 默认路径

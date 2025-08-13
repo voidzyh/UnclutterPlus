@@ -113,3 +113,164 @@
 "common.delete" = "刪除";
 "common.edit" = "編輯";
 "common.done" = "完成";
+
+// MARK: - 視窗行為設定
+"preferences.section.window_behavior" = "視窗行為";
+"preferences.window.auto_hide_after_action" = "操作後自動隱藏視窗";
+"preferences.window.auto_hide_after_action.help" = "執行檔案開啟、剪貼簿複製等操作後自動隱藏視窗";
+"preferences.window.hide_on_lost_focus" = "失去焦點時自動隱藏";
+"preferences.window.hide_on_lost_focus.help" = "當視窗失去焦點時自動隱藏（編輯筆記時除外）";
+"preferences.window.hide_delay" = "隱藏延遲：";
+"common.seconds" = "秒";
+
+// MARK: - 設定標籤頁
+"preferences.tab.general" = "一般";
+"preferences.tab.features" = "功能";
+"preferences.tab.storage" = "儲存";
+"preferences.tab.advanced" = "進階";
+
+// MARK: - 設定分組
+"preferences.section.language" = "語言";
+"preferences.section.appearance" = "外觀";
+"preferences.section.interaction" = "互動";
+"preferences.section.features" = "功能開關";
+"preferences.section.files" = "檔案";
+"preferences.section.clipboard" = "剪貼簿";
+"preferences.section.storage_location" = "儲存位置";
+"preferences.section.data_management" = "資料管理";
+"preferences.section.developer" = "開發者選項";
+
+// MARK: - 功能開關設定
+"preferences.features.enable_files" = "啟用檔案管理";
+"preferences.features.enable_clipboard" = "啟用剪貼簿歷史";
+"preferences.features.enable_notes" = "啟用筆記功能";
+"preferences.features.description" = "開啟或關閉功能。關閉功能後資料不會被刪除。";
+
+// MARK: - 儲存設定
+"preferences.storage.custom_path" = "使用自訂路徑";
+"preferences.storage.choose_folder" = "選擇...";
+"preferences.storage.default_path" = "預設路徑：";
+"preferences.storage.current_path" = "目前路徑：";
+"preferences.storage.space_used" = "已用空間：";
+"preferences.storage.files_location" = "檔案儲存位置";
+"preferences.storage.clipboard_location" = "剪貼簿儲存位置";
+"preferences.storage.notes_location" = "筆記儲存位置";
+"preferences.storage.migrate_data" = "移轉資料";
+"preferences.storage.reset_paths" = "重設為預設";
+"preferences.storage.invalid_path" = "無效的路徑";
+"preferences.storage.path_not_writable" = "所選路徑不可寫。請選擇另一個位置。";
+
+// MARK: - 資料管理
+"preferences.data.clear_files" = "清除所有檔案";
+"preferences.data.clear_clipboard" = "清除剪貼簿歷史";
+"preferences.data.clear_notes" = "刪除所有筆記";
+"preferences.data.export" = "匯出資料";
+"preferences.data.import" = "匯入資料";
+"preferences.data.reset_all" = "重設所有設定";
+"preferences.data.reset_confirm" = "確定要將所有設定重設為預設值嗎？";
+"preferences.data.clear_confirm" = "此操作無法復原。是否繼續？";
+
+// MARK: - 功能狀態
+"features.no_enabled.title" = "沒有啟用的功能";
+"features.no_enabled.description" = "請在設定中啟用至少一個功能";
+"features.open_settings" = "開啟設定";
+
+// MARK: - 筆記檢視補充
+"notes.filtered" = "(已篩選)";
+"notes.selected" = "已選";
+"notes.delete_selected" = "刪除已選";
+"notes.select_all" = "全選";
+"notes.new_note" = "新增筆記";
+"notes.create_new_markdown" = "建立新的 Markdown 筆記";
+
+// MARK: - 排序
+"sort.by" = "排序方式";
+"sort.ascending" = "升序";
+"sort.descending" = "降序";
+
+// MARK: - 搜尋
+"search.notes.placeholder" = "搜尋筆記...";
+
+// MARK: - 新增筆記對話框
+"dialog.new_note.title" = "建立新筆記";
+"dialog.new_note.description" = "新增標題和標籤來組織您的筆記";
+"dialog.new_note.title_label" = "標題";
+"dialog.new_note.title_placeholder" = "輸入筆記標題...";
+"dialog.new_note.tags_label" = "標籤";
+"dialog.new_note.available_tags" = "可用標籤：";
+"dialog.new_note.add_new_tag_placeholder" = "新增新標籤...";
+"dialog.new_note.add" = "新增";
+"dialog.new_note.cancel" = "取消";
+"dialog.new_note.create" = "建立筆記";
+
+// MARK: - 通用筆記
+"note.untitled" = "無標題";
+
+// MARK: - 筆記數量
+"notes.count" = "筆記";
+"notes.no_notes_yet" = "還沒有筆記";
+"notes.no_matching_notes" = "沒有匹配的筆記";
+"note.words" = "字";
+"note.min_read" = "分鐘閱讀";
+"note.characters" = "字元";
+
+// MARK: - 介面訊息
+"ui.create_first_note" = "建立第一條筆記";
+"ui.try_different_search" = "嘗試不同的搜尋詞";
+"ui.select_note_to_edit" = "選擇筆記進行編輯";
+"ui.choose_note_from_sidebar" = "從側邊欄選擇筆記開始";
+"ui.focus_mode" = "專注模式";
+"ui.select_note_from_toolbar" = "從工具列選擇筆記進入專注模式";
+"ui.browse_notes" = "瀏覽筆記";
+"ui.copy_something_to_see" = "複製一些內容以在此處檢視";
+
+// MARK: - 警告框按鈕
+"alert.ok" = "確定";
+"alert.reset" = "重設";
+
+// MARK: - 剪貼板視圖
+"clipboard.search.placeholder" = "搜尋剪貼板歷史...";
+"clipboard.empty.title" = "無剪貼板歷史";
+"clipboard.empty.search.title" = "沒有匹配的項目";
+"clipboard.item.image.content" = "圖片內容";
+"clipboard.item.image.dimensions" = "尺寸";
+"clipboard.item.characters" = "字元";
+"clipboard.item.pin" = "置頂";
+"clipboard.item.unpin" = "取消置頂";
+"clipboard.item.copy" = "複製到剪貼板";
+"clipboard.item.delete" = "刪除";
+"clipboard.item.expand" = "展開";
+"clipboard.item.collapse" = "收起";
+"clipboard.multi_select.enter" = "進入選擇模式";
+"clipboard.multi_select.exit" = "退出選擇模式";
+"clipboard.multi_select.delete_selected" = "刪除已選";
+"clipboard.multi_select.clear_all" = "清空全部";
+"clipboard.multi_select.items" = "項目";
+"clipboard.multi_select.selected" = "已選";
+
+// MARK: - 剪貼板過濾
+"clipboard.filter.all" = "全部";
+"clipboard.filter.text" = "文字";
+"clipboard.filter.image" = "圖片";
+"clipboard.filter.file" = "檔案";
+"clipboard.filter.today" = "今天";
+"clipboard.filter.week" = "本週";
+"clipboard.filter.month" = "本月";
+"clipboard.filter.type" = "類型";
+"clipboard.filter.source" = "來源";
+"clipboard.filter.date" = "日期";
+"clipboard.filter.select_app" = "選擇應用";
+
+// MARK: - 剪貼板排序
+"clipboard.sort.title" = "排序";
+"clipboard.sort.time" = "時間";
+"clipboard.sort.use_count" = "使用頻次";
+
+// MARK: - 剪貼板偏好設定
+"preferences.clipboard.max_age" = "最大保存時間：";
+"preferences.clipboard.days" = "天";
+"preferences.clipboard.max_age_help" = "超過此時間的剪貼板項目將被自動刪除（置頂項目會被保留）";
+"preferences.clipboard.show_use_count" = "顯示使用頻次標籤";
+"preferences.clipboard.show_use_count_help" = "在剪貼板項目上顯示使用頻次標籤";
+"preferences.clipboard.auto_cleanup" = "自動清理已啟用";
+"preferences.clipboard.auto_cleanup_help" = "自動刪除過期的剪貼板項目";

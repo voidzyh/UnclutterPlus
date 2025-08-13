@@ -81,10 +81,50 @@
 "files.contextmenu.delete" = "Löschen";
 
 // MARK: - Zwischenablage-Ansicht
-"clipboard.empty" = "Keine Zwischenablage-Historie";
-"clipboard.item.copied" = "Kopiert";
-"clipboard.contextmenu.copy" = "Kopieren";
-"clipboard.contextmenu.delete" = "Löschen";
+"clipboard.search.placeholder" = "Zwischenablage-Verlauf durchsuchen...";
+"clipboard.empty.title" = "Kein Zwischenablage-Verlauf";
+"clipboard.empty.search.title" = "Keine übereinstimmenden Elemente";
+"clipboard.item.image.content" = "Bildinhalt";
+"clipboard.item.image.dimensions" = "Abmessungen";
+"clipboard.item.characters" = "Zeichen";
+"clipboard.item.pin" = "Anheften";
+"clipboard.item.unpin" = "Lösen";
+"clipboard.item.copy" = "In Zwischenablage kopieren";
+"clipboard.item.delete" = "Löschen";
+"clipboard.item.expand" = "Erweitern";
+"clipboard.item.collapse" = "Einklappen";
+"clipboard.multi_select.enter" = "Auswahlmodus aktivieren";
+"clipboard.multi_select.exit" = "Auswahlmodus beenden";
+"clipboard.multi_select.delete_selected" = "Ausgewählte löschen";
+"clipboard.multi_select.clear_all" = "Alle löschen";
+"clipboard.multi_select.items" = "Elemente";
+"clipboard.multi_select.selected" = "ausgewählt";
+
+// MARK: - Zwischenablage-Filter
+"clipboard.filter.all" = "Alle";
+"clipboard.filter.text" = "Text";
+"clipboard.filter.image" = "Bild";
+"clipboard.filter.file" = "Datei";
+"clipboard.filter.today" = "Heute";
+"clipboard.filter.week" = "Diese Woche";
+"clipboard.filter.month" = "Diesen Monat";
+"clipboard.filter.type" = "Typ";
+"clipboard.filter.source" = "Quelle";
+"clipboard.filter.date" = "Datum";
+
+// MARK: - Zwischenablage-Sortierung
+"clipboard.sort.title" = "Sortieren";
+"clipboard.sort.time" = "Zeit";
+"clipboard.sort.use_count" = "Verwendungshäufigkeit";
+
+// MARK: - Zwischenablage-Einstellungen
+"preferences.clipboard.max_age" = "Maximale Aufbewahrungszeit:";
+"preferences.clipboard.days" = "Tage";
+"preferences.clipboard.max_age_help" = "Zwischenablage-Elemente, die älter als diese Zeit sind, werden automatisch entfernt (angeheftete Elemente werden beibehalten)";
+"preferences.clipboard.show_use_count" = "Verwendungshäufigkeit-Labels anzeigen";
+"preferences.clipboard.show_use_count_help" = "Verwendungshäufigkeit-Labels auf Zwischenablage-Elementen anzeigen";
+"preferences.clipboard.auto_cleanup" = "Automatische Bereinigung aktiviert";
+"preferences.clipboard.auto_cleanup_help" = "Abgelaufene Zwischenablage-Elemente automatisch entfernen";
 
 // MARK: - Notizen-Ansicht
 "notes.new" = "Neue Notiz";
@@ -113,3 +153,117 @@
 "common.delete" = "Löschen";
 "common.edit" = "Bearbeiten";
 "common.done" = "Fertig";
+
+// MARK: - Fensterverhalten-Einstellungen
+"preferences.section.window_behavior" = "Fensterverhalten";
+"preferences.window.auto_hide_after_action" = "Fenster nach Aktionen automatisch ausblenden";
+"preferences.window.auto_hide_after_action.help" = "Fenster automatisch ausblenden nach dem Öffnen von Dateien, Kopieren in die Zwischenablage, etc.";
+"preferences.window.hide_on_lost_focus" = "Bei Fokusverlust automatisch ausblenden";
+"preferences.window.hide_on_lost_focus.help" = "Fenster automatisch ausblenden, wenn es den Fokus verliert (außer beim Bearbeiten von Notizen)";
+"preferences.window.hide_delay" = "Ausblendverzögerung:";
+"common.seconds" = "Sekunden";
+
+// MARK: - Einstellungs-Tabs
+"preferences.tab.general" = "Allgemein";
+"preferences.tab.features" = "Funktionen";
+"preferences.tab.storage" = "Speicher";
+"preferences.tab.advanced" = "Erweitert";
+
+// MARK: - Einstellungs-Abschnitte
+"preferences.section.language" = "Sprache";
+"preferences.section.appearance" = "Erscheinungsbild";
+"preferences.section.interaction" = "Interaktion";
+"preferences.section.features" = "Funktionsschalter";
+"preferences.section.files" = "Dateien";
+"preferences.section.clipboard" = "Zwischenablage";
+"preferences.section.storage_location" = "Speicherorte";
+"preferences.section.data_management" = "Datenverwaltung";
+"preferences.section.developer" = "Entwickleroptionen";
+
+// MARK: - Funktionsschalter-Einstellungen
+"preferences.features.enable_files" = "Dateiverwaltung aktivieren";
+"preferences.features.enable_clipboard" = "Zwischenablage-Verlauf aktivieren";
+"preferences.features.enable_notes" = "Notizen-Funktion aktivieren";
+"preferences.features.description" = "Funktionen ein- oder ausschalten. Daten werden beibehalten, wenn Funktionen deaktiviert sind.";
+
+// MARK: - Speicher-Einstellungen
+"preferences.storage.custom_path" = "Benutzerdefinierten Pfad verwenden";
+"preferences.storage.choose_folder" = "Auswählen...";
+"preferences.storage.default_path" = "Standardpfad:";
+"preferences.storage.current_path" = "Aktueller Pfad:";
+"preferences.storage.space_used" = "Verwendeter Speicher:";
+"preferences.storage.files_location" = "Datei-Speicherort";
+"preferences.storage.clipboard_location" = "Zwischenablage-Speicherort";
+"preferences.storage.notes_location" = "Notizen-Speicherort";
+"preferences.storage.migrate_data" = "Daten migrieren";
+"preferences.storage.reset_paths" = "Auf Standard zurücksetzen";
+"preferences.storage.invalid_path" = "Ungültiger Pfad";
+"preferences.storage.path_not_writable" = "Der ausgewählte Pfad ist nicht beschreibbar. Bitte wählen Sie einen anderen Ort.";
+
+// MARK: - Datenverwaltung
+"preferences.data.clear_files" = "Alle Dateien löschen";
+"preferences.data.clear_clipboard" = "Zwischenablage-Verlauf löschen";
+"preferences.data.clear_notes" = "Alle Notizen löschen";
+"preferences.data.export" = "Daten exportieren";
+"preferences.data.import" = "Daten importieren";
+"preferences.data.reset_all" = "Alle Einstellungen zurücksetzen";
+"preferences.data.reset_confirm" = "Sind Sie sicher, dass Sie alle Einstellungen auf die Standardwerte zurücksetzen möchten?";
+"preferences.data.clear_confirm" = "Diese Aktion kann nicht rückgängig gemacht werden. Fortfahren?";
+
+// MARK: - Funktionsstatus
+"features.no_enabled.title" = "Keine Funktionen aktiviert";
+"features.no_enabled.description" = "Bitte aktivieren Sie mindestens eine Funktion in den Einstellungen";
+"features.open_settings" = "Einstellungen öffnen";
+
+// MARK: - Notizen-Ansicht zusätzlich
+"notes.filtered" = "(gefiltert)";
+"notes.selected" = "ausgewählt";
+"notes.delete_selected" = "Ausgewählte löschen";
+"notes.select_all" = "Alle auswählen";
+"notes.new_note" = "Neue Notiz";
+"notes.create_new_markdown" = "Neue Markdown-Notiz erstellen";
+
+// MARK: - Sortierung
+"sort.by" = "Sortieren nach";
+"sort.ascending" = "Aufsteigend";
+"sort.descending" = "Absteigend";
+
+// MARK: - Suche
+"search.notes.placeholder" = "Notizen suchen...";
+
+// MARK: - Neue Notiz-Dialog
+"dialog.new_note.title" = "Neue Notiz erstellen";
+"dialog.new_note.description" = "Fügen Sie einen Titel und Tags hinzu, um Ihre Notiz zu organisieren";
+"dialog.new_note.title_label" = "Titel";
+"dialog.new_note.title_placeholder" = "Notiz-Titel eingeben...";
+"dialog.new_note.tags_label" = "Tags";
+"dialog.new_note.available_tags" = "Verfügbare Tags:";
+"dialog.new_note.add_new_tag_placeholder" = "Neuen Tag hinzufügen...";
+"dialog.new_note.add" = "Hinzufügen";
+"dialog.new_note.cancel" = "Abbrechen";
+"dialog.new_note.create" = "Notiz erstellen";
+
+// MARK: - Gemeinsame Notiz
+"note.untitled" = "Unbenannt";
+
+// MARK: - Notizen-Statistiken
+"notes.count" = "Notizen";
+"notes.no_notes_yet" = "Noch keine Notizen";
+"notes.no_matching_notes" = "Keine übereinstimmenden Notizen";
+"note.words" = "Wörter";
+"note.min_read" = "Min. Lesezeit";
+"note.characters" = "Zeichen";
+
+// MARK: - UI-Nachrichten
+"ui.create_first_note" = "Erste Notiz erstellen";
+"ui.try_different_search" = "Versuchen Sie einen anderen Suchbegriff";
+"ui.select_note_to_edit" = "Wählen Sie eine Notiz zum Bearbeiten";
+"ui.choose_note_from_sidebar" = "Wählen Sie eine Notiz aus der Seitenleiste, um zu beginnen";
+"ui.focus_mode" = "Fokus-Modus";
+"ui.select_note_from_toolbar" = "Wählen Sie eine Notiz aus der Symbolleiste, um in den Fokus-Modus zu wechseln";
+"ui.browse_notes" = "Notizen durchsuchen";
+"ui.copy_something_to_see" = "Kopieren Sie etwas, um es hier zu sehen";
+
+// MARK: - Warnungs-Buttons
+"alert.ok" = "OK";
+"alert.reset" = "Zurücksetzen";

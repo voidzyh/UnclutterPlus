@@ -81,10 +81,53 @@
 "files.contextmenu.delete" = "삭제";
 
 // MARK: - 클립보드 뷰
-"clipboard.empty" = "클립보드 기록이 없습니다";
+"clipboard.search.placeholder" = "클립보드 기록 검색...";
+"clipboard.empty.title" = "클립보드 기록이 없습니다";
+"clipboard.empty.search.title" = "일치하는 항목이 없습니다";
+"clipboard.item.image.content" = "이미지 내용";
+"clipboard.item.image.dimensions" = "크기";
+"clipboard.item.characters" = "문자";
+"clipboard.item.pin" = "고정";
+"clipboard.item.unpin" = "고정 해제";
+"clipboard.item.copy" = "클립보드에 복사";
+"clipboard.item.delete" = "삭제";
+"clipboard.item.expand" = "펼치기";
+"clipboard.item.collapse" = "접기";
+"clipboard.multi_select.enter" = "선택 모드 진입";
+"clipboard.multi_select.exit" = "선택 모드 종료";
+"clipboard.multi_select.delete_selected" = "선택된 항목 삭제";
+"clipboard.multi_select.clear_all" = "모두 지우기";
+"clipboard.multi_select.items" = "항목";
+"clipboard.multi_select.selected" = "선택됨";
 "clipboard.item.copied" = "복사됨";
 "clipboard.contextmenu.copy" = "복사";
 "clipboard.contextmenu.delete" = "삭제";
+
+// MARK: - 클립보드 필터
+"clipboard.filter.all" = "모두";
+"clipboard.filter.text" = "텍스트";
+"clipboard.filter.image" = "이미지";
+"clipboard.filter.file" = "파일";
+"clipboard.filter.today" = "오늘";
+"clipboard.filter.week" = "이번 주";
+"clipboard.filter.month" = "이번 달";
+"clipboard.filter.type" = "유형";
+"clipboard.filter.source" = "소스";
+"clipboard.filter.date" = "날짜";
+
+// MARK: - 클립보드 정렬
+"clipboard.sort.title" = "정렬";
+"clipboard.sort.time" = "시간";
+"clipboard.sort.use_count" = "사용 빈도";
+
+// MARK: - 클립보드 설정
+"preferences.clipboard.max_age" = "최대 보존 기간:";
+"preferences.clipboard.days" = "일";
+"preferences.clipboard.max_age_help" = "이 기간을 초과한 클립보드 항목은 자동으로 삭제됩니다 (고정된 항목은 보존됨)";
+"preferences.clipboard.show_use_count" = "사용 빈도 라벨 표시";
+"preferences.clipboard.show_use_count_help" = "클립보드 항목에 사용 빈도 라벨을 표시";
+"preferences.clipboard.auto_cleanup" = "자동 정리 활성화됨";
+"preferences.clipboard.auto_cleanup_help" = "만료된 클립보드 항목을 자동으로 삭제";
 
 // MARK: - 메모 뷰
 "notes.new" = "새 메모";
@@ -113,3 +156,117 @@
 "common.delete" = "삭제";
 "common.edit" = "편집";
 "common.done" = "완료";
+
+// MARK: - 윈도우 동작 설정
+"preferences.section.window_behavior" = "윈도우 동작";
+"preferences.window.auto_hide_after_action" = "작업 후 윈도우 자동 숨김";
+"preferences.window.auto_hide_after_action.help" = "파일 열기, 클립보드 복사 등의 작업 후 윈도우를 자동으로 숨깁니다";
+"preferences.window.hide_on_lost_focus" = "포커스 손실 시 자동 숨김";
+"preferences.window.hide_on_lost_focus.help" = "윈도우가 포커스를 잃을 때 자동으로 숨깁니다 (메모 편집 중 제외)";
+"preferences.window.hide_delay" = "숨김 지연:";
+"common.seconds" = "초";
+
+// MARK: - 환경설정 탭
+"preferences.tab.general" = "일반";
+"preferences.tab.features" = "기능";
+"preferences.tab.storage" = "저장소";
+"preferences.tab.advanced" = "고급";
+
+// MARK: - 환경설정 섹션
+"preferences.section.language" = "언어";
+"preferences.section.appearance" = "외관";
+"preferences.section.interaction" = "상호작용";
+"preferences.section.features" = "기능 토글";
+"preferences.section.files" = "파일";
+"preferences.section.clipboard" = "클립보드";
+"preferences.section.storage_location" = "저장 위치";
+"preferences.section.data_management" = "데이터 관리";
+"preferences.section.developer" = "개발자 옵션";
+
+// MARK: - 기능 토글 설정
+"preferences.features.enable_files" = "파일 관리 활성화";
+"preferences.features.enable_clipboard" = "클립보드 기록 활성화";
+"preferences.features.enable_notes" = "메모 기능 활성화";
+"preferences.features.description" = "기능을 켜거나 끕니다. 기능을 비활성화해도 데이터는 보존됩니다.";
+
+// MARK: - 저장소 설정
+"preferences.storage.custom_path" = "사용자 정의 경로 사용";
+"preferences.storage.choose_folder" = "선택...";
+"preferences.storage.default_path" = "기본 경로:";
+"preferences.storage.current_path" = "현재 경로:";
+"preferences.storage.space_used" = "사용된 공간:";
+"preferences.storage.files_location" = "파일 저장 위치";
+"preferences.storage.clipboard_location" = "클립보드 저장 위치";
+"preferences.storage.notes_location" = "메모 저장 위치";
+"preferences.storage.migrate_data" = "데이터 마이그레이션";
+"preferences.storage.reset_paths" = "기본값으로 재설정";
+"preferences.storage.invalid_path" = "잘못된 경로";
+"preferences.storage.path_not_writable" = "선택한 경로에 쓸 수 없습니다. 다른 위치를 선택하세요.";
+
+// MARK: - 데이터 관리
+"preferences.data.clear_files" = "모든 파일 지우기";
+"preferences.data.clear_clipboard" = "클립보드 기록 지우기";
+"preferences.data.clear_notes" = "모든 메모 삭제";
+"preferences.data.export" = "데이터 내보내기";
+"preferences.data.import" = "데이터 가져오기";
+"preferences.data.reset_all" = "모든 설정 재설정";
+"preferences.data.reset_confirm" = "모든 설정을 기본값으로 재설정하시겠습니까?";
+"preferences.data.clear_confirm" = "이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?";
+
+// MARK: - 기능 상태
+"features.no_enabled.title" = "활성화된 기능이 없습니다";
+"features.no_enabled.description" = "설정에서 최소한 하나의 기능을 활성화하세요";
+"features.open_settings" = "설정 열기";
+
+// MARK: - 메모 뷰 추가
+"notes.filtered" = "(필터링됨)";
+"notes.selected" = "선택됨";
+"notes.delete_selected" = "선택된 항목 삭제";
+"notes.select_all" = "모두 선택";
+"notes.new_note" = "새 메모";
+"notes.create_new_markdown" = "새 Markdown 메모 생성";
+
+// MARK: - 정렬
+"sort.by" = "정렬 기준";
+"sort.ascending" = "오름차순";
+"sort.descending" = "내림차순";
+
+// MARK: - 검색
+"search.notes.placeholder" = "메모 검색...";
+
+// MARK: - 새 메모 대화상자
+"dialog.new_note.title" = "새 메모 생성";
+"dialog.new_note.description" = "제목과 태그를 추가하여 메모를 구성하세요";
+"dialog.new_note.title_label" = "제목";
+"dialog.new_note.title_placeholder" = "메모 제목 입력...";
+"dialog.new_note.tags_label" = "태그";
+"dialog.new_note.available_tags" = "사용 가능한 태그:";
+"dialog.new_note.add_new_tag_placeholder" = "새 태그 추가...";
+"dialog.new_note.add" = "추가";
+"dialog.new_note.cancel" = "취소";
+"dialog.new_note.create" = "메모 생성";
+
+// MARK: - 공통 메모
+"note.untitled" = "제목 없음";
+
+// MARK: - 메모 통계
+"notes.count" = "메모";
+"notes.no_notes_yet" = "아직 메모가 없습니다";
+"notes.no_matching_notes" = "일치하는 메모가 없습니다";
+"note.words" = "단어";
+"note.min_read" = "분 읽기";
+"note.characters" = "문자";
+
+// MARK: - UI 메시지
+"ui.create_first_note" = "첫 번째 메모 생성";
+"ui.try_different_search" = "다른 검색어를 시도해보세요";
+"ui.select_note_to_edit" = "편집할 메모를 선택하세요";
+"ui.choose_note_from_sidebar" = "사이드바에서 메모를 선택하여 시작하세요";
+"ui.focus_mode" = "포커스 모드";
+"ui.select_note_from_toolbar" = "도구 모음에서 메모를 선택하여 포커스 모드에 진입하세요";
+"ui.browse_notes" = "메모 찾아보기";
+"ui.copy_something_to_see" = "여기에서 보려면 무언가를 복사하세요";
+
+// MARK: - 경고 버튼
+"alert.ok" = "확인";
+"alert.reset" = "재설정";

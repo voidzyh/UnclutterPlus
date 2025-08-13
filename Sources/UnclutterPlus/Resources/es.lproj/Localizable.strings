@@ -113,3 +113,163 @@
 "common.delete" = "Eliminar";
 "common.edit" = "Editar";
 "common.done" = "Hecho";
+
+// MARK: - Configuración de comportamiento de ventana
+"preferences.section.window_behavior" = "Comportamiento de ventana";
+"preferences.window.auto_hide_after_action" = "Ocultar ventana automáticamente después de acciones";
+"preferences.window.auto_hide_after_action.help" = "Ocultar ventana automáticamente después de abrir archivos, copiar al portapapeles, etc.";
+"preferences.window.hide_on_lost_focus" = "Ocultar automáticamente al perder el foco";
+"preferences.window.hide_on_lost_focus.help" = "Ocultar ventana automáticamente cuando pierde el foco (excepto al editar notas)";
+"preferences.window.hide_delay" = "Retraso de ocultación:";
+"common.seconds" = "segundos";
+
+// MARK: - Pestañas de preferencias
+"preferences.tab.general" = "General";
+"preferences.tab.features" = "Características";
+"preferences.tab.storage" = "Almacenamiento";
+"preferences.tab.advanced" = "Avanzado";
+
+// MARK: - Secciones de preferencias
+"preferences.section.language" = "Idioma";
+"preferences.section.appearance" = "Apariencia";
+"preferences.section.interaction" = "Interacción";
+"preferences.section.features" = "Interruptores de características";
+"preferences.section.files" = "Archivos";
+"preferences.section.clipboard" = "Portapapeles";
+"preferences.section.storage_location" = "Ubicaciones de almacenamiento";
+"preferences.section.data_management" = "Gestión de datos";
+"preferences.section.developer" = "Opciones de desarrollador";
+
+// MARK: - Configuración de interruptores de características
+"preferences.features.enable_files" = "Habilitar gestión de archivos";
+"preferences.features.enable_clipboard" = "Habilitar historial del portapapeles";
+"preferences.features.enable_notes" = "Habilitar función de notas";
+"preferences.features.description" = "Activar o desactivar características. Los datos se conservan cuando las características están desactivadas.";
+
+// MARK: - Configuración de almacenamiento
+"preferences.storage.custom_path" = "Usar ruta personalizada";
+"preferences.storage.choose_folder" = "Elegir...";
+"preferences.storage.default_path" = "Ruta predeterminada:";
+"preferences.storage.current_path" = "Ruta actual:";
+"preferences.storage.space_used" = "Espacio usado:";
+"preferences.storage.files_location" = "Ubicación de almacenamiento de archivos";
+"preferences.storage.clipboard_location" = "Ubicación de almacenamiento del portapapeles";
+"preferences.storage.notes_location" = "Ubicación de almacenamiento de notas";
+"preferences.storage.migrate_data" = "Migrar datos";
+"preferences.storage.reset_paths" = "Restablecer a predeterminados";
+"preferences.storage.invalid_path" = "Ruta inválida";
+"preferences.storage.path_not_writable" = "La ruta seleccionada no es escribible. Por favor elija otra ubicación.";
+
+// MARK: - Gestión de datos
+"preferences.data.clear_files" = "Borrar todos los archivos";
+"preferences.data.clear_clipboard" = "Borrar historial del portapapeles";
+"preferences.data.clear_notes" = "Eliminar todas las notas";
+"preferences.data.export" = "Exportar datos";
+"preferences.data.import" = "Importar datos";
+"preferences.data.reset_all" = "Restablecer todas las configuraciones";
+"preferences.data.reset_confirm" = "¿Está seguro de que desea restablecer todas las configuraciones a los valores predeterminados?";
+"preferences.data.clear_confirm" = "Esta acción no se puede deshacer. ¿Continuar?";
+
+// MARK: - Estado de características
+"features.no_enabled.title" = "No hay características habilitadas";
+"features.no_enabled.description" = "Por favor habilite al menos una característica en la configuración";
+"features.open_settings" = "Abrir configuración";
+
+// MARK: - Vista de notas adicional
+"notes.filtered" = "(filtrado)";
+"notes.selected" = "seleccionado";
+"notes.delete_selected" = "Eliminar seleccionado";
+"notes.select_all" = "Seleccionar todo";
+"notes.new_note" = "Nueva nota";
+"notes.create_new_markdown" = "Crear nueva nota Markdown";
+
+// MARK: - Ordenamiento
+"sort.by" = "Ordenar por";
+"sort.ascending" = "Ascendente";
+"sort.descending" = "Descendente";
+
+// MARK: - Búsqueda
+"search.notes.placeholder" = "Buscar notas...";
+
+// MARK: - Diálogo nueva nota
+"dialog.new_note.title" = "Crear nueva nota";
+"dialog.new_note.description" = "Agregue un título y etiquetas para organizar su nota";
+"dialog.new_note.title_label" = "Título";
+"dialog.new_note.title_placeholder" = "Ingrese el título de la nota...";
+"dialog.new_note.tags_label" = "Etiquetas";
+"dialog.new_note.available_tags" = "Etiquetas disponibles:";
+"dialog.new_note.add_new_tag_placeholder" = "Agregar nueva etiqueta...";
+"dialog.new_note.add" = "Agregar";
+"dialog.new_note.cancel" = "Cancelar";
+"dialog.new_note.create" = "Crear nota";
+
+// MARK: - Nota común
+"note.untitled" = "Sin título";
+
+// MARK: - Estadísticas de notas
+"notes.count" = "notas";
+"notes.no_notes_yet" = "Aún no hay notas";
+"notes.no_matching_notes" = "No hay notas coincidentes";
+"note.words" = "palabras";
+"note.min_read" = "min de lectura";
+"note.characters" = "caracteres";
+
+// MARK: - Mensajes de UI
+"ui.create_first_note" = "Crear primera nota";
+"ui.try_different_search" = "Intente un término de búsqueda diferente";
+"ui.select_note_to_edit" = "Seleccione una nota para editar";
+"ui.choose_note_from_sidebar" = "Elija una nota de la barra lateral para comenzar";
+"ui.focus_mode" = "Modo de enfoque";
+"ui.select_note_from_toolbar" = "Seleccione una nota de la barra de herramientas para entrar en modo de enfoque";
+"ui.browse_notes" = "Explorar notas";
+"ui.copy_something_to_see" = "Copie algo para verlo aquí";
+
+// MARK: - Botones de alerta
+"alert.ok" = "OK";
+"alert.reset" = "Restablecer";
+
+// MARK: - Vista del Portapapeles
+"clipboard.search.placeholder" = "Buscar en el historial del portapapeles...";
+"clipboard.empty.title" = "Sin historial del portapapeles";
+"clipboard.empty.search.title" = "No hay elementos coincidentes";
+"clipboard.item.image.content" = "Contenido de imagen";
+"clipboard.item.image.dimensions" = "dimensiones";
+"clipboard.item.characters" = "caracteres";
+"clipboard.item.pin" = "Fijar";
+"clipboard.item.unpin" = "Desfijar";
+"clipboard.item.copy" = "Copiar al portapapeles";
+"clipboard.item.delete" = "Eliminar";
+"clipboard.item.expand" = "Expandir";
+"clipboard.item.collapse" = "Contraer";
+"clipboard.multi_select.enter" = "Entrar en modo selección";
+"clipboard.multi_select.exit" = "Salir del modo selección";
+"clipboard.multi_select.delete_selected" = "Eliminar seleccionados";
+"clipboard.multi_select.clear_all" = "Limpiar todo";
+"clipboard.multi_select.items" = "elementos";
+"clipboard.multi_select.selected" = "seleccionados";
+
+// MARK: - Filtros del Portapapeles
+"clipboard.filter.all" = "Todo";
+"clipboard.filter.text" = "Texto";
+"clipboard.filter.image" = "Imagen";
+"clipboard.filter.file" = "Archivo";
+"clipboard.filter.today" = "Hoy";
+"clipboard.filter.week" = "Esta semana";
+"clipboard.filter.month" = "Este mes";
+"clipboard.filter.type" = "Tipo";
+"clipboard.filter.source" = "Fuente";
+"clipboard.filter.date" = "Fecha";
+
+// MARK: - Ordenamiento del Portapapeles
+"clipboard.sort.title" = "Ordenar";
+"clipboard.sort.time" = "Tiempo";
+"clipboard.sort.use_count" = "Frecuencia de uso";
+
+// MARK: - Preferencias del Portapapeles
+"preferences.clipboard.max_age" = "Período de retención máximo:";
+"preferences.clipboard.days" = "días";
+"preferences.clipboard.max_age_help" = "Los elementos del portapapeles más antiguos que este período serán eliminados automáticamente (los elementos fijados se conservan)";
+"preferences.clipboard.show_use_count" = "Mostrar etiquetas de frecuencia de uso";
+"preferences.clipboard.show_use_count_help" = "Mostrar etiquetas de frecuencia de uso en elementos del portapapeles";
+"preferences.clipboard.auto_cleanup" = "Limpieza automática habilitada";
+"preferences.clipboard.auto_cleanup_help" = "Eliminar automáticamente elementos del portapapeles expirados";
