@@ -306,12 +306,27 @@ struct PreferencesView: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = true
         panel.prompt = "preferences.storage.choose_folder".localized
+        panel.message = "preferences.storage.choose_folder".localized
         
-        if panel.runModal() == .OK, let url = panel.url {
-            if config.validatePath(url.path) {
-                completion(url)
-            } else {
-                showPathError()
+        // 设置正确的父窗口，避免被遮挡
+        if let window = NSApp.keyWindow {
+            panel.beginSheetModal(for: window) { response in
+                if response == .OK, let url = panel.url {
+                    if self.config.validatePath(url.path) {
+                        completion(url)
+                    } else {
+                        self.showPathError()
+                    }
+                }
+            }
+        } else {
+            // 如果没有找到窗口，使用模态方式
+            if panel.runModal() == .OK, let url = panel.url {
+                if config.validatePath(url.path) {
+                    completion(url)
+                } else {
+                    showPathError()
+                }
             }
         }
     }
@@ -321,7 +336,12 @@ struct PreferencesView: View {
         alert.messageText = "preferences.storage.invalid_path".localized
         alert.informativeText = "preferences.storage.path_not_writable".localized
         alert.alertStyle = .warning
-        alert.runModal()
+        
+        if let window = NSApp.keyWindow {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
     }
     
     private func showClearConfirmation(action: @escaping () -> Void) {
@@ -331,8 +351,16 @@ struct PreferencesView: View {
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "Cancel")
         
-        if alert.runModal() == .alertFirstButtonReturn {
-            action()
+        if let window = NSApp.keyWindow {
+            alert.beginSheetModal(for: window) { response in
+                if response == .alertFirstButtonReturn {
+                    action()
+                }
+            }
+        } else {
+            if alert.runModal() == .alertFirstButtonReturn {
+                action()
+            }
         }
     }
     
@@ -343,14 +371,26 @@ struct PreferencesView: View {
         alert.addButton(withTitle: "Reset")
         alert.addButton(withTitle: "Cancel")
         
-        if alert.runModal() == .alertFirstButtonReturn {
-            config.resetToDefaults()
-            prefs.markdownTheme = .gitHub
-            prefs.codeHighlightTheme = .sunset
-            prefs.notesAutoSaveInterval = 2.0
-            prefs.showMenuBarIcon = true
-            prefs.enableBaseURL = false
-            prefs.baseURLString = ""
+        let resetAction = {
+            self.config.resetToDefaults()
+            self.prefs.markdownTheme = .gitHub
+            self.prefs.codeHighlightTheme = .sunset
+            self.prefs.notesAutoSaveInterval = 2.0
+            self.prefs.showMenuBarIcon = true
+            self.prefs.enableBaseURL = false
+            self.prefs.baseURLString = ""
+        }
+        
+        if let window = NSApp.keyWindow {
+            alert.beginSheetModal(for: window) { response in
+                if response == .alertFirstButtonReturn {
+                    resetAction()
+                }
+            }
+        } else {
+            if alert.runModal() == .alertFirstButtonReturn {
+                resetAction()
+            }
         }
     }
     
