@@ -131,16 +131,15 @@ class TempFileManager: ObservableObject {
     @Published var sortOption: SortOption = .dateAdded
     @Published var isAscending: Bool = false
     
-    private let tempDirectory: URL
-    private let metadataDirectory: URL
+    private let config = ConfigurationManager.shared
+    private var tempDirectory: URL {
+        config.filesStoragePath
+    }
+    private var metadataDirectory: URL {
+        config.filesStoragePath.appendingPathComponent("Metadata")
+    }
     
     init() {
-        // 创建临时目录
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, 
-                                                in: .userDomainMask).first!
-        tempDirectory = appSupport.appendingPathComponent("UnclutterPlus/TempFiles")
-        metadataDirectory = appSupport.appendingPathComponent("UnclutterPlus/Metadata")
-        
         // 确保目录存在
         try? FileManager.default.createDirectory(at: tempDirectory, 
                                                withIntermediateDirectories: true)

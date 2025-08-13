@@ -15,13 +15,24 @@
 // MARK: - 设置窗口
 "preferences.title" = "偏好设置";
 
+// MARK: - 设置标签页
+"preferences.tab.general" = "通用";
+"preferences.tab.features" = "功能";
+"preferences.tab.storage" = "存储";
+"preferences.tab.advanced" = "高级";
+
 // MARK: - 设置分组
-"preferences.section.markdown" = "Markdown";
-"preferences.section.notes" = "笔记";
-"preferences.section.mouse_trackpad" = "鼠标和触控板";
-"preferences.section.appearance" = "外观";
-"preferences.section.base_url" = "基础 URL";
 "preferences.section.language" = "语言";
+"preferences.section.appearance" = "外观";
+"preferences.section.interaction" = "交互";
+"preferences.section.features" = "功能开关";
+"preferences.section.files" = "文件";
+"preferences.section.clipboard" = "剪贴板";
+"preferences.section.notes" = "笔记";
+"preferences.section.markdown" = "Markdown";
+"preferences.section.storage_location" = "存储位置";
+"preferences.section.data_management" = "数据管理";
+"preferences.section.developer" = "开发者选项";
 
 // MARK: - Markdown 设置
 "preferences.markdown.theme" = "主题";
@@ -60,6 +71,36 @@
 "preferences.language.spanish" = "Español";
 "preferences.language.traditional_chinese" = "繁體中文";
 "preferences.language.restart_required" = "需要重启应用以使语言更改生效";
+
+// MARK: - 功能开关设置
+"preferences.features.enable_files" = "启用文件管理";
+"preferences.features.enable_clipboard" = "启用剪贴板历史";
+"preferences.features.enable_notes" = "启用笔记功能";
+"preferences.features.description" = "开启或关闭功能。关闭功能后数据不会被删除。";
+
+// MARK: - 存储设置
+"preferences.storage.custom_path" = "使用自定义路径";
+"preferences.storage.choose_folder" = "选择...";
+"preferences.storage.default_path" = "默认路径：";
+"preferences.storage.current_path" = "当前路径：";
+"preferences.storage.space_used" = "已用空间：";
+"preferences.storage.files_location" = "文件存储位置";
+"preferences.storage.clipboard_location" = "剪贴板存储位置";
+"preferences.storage.notes_location" = "笔记存储位置";
+"preferences.storage.migrate_data" = "迁移数据";
+"preferences.storage.reset_paths" = "重置为默认";
+"preferences.storage.invalid_path" = "无效的路径";
+"preferences.storage.path_not_writable" = "所选路径不可写。请选择另一个位置。";
+
+// MARK: - 数据管理
+"preferences.data.clear_files" = "清除所有文件";
+"preferences.data.clear_clipboard" = "清除剪贴板历史";
+"preferences.data.clear_notes" = "删除所有笔记";
+"preferences.data.export" = "导出数据";
+"preferences.data.import" = "导入数据";
+"preferences.data.reset_all" = "重置所有设置";
+"preferences.data.reset_confirm" = "确定要将所有设置重置为默认值吗？";
+"preferences.data.clear_confirm" = "此操作无法撤销。是否继续？";
 
 // MARK: - 菜单项
 "menu.open" = "打开 UnclutterPlus";

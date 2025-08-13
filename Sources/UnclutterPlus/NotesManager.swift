@@ -92,9 +92,12 @@ class NotesManager: ObservableObject {
     @Published var isAscending: Bool = false
     @Published var searchText: String = ""
     
-    private let userDefaults = UserDefaults.standard
-    private let notesKey = "SavedNotes"
+    private let config = ConfigurationManager.shared
     private var hasInitialized = false
+    
+    private var notesStorageURL: URL {
+        config.notesStoragePath.appendingPathComponent("notes.json")
+    }
     
     private init() {
         print("NotesManager: 初始化 (单例)")
@@ -241,37 +244,59 @@ class NotesManager: ObservableObject {
     
     private func saveNotes() {
         do {
-            let data = try JSONEncoder().encode(notes)
-            userDefaults.set(data, forKey: notesKey)
-            print("NotesManager: 已保存 \(notes.count) 个笔记")
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(notes)
+            try data.write(to: notesStorageURL)
+            print("NotesManager: 已保存 \(notes.count) 个笔记到 \(notesStorageURL.path)")
         } catch {
             print("Error saving notes: \(error)")
         }
     }
     
     private func loadNotes() {
-        guard let data = userDefaults.data(forKey: notesKey) else {
-            // 没有保存的笔记，创建默认样本笔记
-            createWelcomeNote()
-            print("NotesManager: 创建了默认样本笔记")
-            return
+        // 首先尝试从新的存储位置加载
+        if FileManager.default.fileExists(atPath: notesStorageURL.path) {
+            do {
+                let data = try Data(contentsOf: notesStorageURL)
+                notes = try JSONDecoder().decode([Note].self, from: data)
+                print("NotesManager: 从文件加载了 \(notes.count) 个笔记")
+                
+                if notes.isEmpty {
+                    createWelcomeNote()
+                    print("NotesManager: 笔记列表为空，创建了默认样本笔记")
+                }
+                return
+            } catch {
+                print("Error loading notes from file: \(error)")
+            }
         }
         
-        do {
-            notes = try JSONDecoder().decode([Note].self, from: data)
-            print("NotesManager: 加载了 \(notes.count) 个笔记")
-            
-            // 如果加载的笔记为空，也创建样本笔记
-            if notes.isEmpty {
-                createWelcomeNote()
-                print("NotesManager: 笔记列表为空，创建了默认样本笔记")
+        // 如果新位置没有数据，尝试从旧的 UserDefaults 迁移
+        if let data = UserDefaults.standard.data(forKey: "SavedNotes") {
+            do {
+                notes = try JSONDecoder().decode([Note].self, from: data)
+                print("NotesManager: 从 UserDefaults 迁移了 \(notes.count) 个笔记")
+                
+                // 保存到新位置
+                saveNotes()
+                
+                // 清理旧数据
+                UserDefaults.standard.removeObject(forKey: "SavedNotes")
+                
+                if notes.isEmpty {
+                    createWelcomeNote()
+                    print("NotesManager: 笔记列表为空，创建了默认样本笔记")
+                }
+                return
+            } catch {
+                print("Error loading notes from UserDefaults: \(error)")
             }
-        } catch {
-            print("Error loading notes: \(error)")
-            notes = []
-            createWelcomeNote()
-            print("NotesManager: 加载失败，创建了默认样本笔记")
         }
+        
+        // 如果都没有数据，创建欢迎笔记
+        createWelcomeNote()
+        print("NotesManager: 创建了默认样本笔记")
     }
     
     private func createWelcomeNote() {

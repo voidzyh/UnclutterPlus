@@ -15,13 +15,24 @@
 // MARK: - Preferences Window
 "preferences.title" = "Preferences";
 
+// MARK: - Preferences Tabs
+"preferences.tab.general" = "General";
+"preferences.tab.features" = "Features";
+"preferences.tab.storage" = "Storage";
+"preferences.tab.advanced" = "Advanced";
+
 // MARK: - Preferences Sections
-"preferences.section.markdown" = "Markdown";
-"preferences.section.notes" = "Notes";
-"preferences.section.mouse_trackpad" = "Mouse & Trackpad";
-"preferences.section.appearance" = "Appearance";
-"preferences.section.base_url" = "Base URL";
 "preferences.section.language" = "Language";
+"preferences.section.appearance" = "Appearance";
+"preferences.section.interaction" = "Interaction";
+"preferences.section.features" = "Feature Toggles";
+"preferences.section.files" = "Files";
+"preferences.section.clipboard" = "Clipboard";
+"preferences.section.notes" = "Notes";
+"preferences.section.markdown" = "Markdown";
+"preferences.section.storage_location" = "Storage Locations";
+"preferences.section.data_management" = "Data Management";
+"preferences.section.developer" = "Developer Options";
 
 // MARK: - Markdown Settings
 "preferences.markdown.theme" = "Theme";
@@ -60,6 +71,36 @@
 "preferences.language.spanish" = "Español";
 "preferences.language.traditional_chinese" = "繁體中文";
 "preferences.language.restart_required" = "Restart required for language change to take effect";
+
+// MARK: - Feature Toggle Settings
+"preferences.features.enable_files" = "Enable Files";
+"preferences.features.enable_clipboard" = "Enable Clipboard";
+"preferences.features.enable_notes" = "Enable Notes";
+"preferences.features.description" = "Turn features on or off. Data is preserved when features are disabled.";
+
+// MARK: - Storage Settings
+"preferences.storage.custom_path" = "Use Custom Path";
+"preferences.storage.choose_folder" = "Choose...";
+"preferences.storage.default_path" = "Default Path:";
+"preferences.storage.current_path" = "Current Path:";
+"preferences.storage.space_used" = "Space Used:";
+"preferences.storage.files_location" = "Files Storage";
+"preferences.storage.clipboard_location" = "Clipboard Storage";
+"preferences.storage.notes_location" = "Notes Storage";
+"preferences.storage.migrate_data" = "Migrate Data";
+"preferences.storage.reset_paths" = "Reset to Defaults";
+"preferences.storage.invalid_path" = "Invalid Path";
+"preferences.storage.path_not_writable" = "The selected path is not writable. Please choose another location.";
+
+// MARK: - Data Management
+"preferences.data.clear_files" = "Clear All Files";
+"preferences.data.clear_clipboard" = "Clear Clipboard History";
+"preferences.data.clear_notes" = "Delete All Notes";
+"preferences.data.export" = "Export Data";
+"preferences.data.import" = "Import Data";
+"preferences.data.reset_all" = "Reset All Settings";
+"preferences.data.reset_confirm" = "Are you sure you want to reset all settings to defaults?";
+"preferences.data.clear_confirm" = "This action cannot be undone. Continue?";
 
 // MARK: - Menu Items
 "menu.open" = "Open UnclutterPlus";

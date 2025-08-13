@@ -29,6 +29,7 @@ func showPreferencesWindow() {
 struct MainContentView: View {
     @State private var selectedTab = 0
     @ObservedObject private var localizationManager = LocalizationManager.shared
+    @ObservedObject private var config = ConfigurationManager.shared
     @State private var refreshID = UUID()
     
     var body: some View {
@@ -37,14 +38,20 @@ struct MainContentView: View {
             ZStack {
                 // 居中的标签页按钮
                 HStack(spacing: 0) {
-                    TabButton(title: "tab.files".localized, systemImage: "folder", isSelected: selectedTab == 0) {
-                        selectedTab = 0
+                    if config.isFilesEnabled {
+                        TabButton(title: "tab.files".localized, systemImage: "folder", isSelected: selectedTab == 0) {
+                            selectedTab = 0
+                        }
                     }
-                    TabButton(title: "tab.clipboard".localized, systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
-                        selectedTab = 1
+                    if config.isClipboardEnabled {
+                        TabButton(title: "tab.clipboard".localized, systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
+                            selectedTab = 1
+                        }
                     }
-                    TabButton(title: "tab.notes".localized, systemImage: "note.text", isSelected: selectedTab == 2) {
-                        selectedTab = 2
+                    if config.isNotesEnabled {
+                        TabButton(title: "tab.notes".localized, systemImage: "note.text", isSelected: selectedTab == 2) {
+                            selectedTab = 2
+                        }
                     }
                 }
                 
@@ -70,15 +77,45 @@ struct MainContentView: View {
             
             // 内容区域
             Group {
-                switch selectedTab {
-                case 0:
-                    FilesView()
-                case 1:
-                    ClipboardView()
-                case 2:
-                    NotesView()
-                default:
-                    FilesView()
+                if getEnabledViewCount() == 0 {
+                    // 没有启用任何功能时显示提示
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        
+                        Text("没有启用的功能")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("请在设置中启用至少一个功能")
+                            .foregroundColor(.secondary)
+                        
+                        Button("打开设置") {
+                            showPreferencesWindow()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // 根据启用的功能显示对应内容
+                    let actualTab = getActualTab(selectedTab)
+                    switch actualTab {
+                    case 0:
+                        if config.isFilesEnabled {
+                            FilesView()
+                        }
+                    case 1:
+                        if config.isClipboardEnabled {
+                            ClipboardView()
+                        }
+                    case 2:
+                        if config.isNotesEnabled {
+                            NotesView()
+                        }
+                    default:
+                        EmptyView()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -92,6 +129,44 @@ struct MainContentView: View {
         .id(refreshID) // 强制刷新视图
         .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
             refreshID = UUID() // 语言变化时刷新视图
+        }
+        .onAppear {
+            adjustSelectedTab()
+        }
+        .onChange(of: config.isFilesEnabled) { adjustSelectedTab() }
+        .onChange(of: config.isClipboardEnabled) { adjustSelectedTab() }
+        .onChange(of: config.isNotesEnabled) { adjustSelectedTab() }
+    }
+    
+    // 获取启用的功能数量
+    private func getEnabledViewCount() -> Int {
+        var count = 0
+        if config.isFilesEnabled { count += 1 }
+        if config.isClipboardEnabled { count += 1 }
+        if config.isNotesEnabled { count += 1 }
+        return count
+    }
+    
+    // 将逻辑标签索引转换为实际标签索引
+    private func getActualTab(_ logicalTab: Int) -> Int {
+        var enabledTabs: [Int] = []
+        if config.isFilesEnabled { enabledTabs.append(0) }
+        if config.isClipboardEnabled { enabledTabs.append(1) }
+        if config.isNotesEnabled { enabledTabs.append(2) }
+        
+        if logicalTab < enabledTabs.count {
+            return enabledTabs[logicalTab]
+        }
+        return enabledTabs.first ?? 0
+    }
+    
+    // 调整选中的标签页
+    private func adjustSelectedTab() {
+        let enabledCount = getEnabledViewCount()
+        if enabledCount == 0 {
+            selectedTab = 0
+        } else if selectedTab >= enabledCount {
+            selectedTab = 0
         }
     }
 }
