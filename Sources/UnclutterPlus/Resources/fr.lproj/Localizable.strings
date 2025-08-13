@@ -273,3 +273,11 @@
 "preferences.clipboard.show_use_count_help" = "Afficher les étiquettes de fréquence d'utilisation sur les éléments du presse-papiers";
 "preferences.clipboard.auto_cleanup" = "Nettoyage automatique activé";
 "preferences.clipboard.auto_cleanup_help" = "Supprimer automatiquement les éléments du presse-papiers expirés";
+
+// MARK: - Paramètres du panneau de filtre par défaut
+"preferences.clipboard.default_filter" = "Panneau de filtre par défaut";
+"preferences.clipboard.default_filter.help" = "Choisir quel panneau de filtre développer par défaut au chargement de la page du presse-papiers";
+"preferences.clipboard.persistent.type" = "Type de contenu";
+"preferences.clipboard.persistent.date" = "Plage de dates";
+"preferences.clipboard.persistent.source" = "Application source";
+"preferences.clipboard.persistent.sort" = "Options de tri";

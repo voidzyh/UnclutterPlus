@@ -168,6 +168,14 @@
 "preferences.clipboard.auto_cleanup" = "Auto-cleanup enabled";
 "preferences.clipboard.auto_cleanup_help" = "Automatically remove expired clipboard items";
 
+// MARK: - Default Filter Settings
+"preferences.clipboard.default_filter" = "Default Filter Panel";
+"preferences.clipboard.default_filter.help" = "Choose which filter panel to expand by default when the clipboard page loads";
+"preferences.clipboard.persistent.type" = "Content Type";
+"preferences.clipboard.persistent.date" = "Date Range";
+"preferences.clipboard.persistent.source" = "Source App";
+"preferences.clipboard.persistent.sort" = "Sort Options";
+
 // MARK: - Notes View
 "notes.new" = "New Note";
 "notes.search.placeholder" = "Search notes...";

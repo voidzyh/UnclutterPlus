@@ -274,3 +274,11 @@
 "preferences.clipboard.show_use_count_help" = "在剪貼板項目上顯示使用頻次標籤";
 "preferences.clipboard.auto_cleanup" = "自動清理已啟用";
 "preferences.clipboard.auto_cleanup_help" = "自動刪除過期的剪貼板項目";
+
+// MARK: - 啟動預設篩選器設置
+"preferences.clipboard.default_filter" = "啟動預設篩選面板";
+"preferences.clipboard.default_filter.help" = "選擇剪貼板頁面載入時預設展開的篩選面板";
+"preferences.clipboard.persistent.type" = "內容類型";
+"preferences.clipboard.persistent.date" = "日期範圍";
+"preferences.clipboard.persistent.source" = "來源應用";
+"preferences.clipboard.persistent.sort" = "排序選項";

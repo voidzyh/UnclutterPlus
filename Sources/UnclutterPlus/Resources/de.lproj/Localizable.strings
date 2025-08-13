@@ -126,6 +126,14 @@
 "preferences.clipboard.auto_cleanup" = "Automatische Bereinigung aktiviert";
 "preferences.clipboard.auto_cleanup_help" = "Abgelaufene Zwischenablage-Elemente automatisch entfernen";
 
+// MARK: - Einstellungen für Standard-Filter-Panel
+"preferences.clipboard.default_filter" = "Standard-Filter-Panel";
+"preferences.clipboard.default_filter.help" = "Wählen Sie, welches Filter-Panel beim Laden der Zwischenablage-Seite standardmäßig ausgeklappt werden soll";
+"preferences.clipboard.persistent.type" = "Inhaltstyp";
+"preferences.clipboard.persistent.date" = "Datumsbereich";
+"preferences.clipboard.persistent.source" = "Quell-App";
+"preferences.clipboard.persistent.sort" = "Sortieroptionen";
+
 // MARK: - Notizen-Ansicht
 "notes.new" = "Neue Notiz";
 "notes.search.placeholder" = "Notizen suchen...";

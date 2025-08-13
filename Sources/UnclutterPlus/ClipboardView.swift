@@ -20,10 +20,30 @@ struct ClipboardView: View {
     @State private var showSourceFilter: Bool = false
     @State private var showDateFilter: Bool = false
     @State private var showSortFilter: Bool = false
+    
+    // 根据配置设置默认展开的筛选器
+    private func setDefaultFilter() {
+        switch config.clipboardDefaultFilter {
+        case "type":
+            showTypeFilter = true
+        case "date":
+            showDateFilter = true
+        case "source":
+            showSourceFilter = true
+        case "sort":
+            showSortFilter = true
+        default:
+            showTypeFilter = true
+        }
+    }
     // 工具栏悬停状态
     @State private var hoveredToolbar: String? = nil
     
-    var filteredItems: [ClipboardItem] {
+    // 使用 @State 缓存过滤结果，避免重复计算
+    @State private var filteredItems: [ClipboardItem] = []
+    
+    // 计算过滤和排序逻辑
+    private func updateFilteredItems() {
         var items = clipboardManager.items
         
         // 内容类型过滤
@@ -84,7 +104,7 @@ struct ClipboardView: View {
         }
         
         // 排序
-        return items.sorted { first, second in
+        filteredItems = items.sorted { first, second in
             if first.isPinned && !second.isPinned {
                 return true
             } else if !first.isPinned && second.isPinned {
@@ -251,8 +271,6 @@ struct ClipboardView: View {
                     .onHover { isHover in
                         hoveredToolbar = isHover ? "source" : (hoveredToolbar == "source" ? nil : hoveredToolbar)
                     }
-
-                    Spacer()
 
                     // 排序
                     Button(action: {
@@ -428,13 +446,14 @@ struct ClipboardView: View {
                 // 剪贴板项目列表
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
+                        ForEach(filteredItems, id: \.id) { item in
+                            let index = filteredItems.firstIndex(of: item) ?? 0
                             ClipboardItemView(
                                 item: item,
                                 isSelected: selectedItems.contains(item.id),
                                 isHovered: hoveredItem == item.id,
                                 showSelectionMode: isMultiSelectMode,
-                                indexNumber: nil
+                                indexNumber: index < 9 ? index + 1 : nil
                             ) {
                                 // 复制操作
                                 copyItem(item)
@@ -492,6 +511,28 @@ struct ClipboardView: View {
         }
         .onKeyDown { event in
             handleKeyDown(event)
+        }
+        .onAppear {
+            updateFilteredItems()
+            setDefaultFilter()
+        }
+        .onChange(of: searchText) { _, _ in
+            updateFilteredItems()
+        }
+        .onChange(of: selectedContentType) { _, _ in
+            updateFilteredItems()
+        }
+        .onChange(of: selectedSourceApp) { _, _ in
+            updateFilteredItems()
+        }
+        .onChange(of: selectedDateRange) { _, _ in
+            updateFilteredItems()
+        }
+        .onChange(of: sortBy) { _, _ in
+            updateFilteredItems()
+        }
+        .onChange(of: clipboardManager.items) { _, _ in
+            updateFilteredItems()
         }
     }
     

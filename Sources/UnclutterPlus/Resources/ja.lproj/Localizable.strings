@@ -130,6 +130,14 @@
 "preferences.clipboard.auto_cleanup" = "自動クリーンアップが有効";
 "preferences.clipboard.auto_cleanup_help" = "期限切れのクリップボード項目を自動削除";
 
+// MARK: - 起動デフォルトフィルターパネル設定
+"preferences.clipboard.default_filter" = "起動デフォルトフィルターパネル";
+"preferences.clipboard.default_filter.help" = "クリップボードページ読み込み時にデフォルトで展開するフィルターパネルを選択";
+"preferences.clipboard.persistent.type" = "コンテンツタイプ";
+"preferences.clipboard.persistent.date" = "日付範囲";
+"preferences.clipboard.persistent.source" = "ソースアプリ";
+"preferences.clipboard.persistent.sort" = "並び替えオプション";
+
 // MARK: - メモビュー
 "notes.new" = "新しいメモ";
 "notes.search.placeholder" = "メモを検索...";
