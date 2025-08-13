@@ -8,7 +8,7 @@ func showPreferencesWindow() {
     if preferencesWindowController == nil {
         let hosting = NSHostingController(rootView: PreferencesView())
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Preferences"
+        window.title = "preferences.title".localized
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
@@ -84,14 +84,14 @@ struct MainContentView: View {
                             .font(.system(size: 48))
                             .foregroundColor(.secondary)
                         
-                        Text("没有启用的功能")
+                        Text("features.no_enabled.title".localized)
                             .font(.title2)
                             .fontWeight(.semibold)
                         
-                        Text("请在设置中启用至少一个功能")
+                        Text("features.no_enabled.description".localized)
                             .foregroundColor(.secondary)
                         
-                        Button("打开设置") {
+                        Button("features.open_settings".localized) {
                             showPreferencesWindow()
                         }
                         .buttonStyle(.borderedProminent)
@@ -133,9 +133,9 @@ struct MainContentView: View {
         .onAppear {
             adjustSelectedTab()
         }
-        .onChange(of: config.isFilesEnabled) { adjustSelectedTab() }
-        .onChange(of: config.isClipboardEnabled) { adjustSelectedTab() }
-        .onChange(of: config.isNotesEnabled) { adjustSelectedTab() }
+        .onChange(of: config.isFilesEnabled) { _, _ in adjustSelectedTab() }
+        .onChange(of: config.isClipboardEnabled) { _, _ in adjustSelectedTab() }
+        .onChange(of: config.isNotesEnabled) { _, _ in adjustSelectedTab() }
     }
     
     // 获取启用的功能数量

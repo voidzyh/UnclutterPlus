@@ -82,7 +82,7 @@ struct FilesView: View {
                 
                 // 排序选择
                 Menu {
-                    Section("Sort by") {
+                    Section("sort.by".localized) {
                         ForEach(SortOption.allCases, id: \.self) { option in
                             Button(action: { fileManager.sortOption = option }) {
                                 HStack {
@@ -100,7 +100,7 @@ struct FilesView: View {
                     
                     Button(action: { fileManager.isAscending.toggle() }) {
                         HStack {
-                            Text(fileManager.isAscending ? "Ascending" : "Descending")
+                            Text(fileManager.isAscending ? "sort.ascending".localized : "sort.descending".localized)
                             Spacer()
                             Image(systemName: fileManager.isAscending ? "arrow.up" : "arrow.down")
                         }
@@ -153,7 +153,7 @@ struct FilesView: View {
                             .font(.title2)
                             .foregroundColor(.secondary)
                         
-                        Text("Try a different search term")
+                        Text("ui.try_different_search".localized)
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -229,6 +229,9 @@ struct FilesView: View {
         }
         .onDrop(of: [.fileURL], isTargeted: $dragOver) { providers in
             handleFileDrop(providers)
+        }
+        .onChange(of: dragOver) { _, isDragging in
+            WindowManager.shared.setDraggingFile(isDragging)
         }
         .onKeyDown { event in
             handleKeyDown(event)

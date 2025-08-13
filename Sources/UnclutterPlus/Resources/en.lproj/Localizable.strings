@@ -122,10 +122,51 @@
 "files.contextmenu.delete" = "Delete";
 
 // MARK: - Clipboard View
-"clipboard.empty" = "No clipboard history";
-"clipboard.item.copied" = "Copied";
-"clipboard.contextmenu.copy" = "Copy";
-"clipboard.contextmenu.delete" = "Delete";
+"clipboard.search.placeholder" = "Search clipboard history...";
+"clipboard.empty.title" = "No clipboard history";
+"clipboard.empty.search.title" = "No matching items";
+"clipboard.item.image.content" = "Image content";
+"clipboard.item.image.dimensions" = "dimensions";
+"clipboard.item.characters" = "characters";
+"clipboard.item.pin" = "Pin";
+"clipboard.item.unpin" = "Unpin";
+"clipboard.item.copy" = "Copy to clipboard";
+"clipboard.item.delete" = "Delete";
+"clipboard.item.expand" = "Expand";
+"clipboard.item.collapse" = "Collapse";
+"clipboard.multi_select.enter" = "Enter selection mode";
+"clipboard.multi_select.exit" = "Exit selection mode";
+"clipboard.multi_select.delete_selected" = "Delete Selected";
+"clipboard.multi_select.clear_all" = "Clear All";
+"clipboard.multi_select.items" = "items";
+"clipboard.multi_select.selected" = "selected";
+
+// MARK: - Clipboard Filters
+"clipboard.filter.all" = "All";
+"clipboard.filter.text" = "Text";
+"clipboard.filter.image" = "Image";
+"clipboard.filter.file" = "File";
+"clipboard.filter.today" = "Today";
+"clipboard.filter.week" = "This Week";
+"clipboard.filter.month" = "This Month";
+"clipboard.filter.type" = "Type";
+"clipboard.filter.source" = "Source";
+"clipboard.filter.date" = "Date";
+"clipboard.filter.select_app" = "Select App";
+
+// MARK: - Clipboard Sorting
+"clipboard.sort.title" = "Sort";
+"clipboard.sort.time" = "Time";
+"clipboard.sort.use_count" = "Use Count";
+
+// MARK: - Clipboard Preferences
+"preferences.clipboard.max_age" = "Maximum retention period:";
+"preferences.clipboard.days" = "days";
+"preferences.clipboard.max_age_help" = "Clipboard items older than this will be automatically removed (pinned items are preserved)";
+"preferences.clipboard.show_use_count" = "Show use count labels";
+"preferences.clipboard.show_use_count_help" = "Display usage frequency labels on clipboard items";
+"preferences.clipboard.auto_cleanup" = "Auto-cleanup enabled";
+"preferences.clipboard.auto_cleanup_help" = "Automatically remove expired clipboard items";
 
 // MARK: - Notes View
 "notes.new" = "New Note";
@@ -154,3 +195,72 @@
 "common.delete" = "Delete";
 "common.edit" = "Edit";
 "common.done" = "Done";
+
+// MARK: - Window Behavior Settings
+"preferences.section.window_behavior" = "Window Behavior";
+"preferences.window.auto_hide_after_action" = "Auto-hide window after actions";
+"preferences.window.auto_hide_after_action.help" = "Automatically hide window after opening files, copying to clipboard, etc.";
+"preferences.window.hide_on_lost_focus" = "Auto-hide on lost focus";
+"preferences.window.hide_on_lost_focus.help" = "Automatically hide window when it loses focus (except when editing notes)";
+"preferences.window.hide_delay" = "Hide delay:";
+"common.seconds" = "seconds";
+
+// MARK: - Feature Status
+"features.no_enabled.title" = "No Features Enabled";
+"features.no_enabled.description" = "Please enable at least one feature in settings";
+"features.open_settings" = "Open Settings";
+
+// MARK: - Notes View Additional
+"notes.filtered" = "(filtered)";
+"notes.selected" = "selected";
+"notes.delete_selected" = "Delete Selected";
+"notes.select_all" = "Select All";
+"notes.new_note" = "New Note";
+"notes.create_new_markdown" = "Create new Markdown note";
+
+// MARK: - Sorting
+"sort.by" = "Sort by";
+"sort.ascending" = "Ascending";
+"sort.descending" = "Descending";
+
+// MARK: - UI Messages
+"ui.create_first_note" = "Create First Note";
+"ui.try_different_search" = "Try a different search term";
+"ui.select_note_to_edit" = "Select a note to edit";
+"ui.choose_note_from_sidebar" = "Choose a note from the sidebar to get started";
+"ui.focus_mode" = "Focus Mode";
+"ui.select_note_from_toolbar" = "Select a note from the toolbar to enter focus mode";
+"ui.browse_notes" = "Browse Notes";
+"ui.copy_something_to_see" = "Copy something to see it here";
+
+// MARK: - Note Statistics
+"note.words" = "words";
+"note.min_read" = "min read";
+"note.characters" = "characters";
+
+// MARK: - New Note Dialog
+"dialog.new_note.title" = "Create New Note";
+"dialog.new_note.description" = "Add a title and tags to organize your note";
+"dialog.new_note.title_label" = "Title";
+"dialog.new_note.title_placeholder" = "Enter note title...";
+"dialog.new_note.tags_label" = "Tags";
+"dialog.new_note.available_tags" = "Available Tags:";
+"dialog.new_note.add_new_tag_placeholder" = "Add new tag...";
+"dialog.new_note.add" = "Add";
+"dialog.new_note.cancel" = "Cancel";
+"dialog.new_note.create" = "Create Note";
+
+// MARK: - Common Note
+"note.untitled" = "Untitled";
+
+// MARK: - Notes Count
+"notes.count" = "notes";
+"notes.no_notes_yet" = "No notes yet";
+"notes.no_matching_notes" = "No matching notes";
+
+// MARK: - Search
+"search.notes.placeholder" = "Search notes...";
+
+// MARK: - Alert Buttons
+"alert.ok" = "OK";
+"alert.reset" = "Reset";

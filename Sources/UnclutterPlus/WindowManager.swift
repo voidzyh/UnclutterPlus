@@ -27,12 +27,33 @@ class KeyboardSupportPanel: NSPanel {
     override func resignKey() {
         super.resignKey()
         print("Panel resigned key window")
+        
+        // 检查是否应该自动隐藏
+        if let windowManager = (NSApp.delegate as? AppDelegate)?.windowManager {
+            // 当窗口失去 key 状态时，确保编辑状态被清除，避免阻止自动隐藏
+            windowManager.setEditingNote(false)
+            windowManager.checkAutoHideOnLostFocus()
+        }
     }
 }
 
+// 定义自动隐藏的操作类型
+enum AutoHideAction {
+    case fileOpened          // File opened
+    case fileShowInFinder    // Show in Finder
+    case clipboardCopied     // Copied to clipboard
+    case settingsOpened      // Settings opened
+}
+
 class WindowManager: NSObject {
+    static let shared = WindowManager()
+    
     private var window: NSPanel?
     private var mouseTracker: EdgeMouseTracker?
+    private var autoHideTimer: Timer?
+    private var isEditingNote: Bool = false
+    private var isDraggingFile: Bool = false
+    private var hasModalWindow: Bool = false
     
     override init() {
         super.init()
@@ -54,14 +75,14 @@ class WindowManager: NSObject {
         window?.contentView = hostingView
         window?.level = .floating
         window?.isFloatingPanel = true  // 设置为浮动面板
-        window?.hidesOnDeactivate = false  // 失去焦点时不隐藏
+        window?.hidesOnDeactivate = false  // 手动控制失去焦点时的行为
         window?.becomesKeyOnlyIfNeeded = false  // 总是可以成为 key window
         window?.worksWhenModal = true  // 在模态窗口时也工作
         window?.isOpaque = true
         window?.backgroundColor = NSColor.controlBackgroundColor
         window?.hasShadow = true
         window?.ignoresMouseEvents = false
-        window?.title = "UnclutterPlus"
+        window?.title = "window.main.title".localized
         window?.acceptsMouseMovedEvents = true
         
         print("Window created successfully")
@@ -77,6 +98,27 @@ class WindowManager: NSObject {
         
         // 初始隐藏窗口
         window?.orderOut(nil)
+
+        // 监听应用和窗口的焦点变化，增强自动隐藏的可靠性
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.checkAutoHideOnLostFocus()
+        }
+
+        if let window = window {
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                // 窗口丢失 key 时，同样尝试自动隐藏
+                self?.setEditingNote(false)
+                self?.checkAutoHideOnLostFocus()
+            }
+        }
     }
     
     private func setupEdgeTracking() {
@@ -316,5 +358,98 @@ class WindowManager: NSObject {
         }
         
         return NSScreen.main
+    }
+    
+    // MARK: - Auto Hide Management
+    
+    func hideWindowAfterAction(_ action: AutoHideAction, delay: TimeInterval = 0.5) {
+        let config = ConfigurationManager.shared
+        
+        // 检查是否启用了自动隐藏
+        guard config.autoHideAfterAction else { return }
+        
+        // 检查该操作是否应该触发自动隐藏
+        guard shouldAutoHide(after: action) else { return }
+        
+        // 取消之前的定时器
+        autoHideTimer?.invalidate()
+        
+        // 设置延迟隐藏
+        autoHideTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            self?.hideWindow()
+        }
+    }
+    
+    private func shouldAutoHide(after action: AutoHideAction) -> Bool {
+        switch action {
+        case .fileOpened, .fileShowInFinder, .clipboardCopied:
+            return true
+        case .settingsOpened:
+            return false // 设置窗口打开时不自动隐藏
+        }
+    }
+    
+    func checkAutoHideOnLostFocus() {
+        let config = ConfigurationManager.shared
+        
+        // 检查是否启用了失去焦点时自动隐藏
+        guard config.hideOnLostFocus else { return }
+        
+        // 延迟检查，给用户一点时间，使用配置的延迟时间
+        let delay = config.hideDelay
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self = self else { return }
+            
+            // 检查窗口是否仍然不是 key window
+            if let window = self.window, !window.isKeyWindow {
+                // 检查是否有阻止自动隐藏的条件
+                if !self.shouldPreventAutoHide() {
+                    print("Auto-hiding window due to lost focus")
+                    self.hideWindow()
+                } else {
+                    print("Preventing auto-hide due to active operations")
+                }
+            }
+        }
+    }
+    
+    private func shouldPreventAutoHide() -> Bool {
+        // 检查是否有正在进行的操作阻止自动隐藏
+        let shouldPrevent = isEditingNote || isDraggingFile || hasModalWindow
+        
+        if shouldPrevent {
+            print("Preventing auto-hide: editingNote=\(isEditingNote), draggingFile=\(isDraggingFile), hasModalWindow=\(hasModalWindow)")
+        }
+        
+        return shouldPrevent
+    }
+    
+    func setEditingNote(_ editing: Bool) {
+        isEditingNote = editing
+        if editing {
+            // 正在编辑时取消自动隐藏定时器
+            autoHideTimer?.invalidate()
+        }
+    }
+    
+    func setDraggingFile(_ dragging: Bool) {
+        isDraggingFile = dragging
+        if dragging {
+            // 拖拽时取消自动隐藏定时器
+            autoHideTimer?.invalidate()
+        }
+    }
+    
+    func setModalWindow(_ hasModal: Bool) {
+        hasModalWindow = hasModal
+        if hasModal {
+            // 有模态窗口时取消自动隐藏定时器
+            autoHideTimer?.invalidate()
+        }
+    }
+    
+    func cancelAutoHide() {
+        autoHideTimer?.invalidate()
+        autoHideTimer = nil
     }
 }

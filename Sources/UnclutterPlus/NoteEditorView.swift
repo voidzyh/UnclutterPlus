@@ -81,6 +81,9 @@ struct NoteEditorView: View {
                     .textFieldStyle(.plain)
                     .focused($isTitleFocused)
                     .onSubmit { saveNote() }
+                    .onChange(of: isTitleFocused) { oldValue, newValue in
+                        WindowManager.shared.setEditingNote(newValue)
+                    }
 
                 Spacer()
                 
@@ -89,7 +92,7 @@ struct NoteEditorView: View {
                     Label("\(note.wordCount)", systemImage: "textformat.abc")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .help("\(note.wordCount) words, \(note.characterCount) characters")
+                        .help("\(note.wordCount) \("note.words".localized), \(note.characterCount) \("note.characters".localized)")
                     
                     if note.readingTime > 0 {
                         Label("\(note.readingTime) min", systemImage: "clock")
@@ -187,6 +190,9 @@ struct NoteEditorView: View {
                 saveNoteDebounced()
             }
             .focused($isContentFocused)
+            .onChange(of: isContentFocused) { oldValue, newValue in
+                WindowManager.shared.setEditingNote(newValue)
+            }
         }
         .padding()
     }
@@ -340,7 +346,7 @@ struct NoteEditorView: View {
     }
     
     private func saveNote() {
-        let newTitle = title.isEmpty ? "Untitled" : title
+                        let newTitle = title.isEmpty ? "note.untitled".localized : title
         if note.title != newTitle || note.content != content {
             isSaving = true
             

@@ -85,6 +85,50 @@
 "clipboard.item.copied" = "コピー済み";
 "clipboard.contextmenu.copy" = "コピー";
 "clipboard.contextmenu.delete" = "削除";
+"clipboard.search.placeholder" = "クリップボード履歴を検索...";
+"clipboard.empty.title" = "クリップボード履歴がありません";
+"clipboard.empty.search.title" = "一致する項目がありません";
+"clipboard.item.image.content" = "画像コンテンツ";
+"clipboard.item.image.dimensions" = "サイズ";
+"clipboard.item.characters" = "文字";
+"clipboard.item.pin" = "ピン留め";
+"clipboard.item.unpin" = "ピン留め解除";
+"clipboard.item.copy" = "クリップボードにコピー";
+"clipboard.item.delete" = "削除";
+"clipboard.item.expand" = "展開";
+"clipboard.item.collapse" = "折りたたみ";
+"clipboard.multi_select.enter" = "選択モードに入る";
+"clipboard.multi_select.exit" = "選択モードを終了";
+"clipboard.multi_select.delete_selected" = "選択したものを削除";
+"clipboard.multi_select.clear_all" = "すべてクリア";
+"clipboard.multi_select.items" = "項目";
+"clipboard.multi_select.selected" = "選択済み";
+
+// MARK: - クリップボードフィルター
+"clipboard.filter.all" = "すべて";
+"clipboard.filter.text" = "テキスト";
+"clipboard.filter.image" = "画像";
+"clipboard.filter.file" = "ファイル";
+"clipboard.filter.today" = "今日";
+"clipboard.filter.week" = "今週";
+"clipboard.filter.month" = "今月";
+"clipboard.filter.type" = "タイプ";
+"clipboard.filter.source" = "ソース";
+"clipboard.filter.date" = "日付";
+
+// MARK: - クリップボードソート
+"clipboard.sort.title" = "ソート";
+"clipboard.sort.time" = "時間";
+"clipboard.sort.use_count" = "使用頻度";
+
+// MARK: - クリップボード設定
+"preferences.clipboard.max_age" = "最大保持期間：";
+"preferences.clipboard.days" = "日";
+"preferences.clipboard.max_age_help" = "この期間を超えたクリップボード項目は自動的に削除されます（ピン留めされた項目は保持されます）";
+"preferences.clipboard.show_use_count" = "使用頻度ラベルを表示";
+"preferences.clipboard.show_use_count_help" = "クリップボード項目に使用頻度ラベルを表示";
+"preferences.clipboard.auto_cleanup" = "自動クリーンアップが有効";
+"preferences.clipboard.auto_cleanup_help" = "期限切れのクリップボード項目を自動削除";
 
 // MARK: - メモビュー
 "notes.new" = "新しいメモ";
@@ -113,3 +157,117 @@
 "common.delete" = "削除";
 "common.edit" = "編集";
 "common.done" = "完了";
+
+// MARK: - ウィンドウ動作設定
+"preferences.section.window_behavior" = "ウィンドウ動作";
+"preferences.window.auto_hide_after_action" = "操作後にウィンドウを自動非表示";
+"preferences.window.auto_hide_after_action.help" = "ファイルを開く、クリップボードにコピーなどの操作後にウィンドウを自動的に非表示にします";
+"preferences.window.hide_on_lost_focus" = "フォーカスを失った時に自動非表示";
+"preferences.window.hide_on_lost_focus.help" = "ウィンドウがフォーカスを失った時に自動的に非表示にします（ノート編集中を除く）";
+"preferences.window.hide_delay" = "非表示遅延：";
+"common.seconds" = "秒";
+
+// MARK: - 設定タブ
+"preferences.tab.general" = "一般";
+"preferences.tab.features" = "機能";
+"preferences.tab.storage" = "ストレージ";
+"preferences.tab.advanced" = "詳細";
+
+// MARK: - 設定セクション
+"preferences.section.language" = "言語";
+"preferences.section.appearance" = "外観";
+"preferences.section.interaction" = "インタラクション";
+"preferences.section.features" = "機能切り替え";
+"preferences.section.files" = "ファイル";
+"preferences.section.clipboard" = "クリップボード";
+"preferences.section.storage_location" = "ストレージ場所";
+"preferences.section.data_management" = "データ管理";
+"preferences.section.developer" = "開発者オプション";
+
+// MARK: - 機能切り替え設定
+"preferences.features.enable_files" = "ファイル管理を有効にする";
+"preferences.features.enable_clipboard" = "クリップボード履歴を有効にする";
+"preferences.features.enable_notes" = "メモ機能を有効にする";
+"preferences.features.description" = "機能をオンまたはオフにします。機能を無効にしてもデータは保持されます。";
+
+// MARK: - ストレージ設定
+"preferences.storage.custom_path" = "カスタムパスを使用";
+"preferences.storage.choose_folder" = "選択...";
+"preferences.storage.default_path" = "デフォルトパス：";
+"preferences.storage.current_path" = "現在のパス：";
+"preferences.storage.space_used" = "使用容量：";
+"preferences.storage.files_location" = "ファイルストレージ場所";
+"preferences.storage.clipboard_location" = "クリップボードストレージ場所";
+"preferences.storage.notes_location" = "メモストレージ場所";
+"preferences.storage.migrate_data" = "データを移行";
+"preferences.storage.reset_paths" = "デフォルトにリセット";
+"preferences.storage.invalid_path" = "無効なパス";
+"preferences.storage.path_not_writable" = "選択されたパスは書き込み可能ではありません。別の場所を選択してください。";
+
+// MARK: - データ管理
+"preferences.data.clear_files" = "すべてのファイルをクリア";
+"preferences.data.clear_clipboard" = "クリップボード履歴をクリア";
+"preferences.data.clear_notes" = "すべてのメモを削除";
+"preferences.data.export" = "データをエクスポート";
+"preferences.data.import" = "データをインポート";
+"preferences.data.reset_all" = "すべての設定をリセット";
+"preferences.data.reset_confirm" = "すべての設定をデフォルトにリセットしてもよろしいですか？";
+"preferences.data.clear_confirm" = "この操作は元に戻せません。続行しますか？";
+
+// MARK: - 機能状態
+"features.no_enabled.title" = "有効な機能がありません";
+"features.no_enabled.description" = "設定で少なくとも1つの機能を有効にしてください";
+"features.open_settings" = "設定を開く";
+
+// MARK: - メモビュー追加
+"notes.filtered" = "(フィルター済み)";
+"notes.selected" = "選択済み";
+"notes.delete_selected" = "選択したものを削除";
+"notes.select_all" = "すべて選択";
+"notes.new_note" = "新しいメモ";
+"notes.create_new_markdown" = "新しいMarkdownメモを作成";
+
+// MARK: - 並び替え
+"sort.by" = "並び替え方法";
+"sort.ascending" = "昇順";
+"sort.descending" = "降順";
+
+// MARK: - 検索
+"search.notes.placeholder" = "メモを検索...";
+
+// MARK: - 新しいメモダイアログ
+"dialog.new_note.title" = "新しいメモを作成";
+"dialog.new_note.description" = "タイトルとタグを追加してメモを整理します";
+"dialog.new_note.title_label" = "タイトル";
+"dialog.new_note.title_placeholder" = "メモのタイトルを入力...";
+"dialog.new_note.tags_label" = "タグ";
+"dialog.new_note.available_tags" = "利用可能なタグ：";
+"dialog.new_note.add_new_tag_placeholder" = "新しいタグを追加...";
+"dialog.new_note.add" = "追加";
+"dialog.new_note.cancel" = "キャンセル";
+"dialog.new_note.create" = "メモを作成";
+
+// MARK: - 共通メモ
+"note.untitled" = "無題";
+
+// MARK: - メモ統計
+"notes.count" = "メモ";
+"notes.no_notes_yet" = "まだメモがありません";
+"notes.no_matching_notes" = "一致するメモがありません";
+"note.words" = "単語";
+"note.min_read" = "分で読了";
+"note.characters" = "文字";
+
+// MARK: - UIメッセージ
+"ui.create_first_note" = "最初のメモを作成";
+"ui.try_different_search" = "別の検索語を試してください";
+"ui.select_note_to_edit" = "編集するメモを選択";
+"ui.choose_note_from_sidebar" = "サイドバーからメモを選択して開始";
+"ui.focus_mode" = "フォーカスモード";
+"ui.select_note_from_toolbar" = "ツールバーからメモを選択してフォーカスモードに入る";
+"ui.browse_notes" = "メモを閲覧";
+"ui.copy_something_to_see" = "ここに表示するには何かをコピーしてください";
+
+// MARK: - 警告ボタン
+"alert.ok" = "OK";
+"alert.reset" = "リセット";

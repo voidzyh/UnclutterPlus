@@ -89,6 +89,25 @@ struct PreferencesView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
+            
+            // 窗口行为设置
+            Section("preferences.section.window_behavior".localized) {
+                Toggle("preferences.window.auto_hide_after_action".localized, isOn: $config.autoHideAfterAction)
+                    .help("preferences.window.auto_hide_after_action.help".localized)
+                
+                Toggle("preferences.window.hide_on_lost_focus".localized, isOn: $config.hideOnLostFocus)
+                    .help("preferences.window.hide_on_lost_focus.help".localized)
+                
+                if config.autoHideAfterAction || config.hideOnLostFocus {
+                    HStack {
+                        Text("preferences.window.hide_delay".localized)
+                        Slider(value: $config.hideDelay, in: 0...2, step: 0.1)
+                            .frame(width: 200)
+                        Text("\(config.hideDelay, specifier: "%.1f") \("common.seconds".localized)")
+                            .frame(width: 60, alignment: .leading)
+                    }
+                }
+            }
         }
     }
     
@@ -188,6 +207,32 @@ struct PreferencesView: View {
                     usage: config.getStorageUsage(for: config.clipboardStoragePath),
                     showDefault: !config.useCustomClipboardPath
                 )
+                
+                // 剪贴板配置选项
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("preferences.clipboard.max_age".localized)
+                        Spacer()
+                        Text("\(Int(config.clipboardMaxAge / (24 * 60 * 60))) \("preferences.clipboard.days".localized)")
+                            .foregroundColor(.secondary)
+                            .monospacedDigit()
+                    }
+                    
+                    Slider(value: $config.clipboardMaxAge, in: 7 * 24 * 60 * 60...365 * 24 * 60 * 60, step: 24 * 60 * 60)
+                        .frame(width: 200)
+                    
+                    Text("preferences.clipboard.max_age_help".localized)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                    Toggle("preferences.clipboard.show_use_count".localized, isOn: $config.showUseCount)
+                        .help("preferences.clipboard.show_use_count_help".localized)
+                    
+                    Toggle("preferences.clipboard.auto_cleanup".localized, isOn: .constant(true))
+                        .disabled(true)
+                        .help("preferences.clipboard.auto_cleanup_help".localized)
+                }
+                .padding(.top, 8)
             }
             
             // 笔记存储位置
@@ -348,8 +393,8 @@ struct PreferencesView: View {
         let alert = NSAlert()
         alert.messageText = "preferences.data.clear_confirm".localized
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "alert.ok".localized)
+        alert.addButton(withTitle: "common.cancel".localized)
         
         if let window = NSApp.keyWindow {
             alert.beginSheetModal(for: window) { response in
@@ -368,8 +413,8 @@ struct PreferencesView: View {
         let alert = NSAlert()
         alert.messageText = "preferences.data.reset_confirm".localized
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Reset")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "alert.reset".localized)
+        alert.addButton(withTitle: "common.cancel".localized)
         
         let resetAction = {
             self.config.resetToDefaults()

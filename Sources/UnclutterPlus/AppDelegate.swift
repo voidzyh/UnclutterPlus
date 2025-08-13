@@ -69,7 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupWindowManager() {
-        windowManager = WindowManager()
+        windowManager = WindowManager.shared
         print("WindowManager 已初始化")
     }
     
@@ -85,7 +85,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if self.preferencesWindowController == nil {
                 let hosting = NSHostingController(rootView: PreferencesView())
                 let window = NSWindow(contentViewController: hosting)
-                window.title = "Preferences"
+                window.title = "preferences.title".localized
                 window.styleMask = [.titled, .closable, .miniaturizable]
                 window.isReleasedWhenClosed = false
                 window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
@@ -101,6 +101,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.level = .floating
             window.makeKeyAndOrderFront(nil)
             windowController.showWindow(nil)
+            
+            // 设置模态窗口状态
+            WindowManager.shared.setModalWindow(true)
         }
     }
     
@@ -111,6 +114,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: .menuBarIconVisibilityChanged,
             object: nil
         )
+        
+        // 监听设置窗口关闭通知
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let window = notification.object as? NSWindow,
+               window == self?.preferencesWindowController?.window {
+                WindowManager.shared.setModalWindow(false)
+            }
+        }
     }
     
     @objc private func menuBarIconVisibilityChanged() {

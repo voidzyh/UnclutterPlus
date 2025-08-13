@@ -256,6 +256,9 @@ class TempFileManager: ObservableObject {
             saveMetadata(for: files[index])
         }
         NSWorkspace.shared.open(file.url)
+        
+        // 触发自动隐藏窗口
+        WindowManager.shared.hideWindowAfterAction(.fileOpened)
     }
     
     func toggleSelection(_ file: TempFile) {
