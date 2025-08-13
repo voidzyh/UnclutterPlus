@@ -6,40 +6,70 @@ struct PreferencesView: View {
     @ObservedObject var localizationManager = LocalizationManager.shared
     @ObservedObject var config = ConfigurationManager.shared
     @State private var refreshID = UUID()
-    @State private var selectedTab = 0
+    
+    private enum PreferenceCategory: String, CaseIterable, Identifiable {
+        case general
+        case features
+        case storage
+        case advanced
+        
+        var id: String { rawValue }
+        
+        var titleKey: String {
+            switch self {
+            case .general: return "preferences.tab.general"
+            case .features: return "preferences.tab.features"
+            case .storage: return "preferences.tab.storage"
+            case .advanced: return "preferences.tab.advanced"
+            }
+        }
+        
+        var systemImage: String {
+            switch self {
+            case .general: return "gearshape"
+            case .features: return "square.stack.3d.up"
+            case .storage: return "externaldrive"
+            case .advanced: return "wrench.and.screwdriver"
+            }
+        }
+    }
+    
+    @State private var selectedCategory: PreferenceCategory = .general
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // 通用设置
-            generalSettingsTab
-                .tabItem {
-                    Label("preferences.tab.general".localized, systemImage: "gearshape")
+        HStack(spacing: 0) {
+            // 左侧分类列表
+            List(selection: $selectedCategory) {
+                ForEach(PreferenceCategory.allCases) { category in
+                    Label(category.titleKey.localized, systemImage: category.systemImage)
+                        .tag(category)
                 }
-                .tag(0)
+            }
+            .listStyle(.sidebar)
+            .frame(width: 220)
+            .padding(.vertical, 8)
+            .background(Color(nsColor: .windowBackgroundColor))
             
-            // 功能设置
-            featuresSettingsTab
-                .tabItem {
-                    Label("preferences.tab.features".localized, systemImage: "square.stack.3d.up")
-                }
-                .tag(1)
+            Divider()
             
-            // 存储设置
-            storageSettingsTab
-                .tabItem {
-                    Label("preferences.tab.storage".localized, systemImage: "externaldrive")
+            // 右侧详情
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    switch selectedCategory {
+                    case .general:
+                        generalSettingsTab
+                    case .features:
+                        featuresSettingsTab
+                    case .storage:
+                        storageSettingsTab
+                    case .advanced:
+                        advancedSettingsTab
+                    }
                 }
-                .tag(2)
-            
-            // 高级设置
-            advancedSettingsTab
-                .tabItem {
-                    Label("preferences.tab.advanced".localized, systemImage: "wrench.and.screwdriver")
-                }
-                .tag(3)
+                .padding(20)
+            }
         }
-        .padding(20)
-        .frame(width: 650, height: 500)
+        .frame(width: 760, height: 520)
         .id(refreshID)
         .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
             refreshID = UUID()
