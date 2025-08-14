@@ -31,6 +31,10 @@ class ConfigurationManager: ObservableObject {
     // 启动默认筛选器：type/date/source/sort (启动时默认展开类型筛选)
     @AppStorage("clipboard.defaultFilter") var clipboardDefaultFilter: String = "type"
     
+    // 标签页顺序和默认设置
+    @AppStorage("tabs.order") var tabsOrder: String = "files,clipboard,notes" // 默认顺序：文件、粘贴板、笔记
+    @AppStorage("tabs.defaultTab") var defaultTab: String = "files" // 默认标签页：files, clipboard, notes
+    
     private init() {}
     
     // 默认路径
@@ -204,6 +208,67 @@ class ConfigurationManager: ObservableObject {
         clipboardCustomPath = ""
         notesCustomPath = ""
         
+        // 重置标签页设置
+        tabsOrder = "files,clipboard,notes"
+        defaultTab = "files"
+        
         objectWillChange.send()
+    }
+    
+    // MARK: - 标签页顺序管理
+    
+    // 获取标签页顺序数组
+    var tabsOrderArray: [String] {
+        return tabsOrder.components(separatedBy: ",")
+    }
+    
+    // 设置标签页顺序
+    func setTabsOrder(_ order: [String]) {
+        tabsOrder = order.joined(separator: ",")
+        objectWillChange.send()
+    }
+    
+    // 获取启用的标签页顺序
+    var enabledTabsOrder: [String] {
+        var enabledTabs: [String] = []
+        
+        if isFilesEnabled { enabledTabs.append("files") }
+        if isClipboardEnabled { enabledTabs.append("clipboard") }
+        if isNotesEnabled { enabledTabs.append("notes") }
+        
+        // 根据用户设置的顺序重新排列
+        let userOrder = tabsOrderArray
+        var orderedTabs: [String] = []
+        
+        // 先添加用户设置的顺序
+        for tab in userOrder {
+            if enabledTabs.contains(tab) {
+                orderedTabs.append(tab)
+            }
+        }
+        
+        // 添加用户没有设置但已启用的标签页
+        for tab in enabledTabs {
+            if !orderedTabs.contains(tab) {
+                orderedTabs.append(tab)
+            }
+        }
+        
+        return orderedTabs
+    }
+    
+    // 获取默认标签页索引
+    var defaultTabIndex: Int {
+        let enabledTabs = enabledTabsOrder
+        if let index = enabledTabs.firstIndex(of: defaultTab) {
+            return index
+        }
+        return 0 // 如果默认标签页不可用，返回第一个
+    }
+    
+    // 验证标签页顺序
+    func validateTabsOrder(_ order: [String]) -> Bool {
+        let validTabs = ["files", "clipboard", "notes"]
+        return order.allSatisfy { validTabs.contains($0) }
     }
 }

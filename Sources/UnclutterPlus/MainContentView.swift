@@ -40,24 +40,14 @@ struct MainContentView: View {
             ZStack {
                 // 居中的标签页按钮
                 HStack(spacing: 0) {
-                    if config.isFilesEnabled {
-                        TabButton(title: "tab.files".localized, systemImage: "folder", isSelected: selectedTab == 0) {
+                    ForEach(Array(config.enabledTabsOrder.enumerated()), id: \.element) { index, tabId in
+                        TabButton(
+                            title: getTabTitle(for: tabId),
+                            systemImage: getTabIcon(for: tabId),
+                            isSelected: selectedTab == index
+                        ) {
                             withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedTab = 0
-                            }
-                        }
-                    }
-                    if config.isClipboardEnabled {
-                        TabButton(title: "tab.clipboard".localized, systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedTab = 1
-                            }
-                        }
-                    }
-                    if config.isNotesEnabled {
-                        TabButton(title: "tab.notes".localized, systemImage: "note.text", isSelected: selectedTab == 2) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedTab = 2
+                                selectedTab = index
                             }
                         }
                     }
@@ -107,34 +97,37 @@ struct MainContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     // 根据启用的功能显示对应内容
-                    let actualTab = getActualTab(selectedTab)
-                    switch actualTab {
-                    case 0:
-                        if config.isFilesEnabled {
-                            FilesView()
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
+                    let enabledTabs = config.enabledTabsOrder
+                    if selectedTab < enabledTabs.count {
+                        let tabId = enabledTabs[selectedTab]
+                        switch tabId {
+                        case "files":
+                            if config.isFilesEnabled {
+                                FilesView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            }
+                        case "clipboard":
+                            if config.isClipboardEnabled {
+                                ClipboardView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            }
+                        case "notes":
+                            if config.isNotesEnabled {
+                                NotesView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            }
+                        default:
+                            EmptyView()
                         }
-                    case 1:
-                        if config.isClipboardEnabled {
-                            ClipboardView()
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
-                        }
-                    case 2:
-                        if config.isNotesEnabled {
-                            NotesView()
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
-                        }
-                    default:
-                        EmptyView()
                     }
                 }
             }
@@ -173,6 +166,11 @@ struct MainContentView: View {
                 adjustSelectedTab()
             }
         }
+        .onChange(of: config.tabsOrder) { _, _ in
+            DispatchQueue.main.async {
+                adjustSelectedTab()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             // 应用激活时检查配置状态
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -183,7 +181,6 @@ struct MainContentView: View {
     
     // 配置监控定时器
     private func startConfigMonitoring() {
-        configMonitorTimer?.invalidate()
         configMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             let currentHash = config.isFilesEnabled.hashValue ^ config.isClipboardEnabled.hashValue ^ config.isNotesEnabled.hashValue
             if currentHash != lastConfigHash {
@@ -202,24 +199,7 @@ struct MainContentView: View {
     
     // 获取启用的功能数量
     private func getEnabledViewCount() -> Int {
-        var count = 0
-        if config.isFilesEnabled { count += 1 }
-        if config.isClipboardEnabled { count += 1 }
-        if config.isNotesEnabled { count += 1 }
-        return count
-    }
-    
-    // 将逻辑标签索引转换为实际标签索引
-    private func getActualTab(_ logicalTab: Int) -> Int {
-        var enabledTabs: [Int] = []
-        if config.isFilesEnabled { enabledTabs.append(0) }
-        if config.isClipboardEnabled { enabledTabs.append(1) }
-        if config.isNotesEnabled { enabledTabs.append(2) }
-        
-        if logicalTab < enabledTabs.count {
-            return enabledTabs[logicalTab]
-        }
-        return enabledTabs.first ?? 0
+        return config.enabledTabsOrder.count
     }
     
     // 调整选中的标签页
@@ -230,26 +210,51 @@ struct MainContentView: View {
             return
         }
         
-        // 获取当前启用的标签页列表
-        var enabledTabs: [Int] = []
-        if config.isFilesEnabled { enabledTabs.append(0) }
-        if config.isClipboardEnabled { enabledTabs.append(1) }
-        if config.isNotesEnabled { enabledTabs.append(2) }
-        
-        // 如果当前选中的标签页不在启用的列表中，选择第一个启用的
-        if !enabledTabs.contains(selectedTab) {
-            selectedTab = enabledTabs.first ?? 0
+        // 使用配置的默认标签页
+        let defaultIndex = config.defaultTabIndex
+        if defaultIndex < enabledCount {
+            selectedTab = defaultIndex
+        } else {
+            selectedTab = 0
         }
         
         // 确保selectedTab在有效范围内
         if selectedTab >= enabledCount {
-            selectedTab = enabledTabs.first ?? 0
+            selectedTab = 0
         }
         
         // 调试信息
         #if DEBUG
-        print("DEBUG: adjustSelectedTab - enabledCount: \(enabledCount), selectedTab: \(selectedTab), enabledTabs: \(enabledTabs)")
+        print("DEBUG: adjustSelectedTab - enabledCount: \(enabledCount), selectedTab: \(selectedTab), enabledTabs: \(config.enabledTabsOrder)")
         #endif
+    }
+    
+    // 获取标签页标题
+    private func getTabTitle(for tabId: String) -> String {
+        switch tabId {
+        case "files":
+            return "tab.files".localized
+        case "clipboard":
+            return "tab.clipboard".localized
+        case "notes":
+            return "tab.notes".localized
+        default:
+            return ""
+        }
+    }
+    
+    // 获取标签页图标
+    private func getTabIcon(for tabId: String) -> String {
+        switch tabId {
+        case "files":
+            return "folder"
+        case "clipboard":
+            return "doc.on.clipboard"
+        case "notes":
+            return "note.text"
+        default:
+            return ""
+        }
     }
 }
 
