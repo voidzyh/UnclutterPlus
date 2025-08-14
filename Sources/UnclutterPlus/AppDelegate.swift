@@ -4,7 +4,6 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var windowManager: WindowManager?
-    private var preferencesWindowController: NSWindowController?
     private var statusMenu: NSMenu?
     private var dockMenu: NSMenu?
     
@@ -80,31 +79,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc public func openPreferences(_ sender: Any?) {
-        print("openPreferences called")
-        DispatchQueue.main.async {
-            if self.preferencesWindowController == nil {
-                let hosting = NSHostingController(rootView: PreferencesView())
-                let window = NSWindow(contentViewController: hosting)
-                window.title = "preferences.title".localized
-                window.styleMask = [.titled, .closable, .miniaturizable]
-                window.isReleasedWhenClosed = false
-                window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
-                window.setContentSize(NSSize(width: 520, height: 500))
-                window.center()
-                self.preferencesWindowController = NSWindowController(window: window)
-            }
-            
-            guard let windowController = self.preferencesWindowController,
-                  let window = windowController.window else { return }
-            
-            NSApp.activate(ignoringOtherApps: true)
-            window.level = .floating
-            window.makeKeyAndOrderFront(nil)
-            windowController.showWindow(nil)
-            
-            // 设置模态窗口状态
-            WindowManager.shared.setModalWindow(true)
-        }
+        print("AppDelegate: openPreferences called")
+        // 使用单例管理器打开设置窗口
+        PreferencesWindowManager.shared.showPreferences()
     }
     
     private func setupNotificationObservers() {
@@ -115,17 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         
-        // 监听设置窗口关闭通知
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            if let window = notification.object as? NSWindow,
-               window == self?.preferencesWindowController?.window {
-                WindowManager.shared.setModalWindow(false)
-            }
-        }
+        // 设置窗口关闭通知已在 PreferencesWindowManager 中处理
     }
     
     @objc private func menuBarIconVisibilityChanged() {
