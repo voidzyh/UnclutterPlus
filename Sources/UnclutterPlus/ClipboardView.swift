@@ -328,10 +328,10 @@ struct ClipboardView: View {
                         if showTypeFilter {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    FilterChip(title: "clipboard.filter.all".localized, icon: "square.grid.2x2", isSelected: selectedContentType == "all", color: .blue) { selectedContentType = "all"; showTypeFilter = false }
-                                    FilterChip(title: "clipboard.filter.text".localized, icon: "doc.plaintext", isSelected: selectedContentType == "text", color: .blue) { selectedContentType = "text"; showTypeFilter = false }
-                                    FilterChip(title: "clipboard.filter.image".localized, icon: "photo", isSelected: selectedContentType == "image", color: .green) { selectedContentType = "image"; showTypeFilter = false }
-                                    FilterChip(title: "clipboard.filter.file".localized, icon: "doc", isSelected: selectedContentType == "file", color: .orange) { selectedContentType = "file"; showTypeFilter = false }
+                                    FilterChip(title: "clipboard.filter.all".localized, icon: "square.grid.2x2", isSelected: selectedContentType == "all", color: .blue) { selectedContentType = "all" }
+                                    FilterChip(title: "clipboard.filter.text".localized, icon: "doc.plaintext", isSelected: selectedContentType == "text", color: .blue) { selectedContentType = "text" }
+                                    FilterChip(title: "clipboard.filter.image".localized, icon: "photo", isSelected: selectedContentType == "image", color: .green) { selectedContentType = "image" }
+                                    FilterChip(title: "clipboard.filter.file".localized, icon: "doc", isSelected: selectedContentType == "file", color: .orange) { selectedContentType = "file" }
                                 }
                                 .padding(.vertical, 2)
                             }
@@ -340,10 +340,10 @@ struct ClipboardView: View {
                         if showDateFilter {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    FilterChip(title: "clipboard.filter.all".localized, icon: "calendar", isSelected: selectedDateRange == "all", color: .red) { selectedDateRange = "all"; showDateFilter = false }
-                                    FilterChip(title: "clipboard.filter.today".localized, icon: "sun.max", isSelected: selectedDateRange == "today", color: .red) { selectedDateRange = "today"; showDateFilter = false }
-                                    FilterChip(title: "clipboard.filter.week".localized, icon: "clock", isSelected: selectedDateRange == "week", color: .red) { selectedDateRange = "week"; showDateFilter = false }
-                                    FilterChip(title: "clipboard.filter.month".localized, icon: "calendar", isSelected: selectedDateRange == "month", color: .red) { selectedDateRange = "month"; showDateFilter = false }
+                                    FilterChip(title: "clipboard.filter.all".localized, icon: "calendar", isSelected: selectedDateRange == "all", color: .red) { selectedDateRange = "all" }
+                                    FilterChip(title: "clipboard.filter.today".localized, icon: "sun.max", isSelected: selectedDateRange == "today", color: .red) { selectedDateRange = "today" }
+                                    FilterChip(title: "clipboard.filter.week".localized, icon: "clock", isSelected: selectedDateRange == "week", color: .red) { selectedDateRange = "week" }
+                                    FilterChip(title: "clipboard.filter.month".localized, icon: "calendar", isSelected: selectedDateRange == "month", color: .red) { selectedDateRange = "month" }
                                 }
                                 .padding(.vertical, 2)
                             }
@@ -389,8 +389,6 @@ struct ClipboardView: View {
                                 SortButton(title: "clipboard.sort.time".localized, icon: "clock", isSelected: sortBy == "time") { sortBy = "time" }
                                 SortButton(title: "clipboard.sort.use_count".localized, icon: "number.circle", isSelected: sortBy == "useCount") { sortBy = "useCount" }
                                 Spacer()
-                                Button("common.cancel".localized) { showSortFilter = false }
-                                    .buttonStyle(.borderless)
                             }
                         }
                         }
