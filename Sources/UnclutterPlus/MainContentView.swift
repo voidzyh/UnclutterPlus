@@ -31,6 +31,8 @@ struct MainContentView: View {
     @ObservedObject private var localizationManager = LocalizationManager.shared
     @ObservedObject private var config = ConfigurationManager.shared
     @State private var refreshID = UUID()
+    @State private var lastConfigHash = 0
+    @State private var configMonitorTimer: Timer?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -40,17 +42,23 @@ struct MainContentView: View {
                 HStack(spacing: 0) {
                     if config.isFilesEnabled {
                         TabButton(title: "tab.files".localized, systemImage: "folder", isSelected: selectedTab == 0) {
-                            selectedTab = 0
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = 0
+                            }
                         }
                     }
                     if config.isClipboardEnabled {
                         TabButton(title: "tab.clipboard".localized, systemImage: "doc.on.clipboard", isSelected: selectedTab == 1) {
-                            selectedTab = 1
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = 1
+                            }
                         }
                     }
                     if config.isNotesEnabled {
                         TabButton(title: "tab.notes".localized, systemImage: "note.text", isSelected: selectedTab == 2) {
-                            selectedTab = 2
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = 2
+                            }
                         }
                     }
                 }
@@ -104,14 +112,26 @@ struct MainContentView: View {
                     case 0:
                         if config.isFilesEnabled {
                             FilesView()
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                ))
                         }
                     case 1:
                         if config.isClipboardEnabled {
                             ClipboardView()
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                ))
                         }
                     case 2:
                         if config.isNotesEnabled {
                             NotesView()
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                ))
                         }
                     default:
                         EmptyView()
@@ -119,6 +139,7 @@ struct MainContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(.easeInOut(duration: 0.3), value: selectedTab)
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -132,10 +153,51 @@ struct MainContentView: View {
         }
         .onAppear {
             adjustSelectedTab()
+            startConfigMonitoring()
         }
-        .onChange(of: config.isFilesEnabled) { _, _ in adjustSelectedTab() }
-        .onChange(of: config.isClipboardEnabled) { _, _ in adjustSelectedTab() }
-        .onChange(of: config.isNotesEnabled) { _, _ in adjustSelectedTab() }
+        .onDisappear {
+            stopConfigMonitoring()
+        }
+        .onChange(of: config.isFilesEnabled) { _, _ in 
+            DispatchQueue.main.async {
+                adjustSelectedTab()
+            }
+        }
+        .onChange(of: config.isClipboardEnabled) { _, _ in 
+            DispatchQueue.main.async {
+                adjustSelectedTab()
+            }
+        }
+        .onChange(of: config.isNotesEnabled) { _, _ in 
+            DispatchQueue.main.async {
+                adjustSelectedTab()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // 应用激活时检查配置状态
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                adjustSelectedTab()
+            }
+        }
+    }
+    
+    // 配置监控定时器
+    private func startConfigMonitoring() {
+        configMonitorTimer?.invalidate()
+        configMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            let currentHash = config.isFilesEnabled.hashValue ^ config.isClipboardEnabled.hashValue ^ config.isNotesEnabled.hashValue
+            if currentHash != lastConfigHash {
+                DispatchQueue.main.async {
+                    lastConfigHash = currentHash
+                    adjustSelectedTab()
+                }
+            }
+        }
+    }
+    
+    private func stopConfigMonitoring() {
+        configMonitorTimer?.invalidate()
+        configMonitorTimer = nil
     }
     
     // 获取启用的功能数量
@@ -165,9 +227,29 @@ struct MainContentView: View {
         let enabledCount = getEnabledViewCount()
         if enabledCount == 0 {
             selectedTab = 0
-        } else if selectedTab >= enabledCount {
-            selectedTab = 0
+            return
         }
+        
+        // 获取当前启用的标签页列表
+        var enabledTabs: [Int] = []
+        if config.isFilesEnabled { enabledTabs.append(0) }
+        if config.isClipboardEnabled { enabledTabs.append(1) }
+        if config.isNotesEnabled { enabledTabs.append(2) }
+        
+        // 如果当前选中的标签页不在启用的列表中，选择第一个启用的
+        if !enabledTabs.contains(selectedTab) {
+            selectedTab = enabledTabs.first ?? 0
+        }
+        
+        // 确保selectedTab在有效范围内
+        if selectedTab >= enabledCount {
+            selectedTab = enabledTabs.first ?? 0
+        }
+        
+        // 调试信息
+        #if DEBUG
+        print("DEBUG: adjustSelectedTab - enabledCount: \(enabledCount), selectedTab: \(selectedTab), enabledTabs: \(enabledTabs)")
+        #endif
     }
 }
 
@@ -177,23 +259,50 @@ struct TabButton: View {
     let isSelected: Bool
     let action: () -> Void
     
+    @State private var isHovered = false
+    @State private var isPressed = false
+    
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
                     .font(.system(size: 14, weight: .medium))
+                    .scaleEffect(isPressed ? 0.95 : 1.0)
                 Text(title)
                     .font(.system(size: 14, weight: .medium))
             }
-            .foregroundColor(isSelected ? .white : .secondary)
+            .foregroundColor(isSelected ? .white : (isHovered ? .primary : .secondary))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Color.accentColor : Color.clear)
+                    .fill(isSelected ? Color.accentColor : (isHovered ? Color.primary.opacity(0.1) : Color.clear))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(isHovered && !isSelected ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1)
+                    )
             )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+            .shadow(color: isHovered ? Color.black.opacity(0.1) : Color.clear, radius: 2, x: 0, y: 1)
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
+            .animation(.easeInOut(duration: 0.1), value: isPressed)
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
+    }
+}
+
+// 扩展Button以支持按下事件
+extension View {
+    func pressEvents(onPress: @escaping () -> Void = {}, onRelease: @escaping () -> Void = {}) -> some View {
+        self.simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in onPress() }
+                .onEnded { _ in onRelease() }
+        )
     }
 }
 
