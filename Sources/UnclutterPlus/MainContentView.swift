@@ -30,6 +30,7 @@ struct MainContentView: View {
     @State private var selectedTab = 0
     @ObservedObject private var localizationManager = LocalizationManager.shared
     @ObservedObject private var config = ConfigurationManager.shared
+    @ObservedObject private var updateManager = UpdateManager.shared
     @State private var refreshID = UUID()
     @State private var lastConfigHash = 0
     @State private var configMonitorTimer: Timer?
@@ -56,6 +57,18 @@ struct MainContentView: View {
                 // 右侧的设置按钮
                 HStack {
                     Spacer()
+                    // 更新可用小图标（绿色），点击跳转到发布页
+                    if let info = updateManager.updateInfo, info.isNewerThanCurrent {
+                        Button(action: {
+                            if let url = URL(string: info.htmlURL) { NSWorkspace.shared.open(url) }
+                        }) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 14, weight: .regular))
+                        }
+                        .buttonStyle(.plain)
+                        .help("update.available.help".localized)
+                    }
                     Button(action: {
                         // 直接创建并显示设置窗口
                         showPreferencesWindow()
@@ -147,6 +160,8 @@ struct MainContentView: View {
         .onAppear {
             adjustSelectedTab()
             startConfigMonitoring()
+            // 启动时检查更新（静默）
+            Task { await updateManager.checkForUpdates() }
         }
         .onDisappear {
             stopConfigMonitoring()

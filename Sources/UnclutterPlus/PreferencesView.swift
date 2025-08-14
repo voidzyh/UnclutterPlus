@@ -91,6 +91,26 @@ struct PreferencesView: View {
                     .foregroundColor(.secondary)
             }
             
+            // 版本信息与更新
+            Section("preferences.section.updates".localized) {
+                HStack {
+                    Text("preferences.updates.current_version".localized)
+                    Spacer()
+                    Text(currentAppVersion)
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
+                }
+                HStack(spacing: 12) {
+                    Button("preferences.updates.check_now".localized) {
+                        Task { await UpdateManager.shared.checkForUpdates(force: true) }
+                    }
+                    if let info = UpdateManager.shared.updateInfo, info.isNewerThanCurrent {
+                        Text("update.available.title".localized)
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+            
             // 外观设置
             Section("preferences.section.appearance".localized) {
                 Toggle("preferences.appearance.show_menubar".localized, isOn: $prefs.showMenuBarIcon)
