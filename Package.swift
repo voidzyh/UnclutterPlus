@@ -27,9 +27,8 @@ let package = Package(
                 .product(name: "Splash", package: "Splash")
             ],
             path: "Sources/UnclutterPlus",
-            exclude: ["Info.plist"],
             resources: [
-                .copy("Info.plist"),
+                .copy("Resources/VERSION"),
                 .copy("Resources/UnclutterPlus.icns"),
                 .process("Resources/en.lproj"),
                 .process("Resources/zh-Hans.lproj"),

@@ -98,9 +98,43 @@
 "preferences.data.clear_notes" = "Delete All Notes";
 "preferences.data.export" = "Export Data";
 "preferences.data.import" = "Import Data";
-"preferences.data.reset_all" = "Reset All Settings";
-"preferences.data.reset_confirm" = "Are you sure you want to reset all settings to defaults?";
-"preferences.data.clear_confirm" = "This action cannot be undone. Continue?";
+
+// MARK: - Update Check
+"preferences.section.updates" = "Updates";
+"preferences.updates.auto_check" = "Automatically check for updates";
+"preferences.updates.auto_check.help" = "Check for new versions when the app starts";
+"preferences.updates.check_interval" = "Check interval:";
+"preferences.updates.interval.daily" = "Daily";
+"preferences.updates.interval.weekly" = "Weekly";
+"preferences.updates.interval.monthly" = "Monthly";
+"preferences.updates.last_check" = "Last check:";
+"preferences.updates.check_now" = "Check Now";
+"preferences.updates.current_version" = "Current version:";
+
+// MARK: - Update Notifications
+"update.available.title" = "Update Available";
+"update.available.subtitle" = "New version available:";
+"update.available.help" = "Click to view update details";
+"update.navigation.title" = "Software Update";
+"update.no_update.title" = "Up to Date";
+"update.no_update.subtitle" = "You are using the latest version of UnclutterPlus";
+
+// MARK: - Update Info
+"update.info.version" = "Version:";
+"update.info.current_version" = "Current Version:";
+"update.info.new_version" = "New Version:";
+"update.info.release_date" = "Release Date:";
+"update.info.release_notes" = "Release Notes:";
+
+// MARK: - Update Actions
+"update.action.download" = "Download Update";
+"update.action.skip" = "Skip This Version";
+
+// MARK: - Update Errors
+"update.error.invalid_url" = "Invalid update URL";
+"update.error.invalid_response" = "Invalid response from server";
+"update.error.http" = "HTTP error: %d";
+"update.error.decoding" = "Failed to parse update information";
 
 // MARK: - Menu Items
 "menu.open" = "Open UnclutterPlus";

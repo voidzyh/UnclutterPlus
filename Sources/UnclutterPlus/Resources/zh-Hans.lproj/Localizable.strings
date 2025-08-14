@@ -98,9 +98,43 @@
 "preferences.data.clear_notes" = "删除所有笔记";
 "preferences.data.export" = "导出数据";
 "preferences.data.import" = "导入数据";
-"preferences.data.reset_all" = "重置所有设置";
-"preferences.data.reset_confirm" = "确定要将所有设置重置为默认值吗？";
-"preferences.data.clear_confirm" = "此操作无法撤销。是否继续？";
+
+// MARK: - 更新检查
+"preferences.section.updates" = "更新检查";
+"preferences.updates.auto_check" = "自动检查更新";
+"preferences.updates.auto_check.help" = "应用启动时自动检查新版本";
+"preferences.updates.check_interval" = "检查间隔：";
+"preferences.updates.interval.daily" = "每日";
+"preferences.updates.interval.weekly" = "每周";
+"preferences.updates.interval.monthly" = "每月";
+"preferences.updates.last_check" = "上次检查：";
+"preferences.updates.check_now" = "立即检查";
+"preferences.updates.current_version" = "当前版本：";
+
+// MARK: - 更新通知
+"update.available.title" = "有可用更新";
+"update.available.subtitle" = "新版本可用：";
+"update.available.help" = "点击查看更新详情";
+"update.navigation.title" = "软件更新";
+"update.no_update.title" = "已是最新版本";
+"update.no_update.subtitle" = "您正在使用 UnclutterPlus 的最新版本";
+
+// MARK: - 更新信息
+"update.info.version" = "版本：";
+"update.info.current_version" = "当前版本：";
+"update.info.new_version" = "新版本：";
+"update.info.release_date" = "发布日期：";
+"update.info.release_notes" = "更新说明：";
+
+// MARK: - 更新操作
+"update.action.download" = "下载更新";
+"update.action.skip" = "跳过此版本";
+
+// MARK: - 更新错误
+"update.error.invalid_url" = "无效的更新地址";
+"update.error.invalid_response" = "服务器响应无效";
+"update.error.http" = "HTTP 错误：%d";
+"update.error.decoding" = "解析更新信息失败";
 
 // MARK: - 菜单项
 "menu.open" = "打开 UnclutterPlus";

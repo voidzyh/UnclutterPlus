@@ -5,6 +5,7 @@ struct PreferencesView: View {
     @ObservedObject var prefs = Preferences.shared
     @ObservedObject var localizationManager = LocalizationManager.shared
     @ObservedObject var config = ConfigurationManager.shared
+    @ObservedObject var updateManager = UpdateManager.shared
     @State private var refreshID = UUID()
     
     private enum PreferenceCategory: String, CaseIterable, Identifiable {
@@ -136,6 +137,67 @@ struct PreferencesView: View {
                         Text("\(config.hideDelay, specifier: "%.1f") \("common.seconds".localized)")
                             .frame(width: 60, alignment: .leading)
                     }
+                }
+            }
+            
+            // 更新检查设置
+            Section("preferences.section.updates".localized) {
+                Toggle("preferences.updates.auto_check".localized, isOn: $updateManager.autoCheckForUpdates)
+                    .help("preferences.updates.auto_check.help".localized)
+                
+                if updateManager.autoCheckForUpdates {
+                    HStack {
+                        Text("preferences.updates.check_interval".localized)
+                        Picker("", selection: $updateManager.checkInterval) {
+                            Text("preferences.updates.interval.daily".localized).tag(TimeInterval(24 * 60 * 60))
+                            Text("preferences.updates.interval.weekly".localized).tag(TimeInterval(7 * 24 * 60 * 60))
+                            Text("preferences.updates.interval.monthly".localized).tag(TimeInterval(30 * 24 * 60 * 60))
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 120)
+                    }
+                    
+                    if let lastCheck = updateManager.lastCheckDate {
+                        HStack {
+                            Text("preferences.updates.last_check".localized)
+                            Spacer()
+                            Text(lastCheck.formatted(.relative(presentation: .named)))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                HStack {
+                    Button("preferences.updates.check_now".localized) {
+                        Task {
+                            await updateManager.checkForUpdates(force: true)
+                        }
+                    }
+                    .disabled(updateManager.isCheckingForUpdates)
+                    
+                    if updateManager.isCheckingForUpdates {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .frame(width: 20, height: 20)
+                    }
+                    
+                    Spacer()
+                    
+                    if let error = updateManager.errorMessage {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+                
+                // 当前版本信息
+                HStack {
+                    Text("preferences.updates.current_version".localized)
+                    Spacer()
+                    Text("\(currentAppVersion) (\(currentBuildNumber))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
                 }
             }
         }

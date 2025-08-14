@@ -30,9 +30,11 @@ struct MainContentView: View {
     @State private var selectedTab = 0
     @ObservedObject private var localizationManager = LocalizationManager.shared
     @ObservedObject private var config = ConfigurationManager.shared
+    @ObservedObject private var updateManager = UpdateManager.shared
     @State private var refreshID = UUID()
     @State private var lastConfigHash = 0
     @State private var configMonitorTimer: Timer?
+    @State private var showUpdateSheet = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -56,6 +58,20 @@ struct MainContentView: View {
                 // 右侧的设置按钮
                 HStack {
                     Spacer()
+                    
+                    // 更新检查按钮
+                    if updateManager.updateInfo?.isNewerThanCurrent == true {
+                        Button(action: {
+                            showUpdateSheet = true
+                        }) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 14, weight: .regular))
+                        }
+                        .buttonStyle(.plain)
+                        .help("update.available.help".localized)
+                    }
+                    
                     Button(action: {
                         // 直接创建并显示设置窗口
                         showPreferencesWindow()
@@ -69,7 +85,7 @@ struct MainContentView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.top, 12)
             
             Divider()
             
@@ -147,6 +163,10 @@ struct MainContentView: View {
         .onAppear {
             adjustSelectedTab()
             startConfigMonitoring()
+            // 自动检查更新
+            Task {
+                await updateManager.autoCheckForUpdates()
+            }
         }
         .onDisappear {
             stopConfigMonitoring()
@@ -176,6 +196,9 @@ struct MainContentView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 adjustSelectedTab()
             }
+        }
+        .sheet(isPresented: $showUpdateSheet) {
+            UpdateNotificationSheet()
         }
     }
     
