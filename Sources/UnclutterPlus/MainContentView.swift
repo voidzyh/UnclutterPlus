@@ -85,26 +85,17 @@ struct MainContentView: View {
                         case "files":
                             if config.isFilesEnabled {
                                 FilesView()
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
+                                    .transition(.opacity)
                             }
                         case "clipboard":
                             if config.isClipboardEnabled {
                                 ClipboardView()
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
+                                    .transition(.opacity)
                             }
                         case "notes":
                             if config.isNotesEnabled {
                                 NotesView()
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
+                                    .transition(.opacity)
                             }
                         default:
                             EmptyView()
@@ -113,7 +104,7 @@ struct MainContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeInOut(duration: 0.3), value: selectedTab)
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
         }
         .background(
             RoundedRectangle(cornerRadius: 12)

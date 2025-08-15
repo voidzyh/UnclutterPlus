@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ClipboardView: View {
     @StateObject private var clipboardManager = ClipboardManager()
-    @StateObject private var config = ConfigurationManager.shared
+    @ObservedObject private var config = ConfigurationManager.shared
     @State private var searchText = ""
     @State private var selectedItems: Set<UUID> = []
     @State private var hoveredItem: UUID?
@@ -41,6 +41,15 @@ struct ClipboardView: View {
     
     // 使用 @State 缓存过滤结果，避免重复计算
     @State private var filteredItems: [ClipboardItem] = []
+    @State private var updateTimer: Timer?
+    
+    // 使用防抖动更新过滤项
+    private func scheduleFilterUpdate() {
+        updateTimer?.invalidate()
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { _ in
+            updateFilteredItems()
+        }
+    }
     
     // 计算过滤和排序逻辑
     private func updateFilteredItems() {
@@ -174,7 +183,6 @@ struct ClipboardView: View {
                                         )
                                 )
                                 .scaleEffect(hoveredToolbar == "type" ? 1.03 : 1.0)
-                                .animation(.easeInOut(duration: 0.12), value: hoveredToolbar == "type")
                             if selectedContentType != "all" {
                                 Circle()
                                     .fill(Color.blue)
@@ -216,7 +224,6 @@ struct ClipboardView: View {
                                         )
                                 )
                                 .scaleEffect(hoveredToolbar == "date" ? 1.03 : 1.0)
-                                .animation(.easeInOut(duration: 0.12), value: hoveredToolbar == "date")
                             if selectedDateRange != "all" {
                                 Circle()
                                     .fill(Color.red)
@@ -258,7 +265,6 @@ struct ClipboardView: View {
                                         )
                                 )
                                 .scaleEffect(hoveredToolbar == "source" ? 1.03 : 1.0)
-                                .animation(.easeInOut(duration: 0.12), value: hoveredToolbar == "source")
                             if selectedSourceApp != "all" {
                                 Circle()
                                     .fill(Color.purple)
@@ -300,7 +306,6 @@ struct ClipboardView: View {
                                         )
                                 )
                                 .scaleEffect(hoveredToolbar == "sort" ? 1.03 : 1.0)
-                                .animation(.easeInOut(duration: 0.12), value: hoveredToolbar == "sort")
                             if sortBy != "time" {
                                 Circle()
                                     .fill(Color.indigo)
@@ -423,7 +428,19 @@ struct ClipboardView: View {
             .padding(.horizontal, 12)
             .padding(.top, 12)
             
-            if filteredItems.isEmpty {
+            if clipboardManager.isLoading {
+                // 加载动画
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .progressViewStyle(CircularProgressViewStyle())
+                    
+                    Text("正在加载剪贴板历史...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredItems.isEmpty {
                 // 空状态
                 VStack(spacing: 16) {
                     Image(systemName: searchText.isEmpty ? "doc.on.clipboard" : "magnifyingglass")
@@ -510,12 +527,13 @@ struct ClipboardView: View {
         .onKeyDown { event in
             handleKeyDown(event)
         }
-        .onAppear {
-            updateFilteredItems()
+        .task {
+            // 使用 task 修饰符异步加载数据
             setDefaultFilter()
+            updateFilteredItems()
         }
         .onChange(of: searchText) { _, _ in
-            updateFilteredItems()
+            scheduleFilterUpdate()
         }
         .onChange(of: selectedContentType) { _, _ in
             updateFilteredItems()
@@ -532,6 +550,9 @@ struct ClipboardView: View {
         .onChange(of: clipboardManager.items) { _, _ in
             updateFilteredItems()
         }
+        .onDisappear {
+            updateTimer?.invalidate()
+        }
     }
     
     private func copyItem(_ item: ClipboardItem) {
@@ -540,10 +561,7 @@ struct ClipboardView: View {
         // 触发自动隐藏窗口
         WindowManager.shared.hideWindowAfterAction(.clipboardCopied)
         
-        // 显示复制反馈
-        withAnimation(.easeInOut(duration: 0.2)) {
-            // 可以添加视觉反馈
-        }
+        // 移除不必要的动画
     }
     
     private func toggleSelection(_ item: ClipboardItem) {
@@ -777,7 +795,7 @@ struct ClipboardItemView: View {
                     .buttonStyle(.borderless)
                     .help("clipboard.item.delete".localized)
                 }
-                .transition(.opacity.combined(with: .scale))
+                .transition(.opacity)
             }
         }
         .padding(16)
@@ -786,7 +804,7 @@ struct ClipboardItemView: View {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(borderColor, lineWidth: borderWidth)
         )
-        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
+        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 1)
         .scaleEffect(isSelected ? 0.98 : 1.0)
         .onTapGesture {
             if showSelectionMode {
@@ -810,8 +828,7 @@ struct ClipboardItemView: View {
                 onDelete()
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
-        .animation(.easeInOut(duration: 0.2), value: showFullText)
+        .animation(.easeInOut(duration: 0.1), value: isSelected)
     }
     
     private var backgroundMaterial: Material {
@@ -853,7 +870,7 @@ struct ClipboardItemView: View {
     }
     
     private var shadowRadius: CGFloat {
-        isSelected ? 8 : 4
+        isSelected ? 4 : 1
     }
 }
 
