@@ -146,6 +146,7 @@ struct ClipboardItem: Identifiable, Hashable, Codable {
 
 class ClipboardManager: ObservableObject {
     @Published var items: [ClipboardItem] = []
+    @Published var isLoading: Bool = false
     
     private var lastChangeCount: Int = 0
     private var timer: Timer?
@@ -155,7 +156,12 @@ class ClipboardManager: ObservableObject {
     
     init() {
         startMonitoring()
-        loadPersistedItems()
+        // 异步加载历史记录以避免阻塞主线程
+        Task { @MainActor in
+            isLoading = true
+            await loadPersistedItemsAsync()
+            isLoading = false
+        }
     }
     
     deinit {
@@ -380,7 +386,13 @@ class ClipboardManager: ObservableObject {
         }
     }
     
-    private func loadPersistedItems() {
+    private func loadPersistedItemsAsync() async {
+        await Task.detached(priority: .userInitiated) { [weak self] in
+            self?.loadPersistedItemsSync()
+        }.value
+    }
+    
+    private func loadPersistedItemsSync() {
         let storageURL = config.clipboardStoragePath.appendingPathComponent("history.json")
         
         // 尝试从新格式文件加载
@@ -415,49 +427,13 @@ class ClipboardManager: ObservableObject {
                     restoredItems.append(item)
                 }
                 
-                items = restoredItems.sorted { $0.timestamp > $1.timestamp }
+                // 在主线程更新 items
+                let sortedItems = restoredItems.sorted { $0.timestamp > $1.timestamp }
+                DispatchQueue.main.async { [weak self] in
+                    self?.items = sortedItems
+                }
                 return
             }
-        }
-        
-        // 尝试从旧格式文件加载（向后兼容）
-        loadLegacyItems()
-    }
-    
-    private func loadLegacyItems() {
-        let storageURL = config.clipboardStoragePath.appendingPathComponent("history.plist")
-        
-        if let data = try? Data(contentsOf: storageURL),
-           let array = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [[String: Any]] {
-            
-            let loadedItems = array.compactMap { dict -> ClipboardItem? in
-                guard let type = dict["type"] as? String,
-                      let content = dict["content"] as? String,
-                      let timestamp = dict["timestamp"] as? TimeInterval,
-                      type == "text" else {
-                    return nil
-                }
-                
-                let isPinned = dict["isPinned"] as? Bool ?? false
-                
-                return ClipboardItem(
-                    content: .text(content),
-                    timestamp: Date(timeIntervalSince1970: timestamp),
-                    isPinned: isPinned,
-                    useCount: 0,
-                    sourceAppBundleID: nil,
-                    sourceAppName: nil,
-                    sourceAppIcon: nil
-                )
-            }
-            
-            items = loadedItems.sorted { $0.timestamp > $1.timestamp }
-            
-            // 迁移到新格式
-            persistItems()
-            
-            // 删除旧文件
-            try? FileManager.default.removeItem(at: storageURL)
         }
     }
 }

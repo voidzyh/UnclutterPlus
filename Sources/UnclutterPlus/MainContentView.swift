@@ -1,29 +1,10 @@
 import SwiftUI
 import Cocoa
 
-// 全局变量存储设置窗口控制器
-var preferencesWindowController: NSWindowController?
-
+// 使用单例设置窗口管理器
 func showPreferencesWindow() {
-    if preferencesWindowController == nil {
-        let hosting = NSHostingController(rootView: PreferencesView())
-        let window = NSWindow(contentViewController: hosting)
-        window.title = "preferences.title".localized
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("UnclutterPlusPreferencesWindow")
-        window.setContentSize(NSSize(width: 520, height: 500))
-        window.center()
-        preferencesWindowController = NSWindowController(window: window)
-    }
-    
-    guard let windowController = preferencesWindowController,
-          let window = windowController.window else { return }
-    
-    NSApp.activate(ignoringOtherApps: true)
-    window.level = .floating
-    window.makeKeyAndOrderFront(nil)
-    windowController.showWindow(nil)
+    print("MainContentView: showPreferencesWindow called")
+    PreferencesWindowManager.shared.showPreferences()
 }
 
 struct MainContentView: View {
@@ -104,26 +85,17 @@ struct MainContentView: View {
                         case "files":
                             if config.isFilesEnabled {
                                 FilesView()
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
+                                    .transition(.opacity)
                             }
                         case "clipboard":
                             if config.isClipboardEnabled {
                                 ClipboardView()
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
+                                    .transition(.opacity)
                             }
                         case "notes":
                             if config.isNotesEnabled {
                                 NotesView()
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
+                                    .transition(.opacity)
                             }
                         default:
                             EmptyView()
@@ -132,7 +104,7 @@ struct MainContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeInOut(duration: 0.3), value: selectedTab)
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
