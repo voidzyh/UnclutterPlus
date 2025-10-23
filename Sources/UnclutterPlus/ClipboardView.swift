@@ -1,134 +1,9 @@
 import SwiftUI
 
 struct ClipboardView: View {
-    @StateObject private var clipboardManager = ClipboardManager()
-    @ObservedObject private var config = ConfigurationManager.shared
-    @State private var searchText = ""
-    @State private var selectedItems: Set<UUID> = []
+    @StateObject private var viewModel = ClipboardViewModel()
     @State private var hoveredItem: UUID?
-    @State private var isMultiSelectMode = false
-    @State private var selectedIndex: Int = -1
-    
-    // 过滤和排序状态
-    @State private var selectedContentType: String = "all" // "all", "text", "image", "file"
-    @State private var selectedSourceApp: String = "all"
-    @State private var selectedDateRange: String = "all" // "all", "today", "week", "month"
-    @State private var sortBy: String = "time" // "time", "useCount"
-    
-    // 过滤器展开状态
-    @State private var showTypeFilter: Bool = false
-    @State private var showSourceFilter: Bool = false
-    @State private var showDateFilter: Bool = false
-    @State private var showSortFilter: Bool = false
-    
-    // 根据配置设置默认展开的筛选器
-    private func setDefaultFilter() {
-        switch config.clipboardDefaultFilter {
-        case "type":
-            showTypeFilter = true
-        case "date":
-            showDateFilter = true
-        case "source":
-            showSourceFilter = true
-        case "sort":
-            showSortFilter = true
-        default:
-            showTypeFilter = true
-        }
-    }
-    // 工具栏悬停状态
-    @State private var hoveredToolbar: String? = nil
-    
-    // 使用 @State 缓存过滤结果，避免重复计算
-    @State private var filteredItems: [ClipboardItem] = []
-    @State private var updateTimer: Timer?
-    
-    // 使用防抖动更新过滤项
-    private func scheduleFilterUpdate() {
-        updateTimer?.invalidate()
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { _ in
-            updateFilteredItems()
-        }
-    }
-    
-    // 计算过滤和排序逻辑
-    private func updateFilteredItems() {
-        var items = clipboardManager.items
-        
-        // 内容类型过滤
-        if selectedContentType != "all" {
-            items = items.filter { item in
-                switch item.content {
-                case .text:
-                    return selectedContentType == "text"
-                case .image:
-                    return selectedContentType == "image"
-                case .file:
-                    return selectedContentType == "file"
-                }
-            }
-        }
-        
-        // 来源应用过滤
-        if selectedSourceApp != "all" {
-            items = items.filter { item in
-                item.sourceAppBundleID == selectedSourceApp
-            }
-        }
-        
-        // 日期范围过滤
-        if selectedDateRange != "all" {
-            let calendar = Calendar.current
-            let now = Date()
-            let cutoffDate: Date
-            
-            switch selectedDateRange {
-            case "today":
-                cutoffDate = calendar.startOfDay(for: now)
-            case "week":
-                cutoffDate = calendar.date(byAdding: .day, value: -7, to: now) ?? now
-            case "month":
-                cutoffDate = calendar.date(byAdding: .month, value: -1, to: now) ?? now
-            default:
-                cutoffDate = now
-            }
-            
-            items = items.filter { item in
-                item.timestamp >= cutoffDate
-            }
-        }
-        
-        // 搜索过滤
-        if !searchText.isEmpty {
-            items = items.filter { item in
-                switch item.content {
-                case .text(let text):
-                    return text.localizedCaseInsensitiveContains(searchText)
-                case .image:
-                    return false
-                case .file(let url):
-                    return url.lastPathComponent.localizedCaseInsensitiveContains(searchText)
-                }
-            }
-        }
-        
-        // 排序
-        filteredItems = items.sorted { first, second in
-            if first.isPinned && !second.isPinned {
-                return true
-            } else if !first.isPinned && second.isPinned {
-                return false
-            } else {
-                switch sortBy {
-                case "useCount":
-                    return first.useCount > second.useCount
-                default: // "time"
-                    return first.timestamp > second.timestamp
-                }
-            }
-        }
-    }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // 顶部工具栏
@@ -137,12 +12,12 @@ struct ClipboardView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                    
-                    TextField("clipboard.search.placeholder".localized, text: $searchText)
+
+                    TextField("clipboard.search.placeholder".localized, text: $viewModel.searchText)
                         .textFieldStyle(.plain)
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
+
+                    if !viewModel.searchText.isEmpty {
+                        Button(action: { viewModel.clearSearch() }) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.secondary)
                         }
@@ -151,39 +26,39 @@ struct ClipboardView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                                                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-                
-                // 过滤和排序控件（仅图标按钮，点击后弹出选项）
+                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+
+                // 过滤和排序控件(仅图标按钮,点击后弹出选项)
                 HStack(spacing: 12) {
                     // 类型
                     Button(action: {
-                        if showTypeFilter { showTypeFilter = false } else {
-                            showTypeFilter = true
-                            showDateFilter = false
-                            showSourceFilter = false
-                            showSortFilter = false
+                        if viewModel.showTypeFilter { viewModel.showTypeFilter = false } else {
+                            viewModel.showTypeFilter = true
+                            viewModel.showDateFilter = false
+                            viewModel.showSourceFilter = false
+                            viewModel.showSortFilter = false
                         }
                     }) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "doc.text")
                                 .font(.system(size: 13, weight: .semibold))
                                 .frame(width: 28, height: 28)
-                                .foregroundColor((selectedContentType != "all") ? .blue : (hoveredToolbar == "type" ? .primary : .primary))
+                                .foregroundColor((viewModel.selectedContentType != "all") ? .blue : (viewModel.hoveredToolbar == "type" ? .primary : .primary))
                                 .background(
-                                    (selectedContentType != "all"
+                                    (viewModel.selectedContentType != "all"
                                         ? Color.blue.opacity(0.15)
-                                        : (hoveredToolbar == "type" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
+                                        : (viewModel.hoveredToolbar == "type" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
                                     in: RoundedRectangle(cornerRadius: 6)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
                                         .strokeBorder(
-                                            (selectedContentType != "all") ? Color.blue.opacity(0.4) : (hoveredToolbar == "type" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
+                                            (viewModel.selectedContentType != "all") ? Color.blue.opacity(0.4) : (viewModel.hoveredToolbar == "type" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
                                             lineWidth: 1
                                         )
                                 )
-                                .scaleEffect(hoveredToolbar == "type" ? 1.03 : 1.0)
-                            if selectedContentType != "all" {
+                                .scaleEffect(viewModel.hoveredToolbar == "type" ? 1.03 : 1.0)
+                            if viewModel.selectedContentType != "all" {
                                 Circle()
                                     .fill(Color.blue)
                                     .frame(width: 6, height: 6)
@@ -193,38 +68,38 @@ struct ClipboardView: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { isHover in
-                        hoveredToolbar = isHover ? "type" : (hoveredToolbar == "type" ? nil : hoveredToolbar)
+                        viewModel.hoveredToolbar = isHover ? "type" : (viewModel.hoveredToolbar == "type" ? nil : viewModel.hoveredToolbar)
                     }
 
                     // 日期
                     Button(action: {
-                        if showDateFilter { showDateFilter = false } else {
-                            showTypeFilter = false
-                            showDateFilter = true
-                            showSourceFilter = false
-                            showSortFilter = false
+                        if viewModel.showDateFilter { viewModel.showDateFilter = false } else {
+                            viewModel.showTypeFilter = false
+                            viewModel.showDateFilter = true
+                            viewModel.showSourceFilter = false
+                            viewModel.showSortFilter = false
                         }
                     }) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "calendar")
                                 .font(.system(size: 13, weight: .semibold))
                                 .frame(width: 28, height: 28)
-                                .foregroundColor((selectedDateRange != "all") ? .red : (hoveredToolbar == "date" ? .primary : .primary))
+                                .foregroundColor((viewModel.selectedDateRange != "all") ? .red : (viewModel.hoveredToolbar == "date" ? .primary : .primary))
                                 .background(
-                                    (selectedDateRange != "all"
+                                    (viewModel.selectedDateRange != "all"
                                         ? Color.red.opacity(0.15)
-                                        : (hoveredToolbar == "date" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
+                                        : (viewModel.hoveredToolbar == "date" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
                                     in: RoundedRectangle(cornerRadius: 6)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
                                         .strokeBorder(
-                                            (selectedDateRange != "all") ? Color.red.opacity(0.4) : (hoveredToolbar == "date" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
+                                            (viewModel.selectedDateRange != "all") ? Color.red.opacity(0.4) : (viewModel.hoveredToolbar == "date" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
                                             lineWidth: 1
                                         )
                                 )
-                                .scaleEffect(hoveredToolbar == "date" ? 1.03 : 1.0)
-                            if selectedDateRange != "all" {
+                                .scaleEffect(viewModel.hoveredToolbar == "date" ? 1.03 : 1.0)
+                            if viewModel.selectedDateRange != "all" {
                                 Circle()
                                     .fill(Color.red)
                                     .frame(width: 6, height: 6)
@@ -234,38 +109,38 @@ struct ClipboardView: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { isHover in
-                        hoveredToolbar = isHover ? "date" : (hoveredToolbar == "date" ? nil : hoveredToolbar)
+                        viewModel.hoveredToolbar = isHover ? "date" : (viewModel.hoveredToolbar == "date" ? nil : viewModel.hoveredToolbar)
                     }
 
                     // 来源
                     Button(action: {
-                        if showSourceFilter { showSourceFilter = false } else {
-                            showTypeFilter = false
-                            showDateFilter = false
-                            showSourceFilter = true
-                            showSortFilter = false
+                        if viewModel.showSourceFilter { viewModel.showSourceFilter = false } else {
+                            viewModel.showTypeFilter = false
+                            viewModel.showDateFilter = false
+                            viewModel.showSourceFilter = true
+                            viewModel.showSortFilter = false
                         }
                     }) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "app.badge")
                                 .font(.system(size: 13, weight: .semibold))
                                 .frame(width: 28, height: 28)
-                                .foregroundColor((selectedSourceApp != "all") ? .purple : (hoveredToolbar == "source" ? .primary : .primary))
+                                .foregroundColor((viewModel.selectedSourceApp != "all") ? .purple : (viewModel.hoveredToolbar == "source" ? .primary : .primary))
                                 .background(
-                                    (selectedSourceApp != "all"
+                                    (viewModel.selectedSourceApp != "all"
                                         ? Color.purple.opacity(0.15)
-                                        : (hoveredToolbar == "source" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
+                                        : (viewModel.hoveredToolbar == "source" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
                                     in: RoundedRectangle(cornerRadius: 6)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
                                         .strokeBorder(
-                                            (selectedSourceApp != "all") ? Color.purple.opacity(0.4) : (hoveredToolbar == "source" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
+                                            (viewModel.selectedSourceApp != "all") ? Color.purple.opacity(0.4) : (viewModel.hoveredToolbar == "source" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
                                             lineWidth: 1
                                         )
                                 )
-                                .scaleEffect(hoveredToolbar == "source" ? 1.03 : 1.0)
-                            if selectedSourceApp != "all" {
+                                .scaleEffect(viewModel.hoveredToolbar == "source" ? 1.03 : 1.0)
+                            if viewModel.selectedSourceApp != "all" {
                                 Circle()
                                     .fill(Color.purple)
                                     .frame(width: 6, height: 6)
@@ -275,38 +150,38 @@ struct ClipboardView: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { isHover in
-                        hoveredToolbar = isHover ? "source" : (hoveredToolbar == "source" ? nil : hoveredToolbar)
+                        viewModel.hoveredToolbar = isHover ? "source" : (viewModel.hoveredToolbar == "source" ? nil : viewModel.hoveredToolbar)
                     }
 
                     // 排序
                     Button(action: {
-                        if showSortFilter { showSortFilter = false } else {
-                            showTypeFilter = false
-                            showDateFilter = false
-                            showSourceFilter = false
-                            showSortFilter = true
+                        if viewModel.showSortFilter { viewModel.showSortFilter = false } else {
+                            viewModel.showTypeFilter = false
+                            viewModel.showDateFilter = false
+                            viewModel.showSourceFilter = false
+                            viewModel.showSortFilter = true
                         }
                     }) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "arrow.up.arrow.down")
                                 .font(.system(size: 13, weight: .semibold))
                                 .frame(width: 28, height: 28)
-                                .foregroundColor((sortBy != "time") ? .indigo : (hoveredToolbar == "sort" ? .primary : .primary))
+                                .foregroundColor((viewModel.sortBy != "time") ? .indigo : (viewModel.hoveredToolbar == "sort" ? .primary : .primary))
                                 .background(
-                                    (sortBy != "time"
+                                    (viewModel.sortBy != "time"
                                         ? Color.indigo.opacity(0.15)
-                                        : (hoveredToolbar == "sort" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
+                                        : (viewModel.hoveredToolbar == "sort" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
                                     in: RoundedRectangle(cornerRadius: 6)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
                                         .strokeBorder(
-                                            (sortBy != "time") ? Color.indigo.opacity(0.4) : (hoveredToolbar == "sort" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
+                                            (viewModel.sortBy != "time") ? Color.indigo.opacity(0.4) : (viewModel.hoveredToolbar == "sort" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
                                             lineWidth: 1
                                         )
                                 )
-                                .scaleEffect(hoveredToolbar == "sort" ? 1.03 : 1.0)
-                            if sortBy != "time" {
+                                .scaleEffect(viewModel.hoveredToolbar == "sort" ? 1.03 : 1.0)
+                            if viewModel.sortBy != "time" {
                                 Circle()
                                     .fill(Color.indigo)
                                     .frame(width: 6, height: 6)
@@ -316,7 +191,7 @@ struct ClipboardView: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { isHover in
-                        hoveredToolbar = isHover ? "sort" : (hoveredToolbar == "sort" ? nil : hoveredToolbar)
+                        viewModel.hoveredToolbar = isHover ? "sort" : (viewModel.hoveredToolbar == "sort" ? nil : viewModel.hoveredToolbar)
                     }
                 }
                 .padding(10)
@@ -326,44 +201,44 @@ struct ClipboardView: View {
                         .strokeBorder(Color.secondary.opacity(0.1), lineWidth: 1)
                 )
 
-                // 下拉面板（在工具栏下方划出）
-                if showTypeFilter || showDateFilter || showSourceFilter || showSortFilter {
+                // 下拉面板(在工具栏下方划出)
+                if viewModel.showTypeFilter || viewModel.showDateFilter || viewModel.showSourceFilter || viewModel.showSortFilter {
                     HStack(alignment: .top, spacing: 0) {
                         VStack(alignment: .leading, spacing: 10) {
-                        if showTypeFilter {
+                        if viewModel.showTypeFilter {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    FilterChip(title: "clipboard.filter.all".localized, icon: "square.grid.2x2", isSelected: selectedContentType == "all", color: .blue) { selectedContentType = "all" }
-                                    FilterChip(title: "clipboard.filter.text".localized, icon: "doc.plaintext", isSelected: selectedContentType == "text", color: .blue) { selectedContentType = "text" }
-                                    FilterChip(title: "clipboard.filter.image".localized, icon: "photo", isSelected: selectedContentType == "image", color: .green) { selectedContentType = "image" }
-                                    FilterChip(title: "clipboard.filter.file".localized, icon: "doc", isSelected: selectedContentType == "file", color: .orange) { selectedContentType = "file" }
+                                    FilterChip(title: "clipboard.filter.all".localized, icon: "square.grid.2x2", isSelected: viewModel.selectedContentType == "all", color: .blue) { viewModel.selectedContentType = "all" }
+                                    FilterChip(title: "clipboard.filter.text".localized, icon: "doc.plaintext", isSelected: viewModel.selectedContentType == "text", color: .blue) { viewModel.selectedContentType = "text" }
+                                    FilterChip(title: "clipboard.filter.image".localized, icon: "photo", isSelected: viewModel.selectedContentType == "image", color: .green) { viewModel.selectedContentType = "image" }
+                                    FilterChip(title: "clipboard.filter.file".localized, icon: "doc", isSelected: viewModel.selectedContentType == "file", color: .orange) { viewModel.selectedContentType = "file" }
                                 }
                                 .padding(.vertical, 2)
                             }
                         }
 
-                        if showDateFilter {
+                        if viewModel.showDateFilter {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    FilterChip(title: "clipboard.filter.all".localized, icon: "calendar", isSelected: selectedDateRange == "all", color: .red) { selectedDateRange = "all" }
-                                    FilterChip(title: "clipboard.filter.today".localized, icon: "sun.max", isSelected: selectedDateRange == "today", color: .red) { selectedDateRange = "today" }
-                                    FilterChip(title: "clipboard.filter.week".localized, icon: "clock", isSelected: selectedDateRange == "week", color: .red) { selectedDateRange = "week" }
-                                    FilterChip(title: "clipboard.filter.month".localized, icon: "calendar", isSelected: selectedDateRange == "month", color: .red) { selectedDateRange = "month" }
+                                    FilterChip(title: "clipboard.filter.all".localized, icon: "calendar", isSelected: viewModel.selectedDateRange == "all", color: .red) { viewModel.selectedDateRange = "all" }
+                                    FilterChip(title: "clipboard.filter.today".localized, icon: "sun.max", isSelected: viewModel.selectedDateRange == "today", color: .red) { viewModel.selectedDateRange = "today" }
+                                    FilterChip(title: "clipboard.filter.week".localized, icon: "clock", isSelected: viewModel.selectedDateRange == "week", color: .red) { viewModel.selectedDateRange = "week" }
+                                    FilterChip(title: "clipboard.filter.month".localized, icon: "calendar", isSelected: viewModel.selectedDateRange == "month", color: .red) { viewModel.selectedDateRange = "month" }
                                 }
                                 .padding(.vertical, 2)
                             }
                         }
 
-                        if showSourceFilter {
+                        if viewModel.showSourceFilter {
                             HStack(spacing: 8) {
-                                FilterChip(title: "clipboard.filter.all".localized, isSelected: selectedSourceApp == "all", color: .purple) { selectedSourceApp = "all" }
+                                FilterChip(title: "clipboard.filter.all".localized, isSelected: viewModel.selectedSourceApp == "all", color: .purple) { viewModel.selectedSourceApp = "all" }
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
-                                        ForEach(Array(Set(clipboardManager.items.compactMap { $0.sourceAppBundleID })).sorted(), id: \.self) { bundleID in
-                                            if let item = clipboardManager.items.first(where: { $0.sourceAppBundleID == bundleID }),
+                                        ForEach(Array(Set(viewModel.items.compactMap { $0.sourceAppBundleID })).sorted(), id: \.self) { bundleID in
+                                            if let item = viewModel.items.first(where: { $0.sourceAppBundleID == bundleID }),
                                                let iconData = item.sourceAppIcon,
                                                let image = NSImage(data: iconData) {
-                                                Button(action: { selectedSourceApp = bundleID }) {
+                                                Button(action: { viewModel.selectedSourceApp = bundleID }) {
                                                     Image(nsImage: image)
                                                         .resizable()
                                                         .aspectRatio(contentMode: .fit)
@@ -372,8 +247,8 @@ struct ClipboardView: View {
                                                         .overlay(
                                                             RoundedRectangle(cornerRadius: 5)
                                                                 .strokeBorder(
-                                                                    selectedSourceApp == bundleID ? Color.purple.opacity(0.6) : Color.secondary.opacity(0.3),
-                                                                    lineWidth: selectedSourceApp == bundleID ? 2 : 1
+                                                                    viewModel.selectedSourceApp == bundleID ? Color.purple.opacity(0.6) : Color.secondary.opacity(0.3),
+                                                                    lineWidth: viewModel.selectedSourceApp == bundleID ? 2 : 1
                                                                 )
                                                         )
                                                 }
@@ -384,15 +259,15 @@ struct ClipboardView: View {
                                     }
                                 }
                                 Spacer()
-                                Button("common.cancel".localized) { showSourceFilter = false }
+                                Button("common.cancel".localized) { viewModel.showSourceFilter = false }
                                     .buttonStyle(.borderless)
                             }
                         }
 
-                        if showSortFilter {
+                        if viewModel.showSortFilter {
                             HStack(spacing: 8) {
-                                SortButton(title: "clipboard.sort.time".localized, icon: "clock", isSelected: sortBy == "time") { sortBy = "time" }
-                                SortButton(title: "clipboard.sort.use_count".localized, icon: "number.circle", isSelected: sortBy == "useCount") { sortBy = "useCount" }
+                                SortButton(title: "clipboard.sort.time".localized, icon: "clock", isSelected: viewModel.sortBy == "time") { viewModel.sortBy = "time" }
+                                SortButton(title: "clipboard.sort.use_count".localized, icon: "number.circle", isSelected: viewModel.sortBy == "useCount") { viewModel.sortBy = "useCount" }
                                 Spacer()
                             }
                         }
@@ -407,51 +282,48 @@ struct ClipboardView: View {
                         Spacer()
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
-                    .animation(.easeInOut(duration: 0.18), value: showTypeFilter || showDateFilter || showSourceFilter || showSortFilter)
+                    .animation(.easeInOut(duration: 0.18), value: viewModel.showTypeFilter || viewModel.showDateFilter || viewModel.showSourceFilter || viewModel.showSortFilter)
                 }
-                
+
                 Spacer()
-                
+
                 // 多选模式切换
                 Button(action: {
-                    isMultiSelectMode.toggle()
-                    if !isMultiSelectMode {
-                        selectedItems.removeAll()
-                    }
+                    viewModel.toggleMultiSelectMode()
                 }) {
-                    Image(systemName: isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
-                        .foregroundColor(isMultiSelectMode ? .accentColor : .secondary)
+                    Image(systemName: viewModel.isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
+                        .foregroundColor(viewModel.isMultiSelectMode ? .accentColor : .secondary)
                 }
                 .buttonStyle(.plain)
-                .help(isMultiSelectMode ? "clipboard.multi_select.exit".localized : "clipboard.multi_select.enter".localized)
+                .help(viewModel.isMultiSelectMode ? "clipboard.multi_select.exit".localized : "clipboard.multi_select.enter".localized)
             }
             .padding(.horizontal, 12)
             .padding(.top, 12)
-            
-            if clipboardManager.isLoading {
+
+            if viewModel.isLoading {
                 // 加载动画
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
                         .progressViewStyle(CircularProgressViewStyle())
-                    
+
                     Text("正在加载剪贴板历史...")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if filteredItems.isEmpty {
+            } else if viewModel.filteredItems.isEmpty {
                 // 空状态
                 VStack(spacing: 16) {
-                    Image(systemName: searchText.isEmpty ? "doc.on.clipboard" : "magnifyingglass")
+                    Image(systemName: viewModel.searchText.isEmpty ? "doc.on.clipboard" : "magnifyingglass")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    
-                    Text(searchText.isEmpty ? "clipboard.empty.title".localized : "clipboard.empty.search.title".localized)
+
+                    Text(viewModel.searchText.isEmpty ? "clipboard.empty.title".localized : "clipboard.empty.search.title".localized)
                         .font(.title2)
                         .foregroundColor(.secondary)
-                    
-                    Text(searchText.isEmpty ? "ui.copy_something_to_see".localized : "ui.try_different_search".localized)
+
+                    Text(viewModel.searchText.isEmpty ? "ui.copy_something_to_see".localized : "ui.try_different_search".localized)
                         .font(.caption)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -461,23 +333,24 @@ struct ClipboardView: View {
                 // 剪贴板项目列表
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(filteredItems, id: \.id) { item in
-                            let index = filteredItems.firstIndex(of: item) ?? 0
+                        ForEach(viewModel.filteredItems, id: \.id) { item in
+                            let index = viewModel.filteredItems.firstIndex(of: item) ?? 0
                             ClipboardItemView(
                                 item: item,
-                                isSelected: selectedItems.contains(item.id),
+                                isSelected: viewModel.selectedItems.contains(item.id),
                                 isHovered: hoveredItem == item.id,
-                                showSelectionMode: isMultiSelectMode,
+                                showSelectionMode: viewModel.isMultiSelectMode,
                                 indexNumber: index < 9 ? index + 1 : nil
                             ) {
                                 // 复制操作
-                                copyItem(item)
+                                viewModel.copyItem(item)
+                                WindowManager.shared.hideWindowAfterAction(.clipboardCopied)
                             } onDelete: {
-                                clipboardManager.removeItem(item)
+                                viewModel.removeItem(item)
                             } onTogglePin: {
-                                clipboardManager.togglePin(item)
+                                viewModel.togglePin(item)
                             } onToggleSelection: {
-                                toggleSelection(item)
+                                viewModel.toggleSelection(item)
                             }
                             .onHover { isHovering in
                                 hoveredItem = isHovering ? item.id : nil
@@ -487,36 +360,33 @@ struct ClipboardView: View {
                     .padding()
                 }
             }
-            
+
             // 底部工具栏
             HStack {
-                if isMultiSelectMode && !selectedItems.isEmpty {
-                    Button("clipboard.multi_select.delete_selected".localized + " (\(selectedItems.count))") {
-                        let itemsToRemove = filteredItems.filter { selectedItems.contains($0.id) }
-                        clipboardManager.removeItems(itemsToRemove)
-                        selectedItems.removeAll()
+                if viewModel.isMultiSelectMode && !viewModel.selectedItems.isEmpty {
+                    Button("clipboard.multi_select.delete_selected".localized + " (\(viewModel.selectedItems.count))") {
+                        viewModel.deleteSelected()
                     }
                     .buttonStyle(.borderless)
                     .foregroundColor(.red)
                 } else {
                     Button("clipboard.multi_select.clear_all".localized) {
-                        clipboardManager.clearAll()
-                        selectedItems.removeAll()
+                        viewModel.clearAll()
                     }
                     .buttonStyle(.borderless)
                 }
-                
+
                 Spacer()
-                
-                Text("\(filteredItems.count) \("clipboard.multi_select.items".localized)")
+
+                Text("\(viewModel.filteredItems.count) \("clipboard.multi_select.items".localized)")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                if isMultiSelectMode {
-                    Text("|") 
+
+                if viewModel.isMultiSelectMode {
+                    Text("|")
                         .foregroundColor(.secondary)
                         .font(.caption)
-                    Text("\(selectedItems.count) \("clipboard.multi_select.selected".localized)")
+                    Text("\(viewModel.selectedItems.count) \("clipboard.multi_select.selected".localized)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -528,81 +398,40 @@ struct ClipboardView: View {
             handleKeyDown(event)
         }
         .task {
-            // 使用 task 修饰符异步加载数据
-            setDefaultFilter()
-            updateFilteredItems()
-        }
-        .onChange(of: searchText) { _, _ in
-            scheduleFilterUpdate()
-        }
-        .onChange(of: selectedContentType) { _, _ in
-            updateFilteredItems()
-        }
-        .onChange(of: selectedSourceApp) { _, _ in
-            updateFilteredItems()
-        }
-        .onChange(of: selectedDateRange) { _, _ in
-            updateFilteredItems()
-        }
-        .onChange(of: sortBy) { _, _ in
-            updateFilteredItems()
-        }
-        .onChange(of: clipboardManager.items) { _, _ in
-            updateFilteredItems()
-        }
-        .onDisappear {
-            updateTimer?.invalidate()
+            viewModel.onAppear()
         }
     }
-    
-    private func copyItem(_ item: ClipboardItem) {
-        clipboardManager.copyToClipboard(item)
-        
-        // 触发自动隐藏窗口
-        WindowManager.shared.hideWindowAfterAction(.clipboardCopied)
-        
-        // 移除不必要的动画
-    }
-    
-    private func toggleSelection(_ item: ClipboardItem) {
-        if selectedItems.contains(item.id) {
-            selectedItems.remove(item.id)
-        } else {
-            selectedItems.insert(item.id)
-        }
-    }
-    
+
     private func handleKeyDown(_ event: NSEvent) -> Bool {
         let keyCode = event.keyCode
         let modifierFlags = event.modifierFlags
-        
-        // 数字键快速复制（1-9）
+
+        // 数字键快速复制(1-9)
         if keyCode >= 18 && keyCode <= 26 && !modifierFlags.contains(.command) {
             let index = Int(keyCode - 18)
-            if index < filteredItems.count {
-                copyItem(filteredItems[index])
+            if index < viewModel.filteredItems.count {
+                viewModel.copyItem(viewModel.filteredItems[index])
+                WindowManager.shared.hideWindowAfterAction(.clipboardCopied)
                 return true
             }
         }
-        
+
         // Delete 键删除选中项
         if keyCode == 51 { // Delete key
-            if !selectedItems.isEmpty {
-                let itemsToRemove = filteredItems.filter { selectedItems.contains($0.id) }
-                clipboardManager.removeItems(itemsToRemove)
-                selectedItems.removeAll()
+            if !viewModel.selectedItems.isEmpty {
+                viewModel.deleteSelected()
                 return true
             }
         }
-        
+
         // Cmd+A 全选
         if keyCode == 0 && modifierFlags.contains(.command) { // Cmd+A
-            if isMultiSelectMode {
-                selectedItems = Set(filteredItems.map { $0.id })
+            if viewModel.isMultiSelectMode {
+                viewModel.selectAll()
                 return true
             }
         }
-        
+
         return false
     }
 }
@@ -617,9 +446,9 @@ struct ClipboardItemView: View {
     let onDelete: () -> Void
     let onTogglePin: () -> Void
     let onToggleSelection: () -> Void
-    
+
     @State private var showFullText = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // 选择框/使用频次标签
@@ -643,9 +472,7 @@ struct ClipboardItemView: View {
                             .strokeBorder(.secondary.opacity(0.3), lineWidth: 0.5)
                     )
             }
-            
-            // 内容预览
-            
+
             // 内容预览
             VStack(alignment: .leading, spacing: 6) {
                 switch item.content {
@@ -656,7 +483,7 @@ struct ClipboardItemView: View {
                             .lineLimit(showFullText ? nil : 3)
                             .multilineTextAlignment(.leading)
                             .textSelection(.enabled)
-                        
+
                         if text.count > 100 {
                             Button(showFullText ? "clipboard.item.collapse".localized : "clipboard.item.expand".localized) {
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -668,7 +495,7 @@ struct ClipboardItemView: View {
                             .foregroundColor(.accentColor)
                         }
                     }
-                
+
                 case .image(let image):
                     VStack(alignment: .leading, spacing: 8) {
                         // 图片预览
@@ -682,15 +509,15 @@ struct ClipboardItemView: View {
                                     .strokeBorder(.secondary.opacity(0.3), lineWidth: 1)
                             )
                             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                        
+
                         // 图片信息
                         HStack {
                             Text("clipboard.item.image.content".localized)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
-                            
+
                             Spacer()
-                            
+
                             // 显示图片尺寸
                             let size = image.size
                             Text("\(Int(size.width))×\(Int(size.height))")
@@ -701,7 +528,7 @@ struct ClipboardItemView: View {
                                 .background(.tertiary.opacity(0.3), in: RoundedRectangle(cornerRadius: 4))
                         }
                     }
-                
+
                 case .file(let url):
                     HStack {
                         Text(url.lastPathComponent)
@@ -709,7 +536,7 @@ struct ClipboardItemView: View {
                         Spacer()
                     }
                 }
-                
+
                 // 时间戳和详情
                 HStack {
                     // 类型图标和置顶状态
@@ -718,18 +545,18 @@ struct ClipboardItemView: View {
                             .font(.caption)
                             .foregroundColor(item.typeColor)
                             .frame(width: 16)
-                        
+
                         if item.isPinned {
                             Image(systemName: "pin.fill")
                                 .font(.caption2)
                                 .foregroundColor(.orange)
                         }
                     }
-                    
+
                     Text("•")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     // 来源应用信息
                     if let appName = item.sourceAppName {
                         HStack(spacing: 4) {
@@ -741,22 +568,22 @@ struct ClipboardItemView: View {
                                     .frame(width: 12, height: 12)
                                     .clipShape(RoundedRectangle(cornerRadius: 2))
                             }
-                            
+
                             Text(appName)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
-                        
+
                         Text("•")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Text(item.timestamp.formatted(.relative(presentation: .named)))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     if case .text(let text) = item.content {
                         Spacer()
                         Text("\(text.count) \("clipboard.item.characters".localized)")
@@ -765,10 +592,10 @@ struct ClipboardItemView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
-            // 操作按钮（悬停显示）
+
+            // 操作按钮(悬停显示)
             if isHovered || showSelectionMode {
                 HStack(spacing: 8) {
                     Button(action: onTogglePin) {
@@ -778,7 +605,7 @@ struct ClipboardItemView: View {
                     }
                     .buttonStyle(.borderless)
                     .help(item.isPinned ? "clipboard.item.unpin".localized : "clipboard.item.pin".localized)
-                    
+
                     Button(action: onCopy) {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 14))
@@ -786,7 +613,7 @@ struct ClipboardItemView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("clipboard.item.copy".localized)
-                    
+
                     Button(action: onDelete) {
                         Image(systemName: "trash")
                             .font(.system(size: 14))
@@ -817,20 +644,20 @@ struct ClipboardItemView: View {
             Button(item.isPinned ? "clipboard.item.unpin".localized : "clipboard.item.pin".localized) {
                 onTogglePin()
             }
-            
+
             Divider()
-            
+
             Button("clipboard.item.copy".localized) {
                 onCopy()
             }
-            
+
             Button("clipboard.item.delete".localized, role: .destructive) {
                 onDelete()
             }
         }
         .animation(.easeInOut(duration: 0.1), value: isSelected)
     }
-    
+
     private var backgroundMaterial: Material {
         if isSelected {
             return .thick
@@ -840,7 +667,7 @@ struct ClipboardItemView: View {
             return .thinMaterial
         }
     }
-    
+
     private var borderColor: Color {
         if isSelected {
             return .accentColor
@@ -850,7 +677,7 @@ struct ClipboardItemView: View {
             return .clear
         }
     }
-    
+
     private var borderWidth: CGFloat {
         if isSelected {
             return 2
@@ -860,7 +687,7 @@ struct ClipboardItemView: View {
             return 0
         }
     }
-    
+
     private var shadowColor: Color {
         if isSelected {
             return .accentColor.opacity(0.3)
@@ -868,7 +695,7 @@ struct ClipboardItemView: View {
             return .black.opacity(0.1)
         }
     }
-    
+
     private var shadowRadius: CGFloat {
         isSelected ? 4 : 1
     }
@@ -883,21 +710,21 @@ extension View {
 
 struct KeyEventHandlingView: NSViewRepresentable {
     let onKeyDown: (NSEvent) -> Bool
-    
+
     func makeNSView(context: Context) -> NSView {
         let view = KeyHandlingNSView()
         view.onKeyDown = onKeyDown
         return view
     }
-    
+
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 class KeyHandlingNSView: NSView {
     var onKeyDown: ((NSEvent) -> Bool)?
-    
+
     override var acceptsFirstResponder: Bool { true }
-    
+
     override func keyDown(with event: NSEvent) {
         if let onKeyDown = onKeyDown, onKeyDown(event) {
             return
@@ -913,7 +740,7 @@ struct FilterChip: View {
     let isSelected: Bool
     let color: Color
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 3) {
@@ -951,7 +778,7 @@ struct SortButton: View {
     let icon: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {

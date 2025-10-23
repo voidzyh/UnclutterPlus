@@ -36,6 +36,28 @@ final class FilesViewModel: ObservableObject {
     private let fileManager: TempFileManager
     private var cancellables: Set<AnyCancellable> = []
 
+    // MARK: - Public Computed Properties (暴露 fileManager 必要属性)
+
+    var sortOption: SortOption {
+        fileManager.sortOption
+    }
+
+    var isAscending: Bool {
+        fileManager.isAscending
+    }
+
+    var selectedFiles: Set<UUID> {
+        fileManager.selectedFiles
+    }
+
+    var totalSize: Int64 {
+        fileManager.totalSize
+    }
+
+    var filesByType: [FileType: [TempFile]] {
+        fileManager.filesByType
+    }
+
     // MARK: - Initialization
 
     init(fileManager: TempFileManager = TempFileManager()) {
@@ -87,6 +109,16 @@ final class FilesViewModel: ObservableObject {
         fileManager.openFile(file)
     }
 
+    /// 设置排序选项
+    func setSortOption(_ option: SortOption) {
+        fileManager.sortOption = option
+    }
+
+    /// 切换排序顺序
+    func toggleSortOrder() {
+        fileManager.isAscending.toggle()
+    }
+
     /// 在访达中显示文件
     func showInFinder(_ file: TempFile) {
         NSWorkspace.shared.activateFileViewerSelecting([file.url])
@@ -134,6 +166,37 @@ final class FilesViewModel: ObservableObject {
         let grouped = Dictionary(grouping: filteredFiles) { $0.fileType }
         return grouped.map { (type: $0.key, files: $0.value) }
             .sorted { $0.type.rawValue < $1.type.rawValue }
+    }
+
+    /// 切换多选模式
+    func toggleMultiSelectMode() {
+        fileManager.isMultiSelectMode.toggle()
+        if !fileManager.isMultiSelectMode {
+            fileManager.selectedFiles.removeAll()
+        }
+    }
+
+    /// 切换文件选择状态
+    func toggleSelection(_ file: TempFile) {
+        fileManager.toggleSelection(file)
+    }
+
+    /// 删除选中的文件
+    func deleteSelectedFiles(_ files: [TempFile]) {
+        for file in files {
+            fileManager.removeFile(file)
+        }
+        fileManager.selectedFiles.removeAll()
+    }
+
+    /// 全选
+    func selectAll() {
+        fileManager.selectedFiles = Set(filteredFiles.map { $0.id })
+    }
+
+    /// 清空所有文件
+    func clearAllFiles() {
+        fileManager.clearAll()
     }
 
     // MARK: - Private Methods
