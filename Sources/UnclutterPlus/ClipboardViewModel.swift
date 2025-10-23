@@ -77,6 +77,16 @@ final class ClipboardViewModel: ObservableObject {
         observeChanges()
     }
 
+    // MARK: - Public Computed Properties (暴露 ClipboardManager 必要属性)
+
+    var isLoading: Bool {
+        clipboardManager.isLoading
+    }
+
+    var items: [ClipboardItem] {
+        clipboardManager.items
+    }
+
     // MARK: - Public Methods
 
     /// 视图出现时调用
@@ -90,8 +100,43 @@ final class ClipboardViewModel: ObservableObject {
     }
 
     /// 删除项目
-    func deleteItems(_ itemIds: Set<UUID>) {
-        let itemsToDelete = clipboardManager.items.filter { itemIds.contains($0.id) }
+    func removeItem(_ item: ClipboardItem) {
+        clipboardManager.removeItem(item)
+    }
+
+    /// 删除多个项目
+    func removeItems(_ items: [ClipboardItem]) {
+        clipboardManager.removeItems(items)
+    }
+
+    /// 切换置顶状态
+    func togglePin(_ item: ClipboardItem) {
+        clipboardManager.togglePin(item)
+    }
+
+    /// 切换选择状态
+    func toggleSelection(_ item: ClipboardItem) {
+        if selectedItems.contains(item.id) {
+            selectedItems.remove(item.id)
+        } else {
+            selectedItems.insert(item.id)
+        }
+    }
+
+    /// 全选
+    func selectAll() {
+        selectedItems = Set(filteredItems.map { $0.id })
+    }
+
+    /// 清空所有项目
+    func clearAll() {
+        clipboardManager.clearAll()
+        selectedItems.removeAll()
+    }
+
+    /// 删除选中的项目
+    func deleteSelected() {
+        let itemsToDelete = filteredItems.filter { selectedItems.contains($0.id) }
         clipboardManager.removeItems(itemsToDelete)
         selectedItems.removeAll()
     }

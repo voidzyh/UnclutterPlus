@@ -19,28 +19,10 @@ enum ViewMode: String, CaseIterable {
 }
 
 struct FilesView: View {
-    @StateObject private var fileManager = TempFileManager()
-    @State private var dragOver = false
-    @State private var searchText = ""
-    @State private var viewMode: ViewMode = .grid
-    @State private var isMultiSelectMode = false
+    @StateObject private var viewModel = FilesViewModel()
     @State private var hoveredFile: UUID?
     @State private var editingFileName: UUID?
     @State private var newFileName = ""
-    
-    private var filteredFiles: [TempFile] {
-        let files = fileManager.sortedFiles
-        
-        if searchText.isEmpty {
-            return files
-        } else {
-            return files.filter { file in
-                file.name.localizedCaseInsensitiveContains(searchText) ||
-                file.fileType.rawValue.localizedCaseInsensitiveContains(searchText) ||
-                file.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
-            }
-        }
-    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -51,11 +33,11 @@ struct FilesView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                     
-                    TextField("Search files...", text: $searchText)
+                    TextField("Search files...", text: $viewModel.searchText)
                         .textFieldStyle(.plain)
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
+
+                    if !viewModel.searchText.isEmpty {
+                        Button(action: { viewModel.clearSearch() }) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.secondary)
                         }
@@ -70,7 +52,7 @@ struct FilesView: View {
                 Spacer()
                 
                 // 视图模式切换
-                Picker("", selection: $viewMode) {
+                Picker("", selection: $viewModel.viewMode) {
                     ForEach(ViewMode.allCases, id: \.self) { mode in
                         Image(systemName: mode.systemImage)
                             .tag(mode)
@@ -84,10 +66,10 @@ struct FilesView: View {
                 Menu {
                     Section("sort.by".localized) {
                         ForEach(SortOption.allCases, id: \.self) { option in
-                            Button(action: { fileManager.sortOption = option }) {
+                            Button(action: { viewModel.setSortOption(option) }) {
                                 HStack {
                                     Text(option.rawValue)
-                                    if fileManager.sortOption == option {
+                                    if viewModel.sortOption == option {
                                         Spacer()
                                         Image(systemName: "checkmark")
                                     }
@@ -95,14 +77,14 @@ struct FilesView: View {
                             }
                         }
                     }
-                    
+
                     Divider()
-                    
-                    Button(action: { fileManager.isAscending.toggle() }) {
+
+                    Button(action: { viewModel.toggleSortOrder() }) {
                         HStack {
-                            Text(fileManager.isAscending ? "sort.ascending".localized : "sort.descending".localized)
+                            Text(viewModel.isAscending ? "sort.ascending".localized : "sort.descending".localized)
                             Spacer()
-                            Image(systemName: fileManager.isAscending ? "arrow.up" : "arrow.down")
+                            Image(systemName: viewModel.isAscending ? "arrow.up" : "arrow.down")
                         }
                     }
                 } label: {
@@ -112,24 +94,21 @@ struct FilesView: View {
                 
                 // 多选模式切换
                 Button(action: {
-                    isMultiSelectMode.toggle()
-                    if !isMultiSelectMode {
-                        fileManager.deselectAll()
-                    }
+                    viewModel.toggleMultiSelectMode()
                 }) {
-                    Image(systemName: isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
-                        .foregroundColor(isMultiSelectMode ? .accentColor : .secondary)
+                    Image(systemName: viewModel.isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
+                        .foregroundColor(viewModel.isMultiSelectMode ? .accentColor : .secondary)
                 }
                 .buttonStyle(.plain)
-                .help(isMultiSelectMode ? "Exit selection mode" : "Enter selection mode")
+                .help(viewModel.isMultiSelectMode ? "Exit selection mode" : "Enter selection mode")
             }
             .padding(.horizontal, 12)
             .padding(.top, 12)
             
-            if filteredFiles.isEmpty {
+            if viewModel.filteredFiles.isEmpty {
                 // 空状态
                 VStack(spacing: 20) {
-                    if searchText.isEmpty {
+                    if viewModel.searchText.isEmpty {
                         Image(systemName: "folder.badge.plus")
                             .font(.system(size: 56))
                             .foregroundColor(.secondary)
@@ -161,15 +140,15 @@ struct FilesView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(dragOver ? Color.accentColor.opacity(0.1) : Color.clear)
-                        .stroke(dragOver ? Color.accentColor : Color.gray.opacity(0.3), 
-                               lineWidth: dragOver ? 3 : 1)
-                        .strokeBorder(style: StrokeStyle(lineWidth: dragOver ? 3 : 1, dash: [10]))
+                        .fill(viewModel.dragOver ? Color.accentColor.opacity(0.1) : Color.clear)
+                        .stroke(viewModel.dragOver ? Color.accentColor : Color.gray.opacity(0.3),
+                               lineWidth: viewModel.dragOver ? 3 : 1)
+                        .strokeBorder(style: StrokeStyle(lineWidth: viewModel.dragOver ? 3 : 1, dash: [10]))
                 )
             } else {
                 // 文件内容区域
                 ScrollView {
-                    switch viewMode {
+                    switch viewModel.viewMode {
                     case .grid:
                         gridView
                     case .list:
@@ -180,46 +159,45 @@ struct FilesView: View {
                 }
                 .background(
                     Rectangle()
-                        .fill(dragOver ? Color.accentColor.opacity(0.05) : Color.clear)
+                        .fill(viewModel.dragOver ? Color.accentColor.opacity(0.05) : Color.clear)
                 )
             }
             
             // 底部状态栏
             HStack {
-                if isMultiSelectMode && !fileManager.selectedFiles.isEmpty {
-                    Button("删除已选 (\(fileManager.selectedFiles.count))") {
-                        let selectedFiles = filteredFiles.filter { fileManager.selectedFiles.contains($0.id) }
-                        fileManager.removeFiles(selectedFiles)
-                        fileManager.deselectAll()
+                if viewModel.isMultiSelectMode && !viewModel.selectedFiles.isEmpty {
+                    Button("删除已选 (\(viewModel.selectedFiles.count))") {
+                        let selectedFiles = viewModel.filteredFiles.filter { viewModel.selectedFiles.contains($0.id) }
+                        viewModel.deleteSelectedFiles(selectedFiles)
                     }
                     .buttonStyle(.borderless)
                     .foregroundColor(.red)
                 } else {
                     Button("清空全部") {
-                        fileManager.clearAllFiles()
+                        viewModel.clearAllFiles()
                     }
                     .buttonStyle(.borderless)
                 }
-                
+
                 Spacer()
-                
-                Text("\(filteredFiles.count) 文件")
+
+                Text("\(viewModel.filteredFiles.count) 文件")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                Text("|") 
+
+                Text("|")
                     .foregroundColor(.secondary)
                     .font(.caption)
-                
-                Text(ByteCountFormatter.string(fromByteCount: fileManager.totalSize, countStyle: .file))
+
+                Text(ByteCountFormatter.string(fromByteCount: viewModel.totalSize, countStyle: .file))
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                if isMultiSelectMode {
-                    Text("|") 
+
+                if viewModel.isMultiSelectMode {
+                    Text("|")
                         .foregroundColor(.secondary)
                         .font(.caption)
-                    Text("\(fileManager.selectedFiles.count) 已选")
+                    Text("\(viewModel.selectedFiles.count) 已选")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -227,10 +205,10 @@ struct FilesView: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
         }
-        .onDrop(of: [.fileURL], isTargeted: $dragOver) { providers in
-            handleFileDrop(providers)
+        .onDrop(of: [.fileURL], isTargeted: $viewModel.dragOver) { providers in
+            viewModel.handleFileDrop(providers: providers)
         }
-        .onChange(of: dragOver) { _, isDragging in
+        .onChange(of: viewModel.dragOver) { _, isDragging in
             WindowManager.shared.setDraggingFile(isDragging)
         }
         .onKeyDown { event in
@@ -240,32 +218,32 @@ struct FilesView: View {
     
     private var gridView: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 4), spacing: 16) {
-            ForEach(filteredFiles) { file in
+            ForEach(viewModel.filteredFiles) { file in
                 FileItemGridView(
                     file: file,
-                    isSelected: fileManager.selectedFiles.contains(file.id),
+                    isSelected: viewModel.selectedFiles.contains(file.id),
                     isHovered: hoveredFile == file.id,
-                    showSelectionMode: isMultiSelectMode,
+                    showSelectionMode: viewModel.isMultiSelectMode,
                     isEditing: editingFileName == file.id,
                     editingName: $newFileName
                 ) {
                     // 打开文件
-                    if isMultiSelectMode {
-                        fileManager.toggleSelection(file)
+                    if viewModel.isMultiSelectMode {
+                        viewModel.toggleSelection(file)
                     } else {
-                        fileManager.openFile(file)
+                        viewModel.openFile(file)
                     }
                 } onSecondaryAction: {
                     // 显示在Finder中
-                    NSWorkspace.shared.selectFile(file.url.path, inFileViewerRootedAtPath: "")
+                    viewModel.showInFinder(file)
                 } onDelete: {
-                    fileManager.removeFile(file)
+                    viewModel.deleteFile(file)
                 } onToggleFavorite: {
-                    fileManager.toggleFavorite(file)
+                    viewModel.toggleFavorite(file)
                 } onToggleSelection: {
-                    fileManager.toggleSelection(file)
+                    viewModel.toggleSelection(file)
                 } onRename: { newName in
-                    fileManager.renameFile(file, to: newName)
+                    viewModel.renameFile(file, to: newName)
                     editingFileName = nil
                 } onStartRename: {
                     editingFileName = file.id
@@ -281,31 +259,31 @@ struct FilesView: View {
     
     private var listView: some View {
         LazyVStack(spacing: 2) {
-            ForEach(filteredFiles) { file in
+            ForEach(viewModel.filteredFiles) { file in
                 FileItemListView(
                     file: file,
-                    isSelected: fileManager.selectedFiles.contains(file.id),
+                    isSelected: viewModel.selectedFiles.contains(file.id),
                     isHovered: hoveredFile == file.id,
-                    showSelectionMode: isMultiSelectMode,
+                    showSelectionMode: viewModel.isMultiSelectMode,
                     isEditing: editingFileName == file.id,
                     editingName: $newFileName
                 ) {
                     // 打开文件
-                    if isMultiSelectMode {
-                        fileManager.toggleSelection(file)
+                    if viewModel.isMultiSelectMode {
+                        viewModel.toggleSelection(file)
                     } else {
-                        fileManager.openFile(file)
+                        viewModel.openFile(file)
                     }
                 } onSecondaryAction: {
-                    NSWorkspace.shared.selectFile(file.url.path, inFileViewerRootedAtPath: "")
+                    viewModel.showInFinder(file)
                 } onDelete: {
-                    fileManager.removeFile(file)
+                    viewModel.deleteFile(file)
                 } onToggleFavorite: {
-                    fileManager.toggleFavorite(file)
+                    viewModel.toggleFavorite(file)
                 } onToggleSelection: {
-                    fileManager.toggleSelection(file)
+                    viewModel.toggleSelection(file)
                 } onRename: { newName in
-                    fileManager.renameFile(file, to: newName)
+                    viewModel.renameFile(file, to: newName)
                     editingFileName = nil
                 } onStartRename: {
                     editingFileName = file.id
@@ -321,8 +299,8 @@ struct FilesView: View {
     
     private var groupedView: some View {
         LazyVStack(alignment: .leading, spacing: 20) {
-            ForEach(Array(fileManager.filesByType.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { type in
-                if let files = fileManager.filesByType[type], !files.isEmpty {
+            ForEach(Array(viewModel.filesByType.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { type in
+                if let files = viewModel.filesByType[type], !files.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: type.systemImage)
@@ -345,27 +323,27 @@ struct FilesView: View {
                             ForEach(files) { file in
                                 FileItemGridView(
                                     file: file,
-                                    isSelected: fileManager.selectedFiles.contains(file.id),
+                                    isSelected: viewModel.selectedFiles.contains(file.id),
                                     isHovered: hoveredFile == file.id,
-                                    showSelectionMode: isMultiSelectMode,
+                                    showSelectionMode: viewModel.isMultiSelectMode,
                                     isEditing: editingFileName == file.id,
                                     editingName: $newFileName
                                 ) {
-                                    if isMultiSelectMode {
-                                        fileManager.toggleSelection(file)
+                                    if viewModel.isMultiSelectMode {
+                                        viewModel.toggleSelection(file)
                                     } else {
-                                        fileManager.openFile(file)
+                                        viewModel.openFile(file)
                                     }
                                 } onSecondaryAction: {
-                                    NSWorkspace.shared.selectFile(file.url.path, inFileViewerRootedAtPath: "")
+                                    viewModel.showInFinder(file)
                                 } onDelete: {
-                                    fileManager.removeFile(file)
+                                    viewModel.deleteFile(file)
                                 } onToggleFavorite: {
-                                    fileManager.toggleFavorite(file)
+                                    viewModel.toggleFavorite(file)
                                 } onToggleSelection: {
-                                    fileManager.toggleSelection(file)
+                                    viewModel.toggleSelection(file)
                                 } onRename: { newName in
-                                    fileManager.renameFile(file, to: newName)
+                                    viewModel.renameFile(file, to: newName)
                                     editingFileName = nil
                                 } onStartRename: {
                                     editingFileName = file.id
@@ -387,41 +365,28 @@ struct FilesView: View {
     private func handleKeyDown(_ event: NSEvent) -> Bool {
         let keyCode = event.keyCode
         let modifierFlags = event.modifierFlags
-        
+
         // Delete 键删除选中文件
         if keyCode == 51 { // Delete key
-            if !fileManager.selectedFiles.isEmpty {
-                let selectedFiles = filteredFiles.filter { fileManager.selectedFiles.contains($0.id) }
-                fileManager.removeFiles(selectedFiles)
-                fileManager.deselectAll()
+            if !viewModel.selectedFiles.isEmpty {
+                let selectedFiles = viewModel.filteredFiles.filter { viewModel.selectedFiles.contains($0.id) }
+                viewModel.deleteSelectedFiles(selectedFiles)
                 return true
             }
         }
-        
+
         // Cmd+A 全选
         if keyCode == 0 && modifierFlags.contains(.command) { // Cmd+A
-            if isMultiSelectMode {
-                fileManager.selectAll()
+            if viewModel.isMultiSelectMode {
+                viewModel.selectAll()
                 return true
             }
         }
-        
+
         return false
     }
-    
-    private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
-        for provider in providers {
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
-                if let data = item as? Data,
-                   let url = URL(dataRepresentation: data, relativeTo: nil) {
-                    DispatchQueue.main.async {
-                        fileManager.addFile(from: url)
-                    }
-                }
-            }
-        }
-        return true
-    }
+
+    // 删除 handleFileDrop 函数,因为已由 ViewModel 处理
 }
 
 struct FileItemGridView: View {
