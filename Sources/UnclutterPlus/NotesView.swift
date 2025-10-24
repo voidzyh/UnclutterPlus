@@ -3,7 +3,7 @@ import SwiftUI
 enum ViewLayout: String, CaseIterable {
     case sidebar = "Sidebar"
     case focus = "Focus"
-    
+
     var systemImage: String {
         switch self {
         case .sidebar: return "sidebar.left"
@@ -13,16 +13,8 @@ enum ViewLayout: String, CaseIterable {
 }
 
 struct NotesView: View {
-    @ObservedObject private var notesManager = NotesManager.shared
-    @State private var selectedNote: Note?
-    @State private var showingNewNoteDialog = false
-    @State private var newNoteTitle = ""
-    @State private var newNoteTags: Set<String> = []
-    @State private var viewLayout: ViewLayout = .sidebar
-    @State private var isMultiSelectMode = false
-    @State private var sidebarWidth: CGFloat = 300
-    @State private var showingTagEditor = false
-    
+    @StateObject private var viewModel = NotesViewModel()
+
     var body: some View {
         VStack(spacing: 0) {
             // 顶部工具栏
@@ -31,19 +23,19 @@ struct NotesView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                    
-                    TextField("search.notes.placeholder".localized, text: $notesManager.searchText)
+
+                    TextField("search.notes.placeholder".localized, text: $viewModel.searchText)
                         .textFieldStyle(.plain)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
                 .frame(maxWidth: 250)
-                
+
                 Spacer()
-                
+
                 // 布局选择
-                Picker("Layout", selection: $viewLayout) {
+                Picker("Layout", selection: $viewModel.viewLayout) {
                     ForEach(ViewLayout.allCases, id: \.self) { layout in
                         Image(systemName: layout.systemImage)
                             .tag(layout)
@@ -52,15 +44,15 @@ struct NotesView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 80)
                 .labelsHidden()
-                
+
                 // 排序和工具
                 Menu {
                     Section("sort.by".localized) {
                         ForEach(NotesSortOption.allCases, id: \.self) { option in
-                            Button(action: { notesManager.sortOption = option }) {
+                            Button(action: { viewModel.sortOption = option }) {
                                 HStack {
                                     Text(option.rawValue)
-                                    if notesManager.sortOption == option {
+                                    if viewModel.sortOption == option {
                                         Spacer()
                                         Image(systemName: "checkmark")
                                     }
@@ -68,37 +60,35 @@ struct NotesView: View {
                             }
                         }
                     }
-                    
+
                     Divider()
-                    
-                    Button(action: { notesManager.isAscending.toggle() }) {
+
+                    Button(action: { viewModel.isAscending.toggle() }) {
                         HStack {
-                            Text(notesManager.isAscending ? "sort.ascending".localized : "sort.descending".localized)
+                            Text(viewModel.isAscending ? "sort.ascending".localized : "sort.descending".localized)
                             Spacer()
-                            Image(systemName: notesManager.isAscending ? "arrow.up" : "arrow.down")
+                            Image(systemName: viewModel.isAscending ? "arrow.up" : "arrow.down")
                         }
                     }
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                 }
                 .menuStyle(.borderlessButton)
-                
+
                 // 收藏按钮（针对选中的笔记）
-                if let selectedNote = selectedNote {
-                    Button(action: { 
-                        notesManager.toggleFavorite(selectedNote)
+                if let selectedNote = viewModel.selectedNote {
+                    Button(action: {
+                        viewModel.toggleFavorite(selectedNote)
                     }) {
                         Image(systemName: selectedNote.isFavorite ? "star.fill" : "star")
                             .foregroundColor(selectedNote.isFavorite ? .yellow : .secondary)
                     }
                     .buttonStyle(.borderless)
                     .help(selectedNote.isFavorite ? "取消收藏" : "收藏")
-                    
+
                     // 删除按钮（针对选中的笔记）
-                    Button(action: { 
-                        let noteToDelete = selectedNote
-                        self.selectedNote = nil
-                        notesManager.deleteNote(noteToDelete)
+                    Button(action: {
+                        viewModel.deleteNote(selectedNote)
                     }) {
                         Image(systemName: "trash")
                             .foregroundColor(.red)
@@ -106,29 +96,26 @@ struct NotesView: View {
                     .buttonStyle(.borderless)
                     .help("删除笔记")
                 }
-                
+
                 // 多选模式按钮
                 Button(action: {
-                    isMultiSelectMode.toggle()
-                    if !isMultiSelectMode {
-                        notesManager.deselectAll()
-                    }
+                    viewModel.toggleMultiSelectMode()
                 }) {
-                    Image(systemName: isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
-                        .foregroundColor(isMultiSelectMode ? .accentColor : .secondary)
+                    Image(systemName: viewModel.isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
+                        .foregroundColor(viewModel.isMultiSelectMode ? .accentColor : .secondary)
                 }
                 .buttonStyle(.plain)
-                .help(isMultiSelectMode ? "Exit selection mode" : "Enter selection mode")
+                .help(viewModel.isMultiSelectMode ? "Exit selection mode" : "Enter selection mode")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(.regularMaterial)
-            
+
             Divider()
-            
+
             // 主要内容区域
             Group {
-                switch viewLayout {
+                switch viewModel.viewLayout {
                 case .sidebar:
                     sidebarLayout
                 case .focus:
@@ -136,76 +123,73 @@ struct NotesView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingNewNoteDialog) {
+        .sheet(isPresented: $viewModel.showingNewNoteDialog) {
             NewNoteDialog(
-                noteTitle: $newNoteTitle,
-                noteTags: $newNoteTags,
-                availableTags: notesManager.allTags,
+                noteTitle: $viewModel.newNoteTitle,
+                noteTags: $viewModel.newNoteTags,
+                availableTags: viewModel.allTags,
                 onCreate: { title, tags in
-                    let note = notesManager.createNote(title: title.isEmpty ? "note.untitled".localized : title, tags: tags)
-                    selectedNote = note
-                    newNoteTitle = ""
-                    newNoteTags.removeAll()
-                    showingNewNoteDialog = false
+                    viewModel.createNewNote()
                 },
                 onCancel: {
-                    newNoteTitle = ""
-                    newNoteTags.removeAll()
-                    showingNewNoteDialog = false
+                    viewModel.hideNewNoteDialog()
                 }
             )
         }
+        .onAppear {
+            viewModel.onAppear()
+        }
     }
-    
+
     @ViewBuilder
     private var sidebarLayout: some View {
         HStack(spacing: 0) {
             // 左侧：笔记列表
             VStack(spacing: 0) {
                 // 新建笔记按钮
-                NewNoteButton(action: { showingNewNoteDialog = true })
-                
+                NewNoteButton(action: { viewModel.showNewNoteDialog() })
+
                 Divider()
-                
+
                 // 统计信息
                 HStack {
-                    Text("\(notesManager.filteredNotes.count) \("notes.count".localized)")
+                    Text("\(viewModel.filteredNotes.count) \("notes.count".localized)")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
-                    if !notesManager.searchText.isEmpty {
+
+                    if !viewModel.searchText.isEmpty {
                         Text("notes.filtered".localized)
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
-                    
+
                     Spacer()
-                    
-                    if isMultiSelectMode && !notesManager.selectedNotes.isEmpty {
-                        Text("\(notesManager.selectedNotes.count) \("notes.selected".localized)")
+
+                    if viewModel.isMultiSelectMode && !viewModel.selectedNotes.isEmpty {
+                        Text("\(viewModel.selectedNotes.count) \("notes.selected".localized)")
                             .font(.caption)
                             .foregroundColor(.accentColor)
                     }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 4)
-                
+
                 Divider()
-                
+
                 // 笔记列表
-                if notesManager.filteredNotes.isEmpty {
+                if viewModel.filteredNotes.isEmpty {
                     VStack(spacing: 16) {
-                        Image(systemName: notesManager.searchText.isEmpty ? "note.text" : "magnifyingglass")
+                        Image(systemName: viewModel.searchText.isEmpty ? "note.text" : "magnifyingglass")
                             .font(.system(size: 48))
                             .foregroundColor(.secondary)
-                        
-                        Text(notesManager.searchText.isEmpty ? "notes.no_notes_yet".localized : "notes.no_matching_notes".localized)
+
+                        Text(viewModel.searchText.isEmpty ? "notes.no_notes_yet".localized : "notes.no_matching_notes".localized)
                             .font(.title2)
                             .foregroundColor(.secondary)
-                        
-                        if notesManager.searchText.isEmpty {
+
+                        if viewModel.searchText.isEmpty {
                             Button("ui.create_first_note".localized) {
-                                showingNewNoteDialog = true
+                                viewModel.showNewNoteDialog()
                             }
                             .buttonStyle(.borderedProminent)
                         } else {
@@ -218,57 +202,51 @@ struct NotesView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 2) {
-                            ForEach(notesManager.filteredNotes) { note in
+                            ForEach(viewModel.filteredNotes) { note in
                                 NoteListItemView(
                                     note: note,
-                                    isSelected: selectedNote?.id == note.id,
-                                    isMultiSelected: notesManager.selectedNotes.contains(note.id),
-                                    showSelectionMode: isMultiSelectMode
+                                    isSelected: viewModel.selectedNote?.id == note.id,
+                                    isMultiSelected: viewModel.selectedNotes.contains(note.id),
+                                    showSelectionMode: viewModel.isMultiSelectMode
                                 ) {
                                     // 主操作
-                                    if isMultiSelectMode {
-                                        notesManager.toggleSelection(note)
+                                    if viewModel.isMultiSelectMode {
+                                        viewModel.toggleSelection(note)
                                     } else {
-                                        if selectedNote?.id != note.id {
+                                        if viewModel.selectedNote?.id != note.id {
                                             withAnimation(.easeInOut(duration: 0.15)) {
-                                                selectedNote = note
+                                                viewModel.selectNote(note)
                                             }
                                         }
                                     }
                                 } onDelete: {
-                                    if selectedNote?.id == note.id {
-                                        selectedNote = nil
-                                    }
-                                    notesManager.deleteNote(note)
+                                    viewModel.deleteNote(note)
                                 } onToggleFavorite: {
-                                    notesManager.toggleFavorite(note)
+                                    viewModel.toggleFavorite(note)
                                 } onToggleSelection: {
-                                    notesManager.toggleSelection(note)
+                                    viewModel.toggleSelection(note)
                                 }
                             }
                         }
                         .padding(.vertical, 2)
                     }
                 }
-                
+
                 // 底部操作栏
-                if isMultiSelectMode && !notesManager.selectedNotes.isEmpty {
+                if viewModel.isMultiSelectMode && !viewModel.selectedNotes.isEmpty {
                     Divider()
                     HStack {
-                        Button("notes.delete_selected".localized + " (\(notesManager.selectedNotes.count))") {
-                            let selectedNotes = notesManager.filteredNotes.filter { notesManager.selectedNotes.contains($0.id) }
-                            notesManager.deleteNotes(selectedNotes)
-                            if let selected = selectedNote, notesManager.selectedNotes.contains(selected.id) {
-                                self.selectedNote = nil
-                            }
+                        Button("notes.delete_selected".localized + " (\(viewModel.selectedNotes.count))") {
+                            let selectedNotes = viewModel.filteredNotes.filter { viewModel.selectedNotes.contains($0.id) }
+                            viewModel.deleteNotes(selectedNotes)
                         }
                         .buttonStyle(.borderless)
                         .foregroundColor(.red)
-                        
+
                         Spacer()
-                        
+
                         Button("notes.select_all".localized) {
-                            notesManager.selectAll()
+                            viewModel.selectAll()
                         }
                         .buttonStyle(.borderless)
                     }
@@ -276,9 +254,9 @@ struct NotesView: View {
                     .padding(.vertical, 8)
                 }
             }
-            .frame(width: sidebarWidth)
+            .frame(width: viewModel.sidebarWidth)
             .background(.regularMaterial)
-            
+
             // 分隔线和拖拽区域
             Rectangle()
                 .fill(Color.secondary.opacity(0.3))
@@ -292,19 +270,19 @@ struct NotesView: View {
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
-                                    let newWidth = sidebarWidth + value.translation.width
-                                    sidebarWidth = max(200, min(500, newWidth))
+                                    let newWidth = viewModel.sidebarWidth + value.translation.width
+                                    viewModel.sidebarWidth = max(200, min(500, newWidth))
                                 }
                         )
                 )
-            
+
             // 右侧：笔记编辑器
             Group {
-                if let selectedNote = selectedNote {
+                if let selectedNote = viewModel.selectedNote {
                     NoteEditorView(
                         note: selectedNote,
                         onUpdate: { updatedNote in
-                            notesManager.updateNote(updatedNote)
+                            viewModel.updateNote(updatedNote)
                         }
                     )
                 } else {
@@ -312,12 +290,12 @@ struct NotesView: View {
                         Image(systemName: "note.text")
                             .font(.system(size: 56))
                             .foregroundColor(.secondary)
-                        
+
                         Text("ui.select_note_to_edit".localized)
                             .font(.title)
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
-                        
+
                         Text("ui.choose_note_from_sidebar".localized)
                             .font(.body)
                             .foregroundColor(.gray)
@@ -328,15 +306,15 @@ struct NotesView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var focusLayout: some View {
         // 全屏编辑模式
-        if let selectedNote = selectedNote {
+        if let selectedNote = viewModel.selectedNote {
             NoteEditorView(
                 note: selectedNote,
                 onUpdate: { updatedNote in
-                    notesManager.updateNote(updatedNote)
+                    viewModel.updateNote(updatedNote)
                 }
             )
         } else {
@@ -344,19 +322,19 @@ struct NotesView: View {
                 Image(systemName: "doc.text")
                     .font(.system(size: 64))
                     .foregroundColor(.secondary)
-                
+
                 Text("ui.focus_mode".localized)
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
-                
+
                 Text("ui.select_note_from_toolbar".localized)
                     .font(.title3)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                
+
                 Button("ui.browse_notes".localized) {
-                    viewLayout = .sidebar
+                    viewModel.switchLayout(to: .sidebar)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -364,7 +342,7 @@ struct NotesView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
-    
+
 }
 
 struct NoteListItemView: View {
@@ -376,10 +354,10 @@ struct NoteListItemView: View {
     let onDelete: () -> Void
     let onToggleFavorite: () -> Void
     let onToggleSelection: () -> Void
-    
+
     @State private var isHovered = false
     @State private var showDeleteConfirmation = false
-    
+
     var body: some View {
         HStack(spacing: 8) {
             // 左侧选择框（多选模式）
@@ -391,14 +369,14 @@ struct NoteListItemView: View {
                 }
                 .buttonStyle(.plain)
             }
-            
+
             // 收藏标识（非多选模式）
             if !showSelectionMode && note.isFavorite {
                 Image(systemName: "star.fill")
                     .font(.caption)
                     .foregroundColor(isSelected ? .white : .yellow)
             }
-            
+
             // 笔记内容
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -407,9 +385,9 @@ struct NoteListItemView: View {
                         .fontWeight(.semibold)
                         .foregroundColor(isSelected ? .white : .primary)
                         .lineLimit(1)
-                    
+
                     Spacer()
-                    
+
                     // 标签
                     if !note.tags.isEmpty {
                         HStack(spacing: 4) {
@@ -427,7 +405,7 @@ struct NoteListItemView: View {
                         }
                     }
                 }
-                
+
                 // 预览文本
                 if !note.preview.isEmpty {
                     Text(note.preview)
@@ -436,31 +414,31 @@ struct NoteListItemView: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
-                
+
                 // 元信息
                 HStack {
                     Text(note.modifiedAt.formatted(.relative(presentation: .named)))
                         .font(.caption)
                         .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-                    
+
                     Text("•")
                         .font(.caption)
                         .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-                    
+
                     Text("\(note.wordCount) \("note.words".localized)")
                         .font(.caption)
                         .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-                    
+
                     if note.readingTime > 1 {
                         Text("•")
                             .font(.caption)
                             .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-                        
+
                         Text("\(note.readingTime) \("note.min_read".localized)")
                             .font(.caption)
                             .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
                     }
-                    
+
                     Spacer()
                 }
             }
@@ -487,7 +465,7 @@ struct NoteListItemView: View {
         .animation(.easeInOut(duration: 0.2), value: isSelected)
         .animation(.easeInOut(duration: 0.2), value: isMultiSelected)
     }
-    
+
     private var backgroundMaterial: Color {
         if isSelected {
             return .accentColor
@@ -499,7 +477,7 @@ struct NoteListItemView: View {
             return .clear
         }
     }
-    
+
     private var borderColor: Color {
         if isSelected {
             return .accentColor
@@ -511,7 +489,7 @@ struct NoteListItemView: View {
             return .clear
         }
     }
-    
+
     private var borderWidth: CGFloat {
         if isSelected || isMultiSelected || note.isFavorite {
             return 1
@@ -527,40 +505,40 @@ struct NewNoteDialog: View {
     let availableTags: [String]
     let onCreate: (String, Set<String>) -> Void
     let onCancel: () -> Void
-    
+
     @State private var newTagName = ""
-    
+
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
                 Text("dialog.new_note.title".localized)
                     .font(.title2)
                     .fontWeight(.semibold)
-                
+
                 Text("dialog.new_note.description".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             .padding(.top)
-            
+
             VStack(alignment: .leading, spacing: 16) {
                 // 标题输入
                 VStack(alignment: .leading, spacing: 6) {
                     Text("dialog.new_note.title_label".localized)
                         .font(.headline)
-                    
+
                     TextField("dialog.new_note.title_placeholder".localized, text: $noteTitle)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit {
                             onCreate(noteTitle, noteTags)
                         }
                 }
-                
+
                 // 标签选择
                 VStack(alignment: .leading, spacing: 8) {
                     Text("dialog.new_note.tags_label".localized)
                         .font(.headline)
-                    
+
                     // 已选标签
                     if !noteTags.isEmpty {
                         FlowLayout(spacing: 6) {
@@ -572,13 +550,13 @@ struct NewNoteDialog: View {
                         }
                         .padding(.bottom, 4)
                     }
-                    
+
                     // 可用标签
                     if !availableTags.isEmpty {
                         Text("dialog.new_note.available_tags".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         FlowLayout(spacing: 4) {
                             ForEach(availableTags, id: \.self) { tag in
                                 if !noteTags.contains(tag) {
@@ -589,7 +567,7 @@ struct NewNoteDialog: View {
                             }
                         }
                     }
-                    
+
                     // 新标签输入
                     HStack {
                         TextField("dialog.new_note.add_new_tag_placeholder".localized, text: $newTagName)
@@ -600,7 +578,7 @@ struct NewNoteDialog: View {
                                     newTagName = ""
                                 }
                             }
-                        
+
                         Button("dialog.new_note.add".localized) {
                             if !newTagName.isEmpty {
                                 noteTags.insert(newTagName.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -611,14 +589,14 @@ struct NewNoteDialog: View {
                     }
                 }
             }
-            
+
             HStack(spacing: 16) {
                 Button("dialog.new_note.cancel".localized) {
                     onCancel()
                 }
                 .keyboardShortcut(.escape)
                 .controlSize(.large)
-                
+
                 Button("dialog.new_note.create".localized) {
                     onCreate(noteTitle, noteTags)
                 }
@@ -638,14 +616,14 @@ struct TagView: View {
     let tag: String
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 4) {
                 Text(tag)
                     .font(.caption)
                     .fontWeight(.medium)
-                
+
                 if isSelected {
                     Image(systemName: "xmark")
                         .font(.caption2)
@@ -665,7 +643,7 @@ struct TagView: View {
 
 struct FlowLayout: Layout {
     let spacing: CGFloat
-    
+
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let result = FlowResult(
             in: proposal.replacingUnspecifiedDimensions().width,
@@ -674,7 +652,7 @@ struct FlowLayout: Layout {
         )
         return result.size
     }
-    
+
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let result = FlowResult(
             in: bounds.width,
@@ -697,28 +675,28 @@ struct FlowResult {
     var positions: [CGPoint] = []
     var sizes: [CGSize] = []
     var size: CGSize = .zero
-    
+
     init(in maxWidth: CGFloat, subviews: LayoutSubviews, spacing: CGFloat) {
         var x: CGFloat = 0
         var y: CGFloat = 0
         var lineHeight: CGFloat = 0
-        
+
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
-            
+
             if x + size.width > maxWidth && x > 0 {
                 x = 0
                 y += lineHeight + spacing
                 lineHeight = 0
             }
-            
+
             positions.append(CGPoint(x: x, y: y))
             sizes.append(size)
-            
+
             x += size.width + spacing
             lineHeight = max(lineHeight, size.height)
         }
-        
+
         self.size = CGSize(width: maxWidth, height: y + lineHeight)
     }
 }
@@ -726,7 +704,7 @@ struct FlowResult {
 struct NewNoteButton: View {
     let action: () -> Void
     @State private var isHovered = false
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
@@ -739,25 +717,25 @@ struct NewNoteButton: View {
                         ))
                         .frame(width: 32, height: 32)
                         .shadow(color: Color.accentColor.opacity(0.3), radius: isHovered ? 4 : 2, y: 2)
-                    
+
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .rotationEffect(.degrees(isHovered ? 90 : 0))
                 }
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("notes.new_note".localized)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
-                    
+
                     Text("notes.create_new_markdown".localized)
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary.opacity(0.5))

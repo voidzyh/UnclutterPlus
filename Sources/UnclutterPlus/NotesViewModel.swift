@@ -36,6 +36,35 @@ final class NotesViewModel: ObservableObject {
     private let notesManager: NotesManager
     private var cancellables: Set<AnyCancellable> = []
 
+    // MARK: - Public Computed Properties (暴露 NotesManager 必要属性)
+
+    var searchText: String {
+        get { notesManager.searchText }
+        set { notesManager.searchText = newValue }
+    }
+
+    var filteredNotes: [Note] {
+        notesManager.filteredNotes
+    }
+
+    var selectedNotes: Set<UUID> {
+        notesManager.selectedNotes
+    }
+
+    var sortOption: NotesSortOption {
+        get { notesManager.sortOption }
+        set { notesManager.sortOption = newValue }
+    }
+
+    var isAscending: Bool {
+        get { notesManager.isAscending }
+        set { notesManager.isAscending = newValue }
+    }
+
+    var allTags: [String] {
+        notesManager.allTags
+    }
+
     // MARK: - Initialization
 
     init(notesManager: NotesManager = .shared) {
@@ -84,14 +113,38 @@ final class NotesViewModel: ObservableObject {
     }
 
     /// 删除多个笔记
-    func deleteNotes(_ noteIds: Set<UUID>) {
-        let notes = notesManager.filteredNotes.filter { noteIds.contains($0.id) }
+    func deleteNotes(_ notes: [Note]) {
         notes.forEach { notesManager.deleteNote($0) }
 
         // 如果删除的包含当前选中的笔记,清空选择
-        if let current = selectedNote, noteIds.contains(current.id) {
+        if let current = selectedNote, notes.contains(where: { $0.id == current.id }) {
             selectedNote = notesManager.filteredNotes.first
         }
+    }
+
+    /// 切换收藏状态
+    func toggleFavorite(_ note: Note) {
+        notesManager.toggleFavorite(note)
+    }
+
+    /// 切换笔记选择状态
+    func toggleSelection(_ note: Note) {
+        notesManager.toggleSelection(note)
+    }
+
+    /// 全选
+    func selectAll() {
+        notesManager.selectAll()
+    }
+
+    /// 取消全选
+    func deselectAll() {
+        notesManager.deselectAll()
+    }
+
+    /// 更新笔记
+    func updateNote(_ note: Note) {
+        notesManager.updateNote(note)
     }
 
     /// 更新笔记内容
