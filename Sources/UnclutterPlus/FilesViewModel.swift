@@ -170,8 +170,8 @@ final class FilesViewModel: ObservableObject {
 
     /// 切换多选模式
     func toggleMultiSelectMode() {
-        fileManager.isMultiSelectMode.toggle()
-        if !fileManager.isMultiSelectMode {
+        isMultiSelectMode.toggle()
+        if !isMultiSelectMode {
             fileManager.selectedFiles.removeAll()
         }
     }
@@ -179,6 +179,11 @@ final class FilesViewModel: ObservableObject {
     /// 切换文件选择状态
     func toggleSelection(_ file: TempFile) {
         fileManager.toggleSelection(file)
+    }
+
+    /// 切换收藏状态
+    func toggleFavorite(_ file: TempFile) {
+        fileManager.toggleFavorite(file)
     }
 
     /// 删除选中的文件
@@ -196,7 +201,7 @@ final class FilesViewModel: ObservableObject {
 
     /// 清空所有文件
     func clearAllFiles() {
-        fileManager.clearAll()
+        fileManager.clearAllFiles()
     }
 
     // MARK: - Private Methods

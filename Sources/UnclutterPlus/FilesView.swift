@@ -217,149 +217,139 @@ struct FilesView: View {
     }
     
     private var gridView: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 4), spacing: 16) {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 4)
+        return LazyVGrid(columns: columns, spacing: 16) {
             ForEach(viewModel.filteredFiles) { file in
-                FileItemGridView(
-                    file: file,
-                    isSelected: viewModel.selectedFiles.contains(file.id),
-                    isHovered: hoveredFile == file.id,
-                    showSelectionMode: viewModel.isMultiSelectMode,
-                    isEditing: editingFileName == file.id,
-                    editingName: $newFileName
-                ) {
-                    // 打开文件
-                    if viewModel.isMultiSelectMode {
-                        viewModel.toggleSelection(file)
-                    } else {
-                        viewModel.openFile(file)
-                    }
-                } onSecondaryAction: {
-                    // 显示在Finder中
-                    viewModel.showInFinder(file)
-                } onDelete: {
-                    viewModel.deleteFile(file)
-                } onToggleFavorite: {
-                    viewModel.toggleFavorite(file)
-                } onToggleSelection: {
-                    viewModel.toggleSelection(file)
-                } onRename: { newName in
-                    viewModel.renameFile(file, to: newName)
-                    editingFileName = nil
-                } onStartRename: {
-                    editingFileName = file.id
-                    newFileName = file.name
-                }
-                .onHover { isHovering in
-                    hoveredFile = isHovering ? file.id : nil
-                }
+                fileGridItem(file)
             }
         }
         .padding()
+    }
+
+    private func fileGridItem(_ file: TempFile) -> some View {
+        FileItemGridView(
+            file: file,
+            isSelected: viewModel.selectedFiles.contains(file.id),
+            isHovered: hoveredFile == file.id,
+            showSelectionMode: viewModel.isMultiSelectMode,
+            isEditing: editingFileName == file.id,
+            editingName: $newFileName
+        ) {
+            handleFileTap(file)
+        } onSecondaryAction: {
+            viewModel.showInFinder(file)
+        } onDelete: {
+            viewModel.deleteFile(file)
+        } onToggleFavorite: {
+            viewModel.toggleFavorite(file)
+        } onToggleSelection: {
+            viewModel.toggleSelection(file)
+        } onRename: { newName in
+            viewModel.renameFile(file, to: newName)
+            editingFileName = nil
+        } onStartRename: {
+            editingFileName = file.id
+            newFileName = file.name
+        }
+        .onHover { isHovering in
+            hoveredFile = isHovering ? file.id : nil
+        }
+    }
+
+    private func handleFileTap(_ file: TempFile) {
+        if viewModel.isMultiSelectMode {
+            viewModel.toggleSelection(file)
+        } else {
+            viewModel.openFile(file)
+        }
     }
     
     private var listView: some View {
         LazyVStack(spacing: 2) {
             ForEach(viewModel.filteredFiles) { file in
-                FileItemListView(
-                    file: file,
-                    isSelected: viewModel.selectedFiles.contains(file.id),
-                    isHovered: hoveredFile == file.id,
-                    showSelectionMode: viewModel.isMultiSelectMode,
-                    isEditing: editingFileName == file.id,
-                    editingName: $newFileName
-                ) {
-                    // 打开文件
-                    if viewModel.isMultiSelectMode {
-                        viewModel.toggleSelection(file)
-                    } else {
-                        viewModel.openFile(file)
-                    }
-                } onSecondaryAction: {
-                    viewModel.showInFinder(file)
-                } onDelete: {
-                    viewModel.deleteFile(file)
-                } onToggleFavorite: {
-                    viewModel.toggleFavorite(file)
-                } onToggleSelection: {
-                    viewModel.toggleSelection(file)
-                } onRename: { newName in
-                    viewModel.renameFile(file, to: newName)
-                    editingFileName = nil
-                } onStartRename: {
-                    editingFileName = file.id
-                    newFileName = file.name
-                }
-                .onHover { isHovering in
-                    hoveredFile = isHovering ? file.id : nil
-                }
+                fileListItem(file)
             }
         }
         .padding()
     }
+
+    private func fileListItem(_ file: TempFile) -> some View {
+        FileItemListView(
+            file: file,
+            isSelected: viewModel.selectedFiles.contains(file.id),
+            isHovered: hoveredFile == file.id,
+            showSelectionMode: viewModel.isMultiSelectMode,
+            isEditing: editingFileName == file.id,
+            editingName: $newFileName
+        ) {
+            handleFileTap(file)
+        } onSecondaryAction: {
+            viewModel.showInFinder(file)
+        } onDelete: {
+            viewModel.deleteFile(file)
+        } onToggleFavorite: {
+            viewModel.toggleFavorite(file)
+        } onToggleSelection: {
+            viewModel.toggleSelection(file)
+        } onRename: { newName in
+            viewModel.renameFile(file, to: newName)
+            editingFileName = nil
+        } onStartRename: {
+            editingFileName = file.id
+            newFileName = file.name
+        }
+        .onHover { isHovering in
+            hoveredFile = isHovering ? file.id : nil
+        }
+    }
     
     private var groupedView: some View {
-        LazyVStack(alignment: .leading, spacing: 20) {
-            ForEach(Array(viewModel.filesByType.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { type in
-                if let files = viewModel.filesByType[type], !files.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: type.systemImage)
-                                .foregroundColor(type.color)
-                                .font(.title2)
-                            
-                            Text(type.rawValue)
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                            
-                            Text("(\(files.count))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
-                            ForEach(files) { file in
-                                FileItemGridView(
-                                    file: file,
-                                    isSelected: viewModel.selectedFiles.contains(file.id),
-                                    isHovered: hoveredFile == file.id,
-                                    showSelectionMode: viewModel.isMultiSelectMode,
-                                    isEditing: editingFileName == file.id,
-                                    editingName: $newFileName
-                                ) {
-                                    if viewModel.isMultiSelectMode {
-                                        viewModel.toggleSelection(file)
-                                    } else {
-                                        viewModel.openFile(file)
-                                    }
-                                } onSecondaryAction: {
-                                    viewModel.showInFinder(file)
-                                } onDelete: {
-                                    viewModel.deleteFile(file)
-                                } onToggleFavorite: {
-                                    viewModel.toggleFavorite(file)
-                                } onToggleSelection: {
-                                    viewModel.toggleSelection(file)
-                                } onRename: { newName in
-                                    viewModel.renameFile(file, to: newName)
-                                    editingFileName = nil
-                                } onStartRename: {
-                                    editingFileName = file.id
-                                    newFileName = file.name
-                                }
-                                .onHover { isHovering in
-                                    hoveredFile = isHovering ? file.id : nil
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
+        let sortedTypes = Array(viewModel.filesByType.keys.sorted(by: { $0.rawValue < $1.rawValue }))
+        return LazyVStack(alignment: .leading, spacing: 20) {
+            ForEach(sortedTypes, id: \.self) { type in
+                fileTypeGroup(type)
             }
         }
         .padding()
+    }
+
+    @ViewBuilder
+    private func fileTypeGroup(_ type: FileType) -> some View {
+        if let files = viewModel.filesByType[type], !files.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                fileTypeHeader(type, count: files.count)
+                fileTypeGrid(files)
+            }
+        }
+    }
+
+    private func fileTypeHeader(_ type: FileType, count: Int) -> some View {
+        HStack {
+            Image(systemName: type.systemImage)
+                .foregroundColor(type.color)
+                .font(.title2)
+
+            Text(type.rawValue)
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            Text("(\(count))")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Spacer()
+        }
+        .padding(.horizontal)
+    }
+
+    private func fileTypeGrid(_ files: [TempFile]) -> some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 5)
+        return LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(files) { file in
+                fileGridItem(file)
+            }
+        }
+        .padding(.horizontal)
     }
     
     private func handleKeyDown(_ event: NSEvent) -> Bool {
