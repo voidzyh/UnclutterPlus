@@ -302,7 +302,7 @@ struct FilesView: View {
             hoveredFile = isHovering ? file.id : nil
         }
     }
-    
+
     private var groupedView: some View {
         let sortedTypes = Array(viewModel.filesByType.keys.sorted(by: { $0.rawValue < $1.rawValue }))
         return LazyVStack(alignment: .leading, spacing: 20) {
