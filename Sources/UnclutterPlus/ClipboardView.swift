@@ -7,197 +7,121 @@ struct ClipboardView: View {
     var body: some View {
         VStack(spacing: 0) {
             // 顶部工具栏
-            HStack {
+            HStack(spacing: DesignSystem.Spacing.md) {
                 // 搜索栏
-                HStack {
+                HStack(spacing: DesignSystem.Spacing.sm) {
                     Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(DesignSystem.Colors.secondaryText)
+                        .font(DesignSystem.Typography.caption)
 
                     TextField("clipboard.search.placeholder".localized, text: $viewModel.searchText)
                         .textFieldStyle(.plain)
+                        .font(DesignSystem.Typography.body)
 
                     if !viewModel.searchText.isEmpty {
                         Button(action: { viewModel.clearSearch() }) {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(DesignSystem.Colors.secondaryText)
+                                .font(DesignSystem.Typography.caption)
                         }
                         .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, DesignSystem.Spacing.md)
+                .padding(.vertical, DesignSystem.Spacing.sm)
+                .background(DesignSystem.Colors.overlay, in: RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium))
 
-                // 过滤和排序控件(仅图标按钮,点击后弹出选项)
-                HStack(spacing: 12) {
-                    // 类型
-                    Button(action: {
-                        if viewModel.showTypeFilter { viewModel.showTypeFilter = false } else {
-                            viewModel.showTypeFilter = true
-                            viewModel.showDateFilter = false
-                            viewModel.showSourceFilter = false
-                            viewModel.showSortFilter = false
-                        }
-                    }) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "doc.text")
-                                .font(.system(size: 13, weight: .semibold))
-                                .frame(width: 28, height: 28)
-                                .foregroundColor((viewModel.selectedContentType != "all") ? .blue : (viewModel.hoveredToolbar == "type" ? .primary : .primary))
-                                .background(
-                                    (viewModel.selectedContentType != "all"
-                                        ? Color.blue.opacity(0.15)
-                                        : (viewModel.hoveredToolbar == "type" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
-                                    in: RoundedRectangle(cornerRadius: 6)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .strokeBorder(
-                                            (viewModel.selectedContentType != "all") ? Color.blue.opacity(0.4) : (viewModel.hoveredToolbar == "type" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
-                                            lineWidth: 1
-                                        )
-                                )
-                                .scaleEffect(viewModel.hoveredToolbar == "type" ? 1.03 : 1.0)
-                            if viewModel.selectedContentType != "all" {
-                                Circle()
-                                    .fill(Color.blue)
-                                    .frame(width: 6, height: 6)
-                                    .offset(x: 2, y: -2)
+                // 过滤和排序控件
+                HStack(spacing: DesignSystem.Spacing.md) {
+                    // 类型过滤
+                    FilterToolbarButton(
+                        icon: "doc.text",
+                        isActive: viewModel.selectedContentType != "all",
+                        isHovered: viewModel.hoveredToolbar == "type",
+                        accentColor: .blue,
+                        onToggle: {
+                            if viewModel.showTypeFilter {
+                                viewModel.showTypeFilter = false
+                            } else {
+                                viewModel.showTypeFilter = true
+                                viewModel.showDateFilter = false
+                                viewModel.showSourceFilter = false
+                                viewModel.showSortFilter = false
                             }
+                        },
+                        onHover: { isHover in
+                            viewModel.hoveredToolbar = isHover ? "type" : (viewModel.hoveredToolbar == "type" ? nil : viewModel.hoveredToolbar)
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isHover in
-                        viewModel.hoveredToolbar = isHover ? "type" : (viewModel.hoveredToolbar == "type" ? nil : viewModel.hoveredToolbar)
-                    }
+                    )
 
-                    // 日期
-                    Button(action: {
-                        if viewModel.showDateFilter { viewModel.showDateFilter = false } else {
-                            viewModel.showTypeFilter = false
-                            viewModel.showDateFilter = true
-                            viewModel.showSourceFilter = false
-                            viewModel.showSortFilter = false
-                        }
-                    }) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 13, weight: .semibold))
-                                .frame(width: 28, height: 28)
-                                .foregroundColor((viewModel.selectedDateRange != "all") ? .red : (viewModel.hoveredToolbar == "date" ? .primary : .primary))
-                                .background(
-                                    (viewModel.selectedDateRange != "all"
-                                        ? Color.red.opacity(0.15)
-                                        : (viewModel.hoveredToolbar == "date" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
-                                    in: RoundedRectangle(cornerRadius: 6)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .strokeBorder(
-                                            (viewModel.selectedDateRange != "all") ? Color.red.opacity(0.4) : (viewModel.hoveredToolbar == "date" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
-                                            lineWidth: 1
-                                        )
-                                )
-                                .scaleEffect(viewModel.hoveredToolbar == "date" ? 1.03 : 1.0)
-                            if viewModel.selectedDateRange != "all" {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 6, height: 6)
-                                    .offset(x: 2, y: -2)
+                    // 日期过滤
+                    FilterToolbarButton(
+                        icon: "calendar",
+                        isActive: viewModel.selectedDateRange != "all",
+                        isHovered: viewModel.hoveredToolbar == "date",
+                        accentColor: .red,
+                        onToggle: {
+                            if viewModel.showDateFilter {
+                                viewModel.showDateFilter = false
+                            } else {
+                                viewModel.showTypeFilter = false
+                                viewModel.showDateFilter = true
+                                viewModel.showSourceFilter = false
+                                viewModel.showSortFilter = false
                             }
+                        },
+                        onHover: { isHover in
+                            viewModel.hoveredToolbar = isHover ? "date" : (viewModel.hoveredToolbar == "date" ? nil : viewModel.hoveredToolbar)
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isHover in
-                        viewModel.hoveredToolbar = isHover ? "date" : (viewModel.hoveredToolbar == "date" ? nil : viewModel.hoveredToolbar)
-                    }
+                    )
 
-                    // 来源
-                    Button(action: {
-                        if viewModel.showSourceFilter { viewModel.showSourceFilter = false } else {
-                            viewModel.showTypeFilter = false
-                            viewModel.showDateFilter = false
-                            viewModel.showSourceFilter = true
-                            viewModel.showSortFilter = false
-                        }
-                    }) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "app.badge")
-                                .font(.system(size: 13, weight: .semibold))
-                                .frame(width: 28, height: 28)
-                                .foregroundColor((viewModel.selectedSourceApp != "all") ? .purple : (viewModel.hoveredToolbar == "source" ? .primary : .primary))
-                                .background(
-                                    (viewModel.selectedSourceApp != "all"
-                                        ? Color.purple.opacity(0.15)
-                                        : (viewModel.hoveredToolbar == "source" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
-                                    in: RoundedRectangle(cornerRadius: 6)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .strokeBorder(
-                                            (viewModel.selectedSourceApp != "all") ? Color.purple.opacity(0.4) : (viewModel.hoveredToolbar == "source" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
-                                            lineWidth: 1
-                                        )
-                                )
-                                .scaleEffect(viewModel.hoveredToolbar == "source" ? 1.03 : 1.0)
-                            if viewModel.selectedSourceApp != "all" {
-                                Circle()
-                                    .fill(Color.purple)
-                                    .frame(width: 6, height: 6)
-                                    .offset(x: 2, y: -2)
+                    // 来源过滤
+                    FilterToolbarButton(
+                        icon: "app.badge",
+                        isActive: viewModel.selectedSourceApp != "all",
+                        isHovered: viewModel.hoveredToolbar == "source",
+                        accentColor: .purple,
+                        onToggle: {
+                            if viewModel.showSourceFilter {
+                                viewModel.showSourceFilter = false
+                            } else {
+                                viewModel.showTypeFilter = false
+                                viewModel.showDateFilter = false
+                                viewModel.showSourceFilter = true
+                                viewModel.showSortFilter = false
                             }
+                        },
+                        onHover: { isHover in
+                            viewModel.hoveredToolbar = isHover ? "source" : (viewModel.hoveredToolbar == "source" ? nil : viewModel.hoveredToolbar)
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isHover in
-                        viewModel.hoveredToolbar = isHover ? "source" : (viewModel.hoveredToolbar == "source" ? nil : viewModel.hoveredToolbar)
-                    }
+                    )
 
                     // 排序
-                    Button(action: {
-                        if viewModel.showSortFilter { viewModel.showSortFilter = false } else {
-                            viewModel.showTypeFilter = false
-                            viewModel.showDateFilter = false
-                            viewModel.showSourceFilter = false
-                            viewModel.showSortFilter = true
-                        }
-                    }) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.system(size: 13, weight: .semibold))
-                                .frame(width: 28, height: 28)
-                                .foregroundColor((viewModel.sortBy != "time") ? .indigo : (viewModel.hoveredToolbar == "sort" ? .primary : .primary))
-                                .background(
-                                    (viewModel.sortBy != "time"
-                                        ? Color.indigo.opacity(0.15)
-                                        : (viewModel.hoveredToolbar == "sort" ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.08))),
-                                    in: RoundedRectangle(cornerRadius: 6)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .strokeBorder(
-                                            (viewModel.sortBy != "time") ? Color.indigo.opacity(0.4) : (viewModel.hoveredToolbar == "sort" ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.2)),
-                                            lineWidth: 1
-                                        )
-                                )
-                                .scaleEffect(viewModel.hoveredToolbar == "sort" ? 1.03 : 1.0)
-                            if viewModel.sortBy != "time" {
-                                Circle()
-                                    .fill(Color.indigo)
-                                    .frame(width: 6, height: 6)
-                                    .offset(x: 2, y: -2)
+                    FilterToolbarButton(
+                        icon: "arrow.up.arrow.down",
+                        isActive: viewModel.sortBy != "time",
+                        isHovered: viewModel.hoveredToolbar == "sort",
+                        accentColor: .indigo,
+                        onToggle: {
+                            if viewModel.showSortFilter {
+                                viewModel.showSortFilter = false
+                            } else {
+                                viewModel.showTypeFilter = false
+                                viewModel.showDateFilter = false
+                                viewModel.showSourceFilter = false
+                                viewModel.showSortFilter = true
                             }
+                        },
+                        onHover: { isHover in
+                            viewModel.hoveredToolbar = isHover ? "sort" : (viewModel.hoveredToolbar == "sort" ? nil : viewModel.hoveredToolbar)
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isHover in
-                        viewModel.hoveredToolbar = isHover ? "sort" : (viewModel.hoveredToolbar == "sort" ? nil : viewModel.hoveredToolbar)
-                    }
+                    )
                 }
-                .padding(10)
-                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+                .padding(DesignSystem.Spacing.sm + 2)
+                .background(DesignSystem.Colors.overlay.opacity(0.5), in: RoundedRectangle(cornerRadius: DesignSystem.Spacing.sm + 2))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: DesignSystem.Spacing.sm + 2)
                         .strokeBorder(Color.secondary.opacity(0.1), lineWidth: 1)
                 )
 
@@ -806,6 +730,81 @@ struct SortButton: View {
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.15), value: isSelected)
+    }
+}
+
+// MARK: - 过滤按钮组件
+
+/// 过滤工具栏按钮
+struct FilterToolbarButton: View {
+    let icon: String
+    let isActive: Bool
+    let isHovered: Bool
+    let accentColor: Color
+    let onToggle: () -> Void
+    let onHover: (Bool) -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundColor(foregroundColor)
+                    .background(
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small + 2)
+                            .fill(backgroundColor)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small + 2)
+                            .strokeBorder(borderColor, lineWidth: 1)
+                    )
+                    .scaleEffect(scaleEffect)
+                    .animation(DesignSystem.Animation.spring, value: isHovered)
+                    .animation(DesignSystem.Animation.spring, value: isActive)
+
+                // 激活指示器
+                if isActive {
+                    Circle()
+                        .fill(accentColor)
+                        .frame(width: 6, height: 6)
+                        .offset(x: 2, y: -2)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .onHover(perform: onHover)
+    }
+
+    // MARK: - 计算属性：状态驱动的样式
+
+    private var foregroundColor: Color {
+        isActive ? accentColor : (isHovered ? DesignSystem.Colors.primaryText : DesignSystem.Colors.primaryText)
+    }
+
+    private var backgroundColor: Color {
+        if isActive {
+            return accentColor.opacity(0.15)
+        } else if isHovered {
+            return DesignSystem.Colors.overlay
+        } else {
+            return DesignSystem.Colors.overlay.opacity(0.5)
+        }
+    }
+
+    private var borderColor: Color {
+        if isActive {
+            return accentColor.opacity(0.4)
+        } else if isHovered {
+            return DesignSystem.Colors.secondaryText.opacity(0.3)
+        } else {
+            return DesignSystem.Colors.secondaryText.opacity(0.2)
+        }
+    }
+
+    private var scaleEffect: CGFloat {
+        isHovered ? 1.05 : 1.0
     }
 }
 

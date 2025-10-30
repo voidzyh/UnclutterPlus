@@ -27,19 +27,13 @@ struct MainContentView: View {
                 // 右侧的设置按钮
                 HStack {
                     Spacer()
-                    Button(action: {
+                    SettingsButton {
                         viewModel.showPreferences()
-                    }) {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .help("button.preferences".localized)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, DesignSystem.Spacing.md)
+            .padding(.vertical, DesignSystem.Spacing.sm)
             
             Divider()
             
@@ -88,11 +82,11 @@ struct MainContentView: View {
             .animation(.easeInOut(duration: 0.2), value: viewModel.selectedTab)
         }
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
                 .fill(.regularMaterial)
-                .shadow(radius: 20)
+                .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
         )
-        .padding(8)
+        .padding(DesignSystem.Spacing.sm)
         .id(viewModel.refreshToken) // 强制刷新视图
         .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
             viewModel.forceRefreshForLocalizationChange()
@@ -142,40 +136,168 @@ struct TabButton: View {
     let systemImage: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     @State private var isHovered = false
     @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .medium))
-                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .font(DesignSystem.Typography.body.weight(.medium))
+                    .scaleEffect(isPressed ? 0.92 : 1.0)
+                    .animation(DesignSystem.Animation.spring, value: isPressed)
+
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(DesignSystem.Typography.body.weight(.medium))
             }
-            .foregroundColor(isSelected ? .white : (isHovered ? .primary : .secondary))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .foregroundColor(textColor)
+            .padding(.horizontal, DesignSystem.Spacing.lg)
+            .padding(.vertical, DesignSystem.Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Color.accentColor : (isHovered ? Color.primary.opacity(0.1) : Color.clear))
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .fill(backgroundColor)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isHovered && !isSelected ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                            .stroke(borderColor, lineWidth: 1)
                     )
+                    .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowOffset)
             )
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .shadow(color: isHovered ? Color.black.opacity(0.1) : Color.clear, radius: 2, x: 0, y: 1)
-            .animation(.easeInOut(duration: 0.15), value: isHovered)
-            .animation(.easeInOut(duration: 0.1), value: isPressed)
+            .scaleEffect(scaleEffect)
+            .animation(DesignSystem.Animation.spring, value: isHovered)
+            .animation(DesignSystem.Animation.fast, value: isPressed)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
         }
         .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
+    }
+
+    // MARK: - 计算属性：状态驱动的样式
+
+    private var textColor: Color {
+        if isSelected {
+            return .white
+        } else if isHovered {
+            return DesignSystem.Colors.primaryText
+        } else {
+            return DesignSystem.Colors.secondaryText
+        }
+    }
+
+    private var backgroundColor: Color {
+        if isSelected {
+            return DesignSystem.Colors.accent
+        } else if isHovered {
+            return DesignSystem.Colors.primaryText.opacity(0.1)
+        } else {
+            return .clear
+        }
+    }
+
+    private var borderColor: Color {
+        if isHovered && !isSelected {
+            return DesignSystem.Colors.primaryText.opacity(0.3)
+        } else {
+            return .clear
+        }
+    }
+
+    private var shadowColor: Color {
+        if isSelected {
+            return DesignSystem.Colors.accent.opacity(0.3)
+        } else if isHovered {
+            return Color.black.opacity(0.1)
+        } else {
+            return .clear
+        }
+    }
+
+    private var shadowRadius: CGFloat {
+        if isSelected {
+            return 4
+        } else if isHovered {
+            return 2
+        } else {
+            return 0
+        }
+    }
+
+    private var shadowOffset: CGFloat {
+        if isSelected || isHovered {
+            return 1
+        } else {
+            return 0
+        }
+    }
+
+    private var scaleEffect: CGFloat {
+        if isPressed {
+            return 0.95
+        } else if isHovered {
+            return 1.03
+        } else {
+            return 1.0
+        }
+    }
+}
+
+struct SettingsButton: View {
+    let action: () -> Void
+
+    @State private var isHovered = false
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "gearshape")
+                .font(DesignSystem.Typography.body.weight(.regular))
+                .foregroundColor(textColor)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(backgroundColor)
+                        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 1)
+                )
+                .scaleEffect(scaleEffect)
+                .animation(DesignSystem.Animation.spring, value: isHovered)
+                .animation(DesignSystem.Animation.fast, value: isPressed)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
+        .help("button.preferences".localized)
+    }
+
+    // MARK: - 计算属性：状态驱动的样式
+
+    private var textColor: Color {
+        isHovered ? DesignSystem.Colors.primaryText : DesignSystem.Colors.secondaryText
+    }
+
+    private var backgroundColor: Color {
+        isHovered ? DesignSystem.Colors.primaryText.opacity(0.1) : .clear
+    }
+
+    private var shadowColor: Color {
+        isHovered ? Color.black.opacity(0.1) : .clear
+    }
+
+    private var shadowRadius: CGFloat {
+        isHovered ? 2 : 0
+    }
+
+    private var scaleEffect: CGFloat {
+        if isPressed {
+            return 0.9
+        } else if isHovered {
+            return 1.1
+        } else {
+            return 1.0
+        }
     }
 }
 

@@ -27,83 +27,53 @@ struct FilesView: View {
     var body: some View {
         VStack(spacing: 0) {
             // 顶部工具栏
-            HStack {
+            HStack(spacing: DesignSystem.Spacing.md) {
                 // 搜索栏
-                HStack {
+                HStack(spacing: DesignSystem.Spacing.sm) {
                     Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
+                        .foregroundColor(DesignSystem.Colors.secondaryText)
+                        .font(DesignSystem.Typography.caption)
+
                     TextField("Search files...", text: $viewModel.searchText)
                         .textFieldStyle(.plain)
+                        .font(DesignSystem.Typography.body)
 
                     if !viewModel.searchText.isEmpty {
                         Button(action: { viewModel.clearSearch() }) {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(DesignSystem.Colors.secondaryText)
+                                .font(DesignSystem.Typography.caption)
                         }
                         .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, DesignSystem.Spacing.sm + 2)
+                .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small + 2))
                 .frame(maxWidth: 200)
-                
+
                 Spacer()
-                
+
                 // 视图模式切换
-                Picker("", selection: $viewModel.viewMode) {
-                    ForEach(ViewMode.allCases, id: \.self) { mode in
-                        Image(systemName: mode.systemImage)
-                            .tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 100)
-                .labelsHidden()
-                
+                ViewModePicker(selection: $viewModel.viewMode)
+
                 // 排序选择
-                Menu {
-                    Section("sort.by".localized) {
-                        ForEach(SortOption.allCases, id: \.self) { option in
-                            Button(action: { viewModel.setSortOption(option) }) {
-                                HStack {
-                                    Text(option.rawValue)
-                                    if viewModel.sortOption == option {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
+                SortMenuButton(
+                    sortOption: viewModel.sortOption,
+                    isAscending: viewModel.isAscending,
+                    onSelectOption: { viewModel.setSortOption($0) },
+                    onToggleOrder: { viewModel.toggleSortOrder() }
+                )
 
-                    Divider()
-
-                    Button(action: { viewModel.toggleSortOrder() }) {
-                        HStack {
-                            Text(viewModel.isAscending ? "sort.ascending".localized : "sort.descending".localized)
-                            Spacer()
-                            Image(systemName: viewModel.isAscending ? "arrow.up" : "arrow.down")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "arrow.up.arrow.down")
-                }
-                .menuStyle(.borderlessButton)
-                
                 // 多选模式切换
-                Button(action: {
-                    viewModel.toggleMultiSelectMode()
-                }) {
-                    Image(systemName: viewModel.isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
-                        .foregroundColor(viewModel.isMultiSelectMode ? .accentColor : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help(viewModel.isMultiSelectMode ? "Exit selection mode" : "Enter selection mode")
+                MultiSelectButton(
+                    isActive: viewModel.isMultiSelectMode,
+                    action: { viewModel.toggleMultiSelectMode() }
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
+            .padding(.horizontal, DesignSystem.Spacing.md)
+            .padding(.top, DesignSystem.Spacing.md)
             
             if viewModel.filteredFiles.isEmpty {
                 // 空状态
@@ -386,7 +356,7 @@ struct FileItemGridView: View {
     let showSelectionMode: Bool
     let isEditing: Bool
     @Binding var editingName: String
-    
+
     let onPrimaryAction: () -> Void
     let onSecondaryAction: () -> Void
     let onDelete: () -> Void
@@ -394,9 +364,9 @@ struct FileItemGridView: View {
     let onToggleSelection: () -> Void
     let onRename: (String) -> Void
     let onStartRename: () -> Void
-    
+
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DesignSystem.Spacing.sm) {
             ZStack {
                 // 选择框或收藏标记
                 if showSelectionMode {
@@ -404,117 +374,127 @@ struct FileItemGridView: View {
                         HStack {
                             Button(action: onToggleSelection) {
                                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(isSelected ? .accentColor : .secondary)
-                                    .font(.title3)
+                                    .foregroundColor(isSelected ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
+                                    .font(DesignSystem.Typography.title3)
                             }
                             .buttonStyle(.plain)
                             Spacer()
                         }
                         Spacer()
                     }
-                    .padding(4)
+                    .padding(DesignSystem.Spacing.xs)
                 } else if file.isFavorite {
                     VStack {
                         HStack {
                             Spacer()
                             Image(systemName: "star.fill")
                                 .foregroundColor(.yellow)
-                                .font(.caption)
+                                .font(DesignSystem.Typography.caption)
                         }
                         Spacer()
                     }
-                    .padding(4)
+                    .padding(DesignSystem.Spacing.xs)
                 }
-                
-                // 文件图标
-                VStack(spacing: 8) {
+
+                // 文件图标和信息
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    // 文件图标 - 添加微妙动画
                     Image(systemName: file.systemImage)
-                        .font(.system(size: 36))
+                        .font(.system(size: 40))
                         .foregroundColor(file.typeColor)
-                    
+                        .scaleEffect(isHovered ? 1.05 : 1.0)
+                        .animation(DesignSystem.Animation.spring, value: isHovered)
+
                     // 文件名
                     if isEditing {
                         TextField("File name", text: $editingName, onCommit: {
                             onRename(editingName)
                         })
                         .textFieldStyle(.plain)
-                        .font(.caption)
+                        .font(DesignSystem.Typography.caption)
                         .multilineTextAlignment(.center)
+                        .padding(DesignSystem.Spacing.xs)
                         .background(
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
                                 .fill(.regularMaterial)
                         )
                     } else {
                         Text(file.name)
-                            .font(.caption)
+                            .font(DesignSystem.Typography.caption)
                             .fontWeight(.medium)
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
                             .truncationMode(.middle)
+                            .foregroundColor(DesignSystem.Colors.primaryText)
                     }
-                    
+
                     // 文件信息
-                    VStack(spacing: 2) {
+                    VStack(spacing: DesignSystem.Spacing.xs) {
                         Text(file.sizeString)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        
+                            .font(DesignSystem.Typography.caption2)
+                            .foregroundColor(DesignSystem.Colors.secondaryText)
+
                         if !file.tags.isEmpty {
-                            HStack {
+                            HStack(spacing: DesignSystem.Spacing.xs) {
                                 ForEach(Array(file.tags.prefix(2)), id: \.self) { tag in
                                     Text(tag)
-                                        .font(.system(size: 8))
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(file.typeColor.opacity(0.2), in: RoundedRectangle(cornerRadius: 3))
+                                        .tagStyle(color: file.typeColor)
                                 }
                             }
                         }
                     }
                 }
             }
-            
-            // 悬停操作按钮
+
+            // 悬停操作按钮 - 改进动画
             if isHovered && !showSelectionMode && !isEditing {
-                HStack(spacing: 8) {
-                    Button(action: onToggleFavorite) {
-                        Image(systemName: file.isFavorite ? "star.fill" : "star")
-                            .font(.caption)
-                            .foregroundColor(file.isFavorite ? .yellow : .secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(file.isFavorite ? "取消收藏" : "收藏")
-                    
-                    Button(action: onSecondaryAction) {
-                        Image(systemName: "folder")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("在 Finder 中显示")
-                    
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("删除")
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    ActionButton(
+                        icon: file.isFavorite ? "star.fill" : "star",
+                        color: file.isFavorite ? .yellow : DesignSystem.Colors.secondaryText,
+                        action: onToggleFavorite,
+                        tooltip: file.isFavorite ? "取消收藏" : "收藏"
+                    )
+
+                    ActionButton(
+                        icon: "folder",
+                        color: DesignSystem.Colors.secondaryText,
+                        action: onSecondaryAction,
+                        tooltip: "在 Finder 中显示"
+                    )
+
+                    ActionButton(
+                        icon: "trash",
+                        color: DesignSystem.Colors.error,
+                        action: onDelete,
+                        tooltip: "删除"
+                    )
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                .transition(.opacity.combined(with: .scale))
+                .padding(.horizontal, DesignSystem.Spacing.sm)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                        .fill(.regularMaterial)
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                )
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.8).combined(with: .opacity),
+                    removal: .scale(scale: 0.8).combined(with: .opacity)
+                ))
             }
         }
-        .padding(12)
-        .background(backgroundMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(DesignSystem.Spacing.md)
+        .frame(minWidth: DesignSystem.Size.cardMinWidth, minHeight: DesignSystem.Size.cardMinHeight)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
+                .fill(backgroundMaterial)
+                .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowOffset)
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
                 .strokeBorder(borderColor, lineWidth: borderWidth)
         )
-        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
-        .scaleEffect(isSelected ? 0.95 : 1.0)
+        .scaleEffect(isHovered ? 1.03 : (isSelected ? 0.98 : 1.0))
         .onTapGesture {
             onPrimaryAction()
         }
@@ -522,30 +502,31 @@ struct FileItemGridView: View {
             Button(file.isFavorite ? "取消收藏" : "收藏") {
                 onToggleFavorite()
             }
-            
+
             Divider()
-            
+
             Button("打开") {
                 onPrimaryAction()
             }
-            
+
             Button("在 Finder 中显示") {
                 onSecondaryAction()
             }
-            
+
             Button("重命名") {
                 onStartRename()
             }
-            
+
             Divider()
-            
+
             Button("删除", role: .destructive) {
                 onDelete()
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .animation(DesignSystem.Animation.spring, value: isHovered)
+        .animation(DesignSystem.Animation.standard, value: isSelected)
     }
-    
+
     private var backgroundMaterial: Material {
         if isSelected {
             return .thick
@@ -555,35 +536,88 @@ struct FileItemGridView: View {
             return .thinMaterial
         }
     }
-    
+
     private var borderColor: Color {
         if isSelected {
-            return .accentColor
+            return DesignSystem.Colors.accent
+        } else if isHovered {
+            return DesignSystem.Colors.accent.opacity(0.3)
         } else if file.isFavorite {
-            return .yellow.opacity(0.3)
+            return Color.yellow.opacity(0.3)
         } else {
-            return .clear
+            return Color.clear
         }
     }
-    
+
     private var borderWidth: CGFloat {
-        if isSelected || file.isFavorite {
+        if isSelected {
             return 2
+        } else if isHovered || file.isFavorite {
+            return 1.5
         } else {
             return 0
         }
     }
-    
+
     private var shadowColor: Color {
         if isSelected {
-            return .accentColor.opacity(0.3)
+            return DesignSystem.Colors.accent.opacity(0.3)
+        } else if isHovered {
+            return .black.opacity(0.15)
         } else {
-            return .black.opacity(0.1)
+            return .black.opacity(0.08)
         }
     }
-    
+
     private var shadowRadius: CGFloat {
-        isSelected ? 8 : 4
+        if isSelected {
+            return 10
+        } else if isHovered {
+            return 12
+        } else {
+            return 4
+        }
+    }
+
+    private var shadowOffset: CGFloat {
+        if isHovered {
+            return 6
+        } else if isSelected {
+            return 4
+        } else {
+            return 2
+        }
+    }
+}
+
+// MARK: - Action Button Component
+private struct ActionButton: View {
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    let tooltip: String
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(color)
+                .frame(width: 24, height: 24)
+                .background(
+                    Circle()
+                        .fill(isHovered ? color.opacity(0.15) : Color.clear)
+                )
+                .scaleEffect(isHovered ? 1.1 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .help(tooltip)
+        .onHover { hovering in
+            withAnimation(DesignSystem.Animation.fast) {
+                isHovered = hovering
+            }
+        }
     }
 }
 
@@ -594,7 +628,7 @@ struct FileItemListView: View {
     let showSelectionMode: Bool
     let isEditing: Bool
     @Binding var editingName: String
-    
+
     let onPrimaryAction: () -> Void
     let onSecondaryAction: () -> Void
     let onDelete: () -> Void
@@ -602,125 +636,130 @@ struct FileItemListView: View {
     let onToggleSelection: () -> Void
     let onRename: (String) -> Void
     let onStartRename: () -> Void
-    
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignSystem.Spacing.md) {
             // 选择框或图标
             if showSelectionMode {
                 Button(action: onToggleSelection) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isSelected ? .accentColor : .secondary)
-                        .font(.title3)
+                        .foregroundColor(isSelected ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
+                        .font(DesignSystem.Typography.title3)
                 }
                 .buttonStyle(.plain)
             }
-            
+
             // 文件图标
             Image(systemName: file.systemImage)
-                .font(.title2)
+                .font(.system(size: 24))
                 .foregroundColor(file.typeColor)
                 .frame(width: 32)
-            
+                .scaleEffect(isHovered ? 1.05 : 1.0)
+                .animation(DesignSystem.Animation.spring, value: isHovered)
+
             // 文件信息
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
                     if isEditing {
                         TextField("File name", text: $editingName, onCommit: {
                             onRename(editingName)
                         })
                         .textFieldStyle(.plain)
-                        .font(.body)
+                        .font(DesignSystem.Typography.body)
                         .fontWeight(.medium)
                     } else {
                         Text(file.name)
-                            .font(.body)
+                            .font(DesignSystem.Typography.body)
                             .fontWeight(.medium)
+                            .foregroundColor(DesignSystem.Colors.primaryText)
                     }
-                    
+
                     if file.isFavorite {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
-                            .font(.caption)
+                            .font(DesignSystem.Typography.caption)
                     }
-                    
+
                     Spacer()
                 }
-                
-                HStack {
+
+                HStack(spacing: DesignSystem.Spacing.xs) {
                     Text(file.fileType.rawValue)
-                        .font(.caption)
+                        .font(DesignSystem.Typography.caption)
                         .foregroundColor(file.typeColor)
-                    
+
                     Text("•")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondaryText)
+
                     Text(file.sizeString)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondaryText)
+
                     Text("•")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondaryText)
+
                     Text(file.dateAdded.formatted(.relative(presentation: .named)))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondaryText)
+
                     Spacer()
                 }
-                
+
                 if !file.tags.isEmpty {
-                    HStack {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
                         ForEach(Array(file.tags), id: \.self) { tag in
                             Text(tag)
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(file.typeColor.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
+                                .tagStyle(color: file.typeColor)
                         }
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             // 操作按钮（悬停显示）
             if isHovered || showSelectionMode {
-                HStack(spacing: 8) {
-                    Button(action: onToggleFavorite) {
-                        Image(systemName: file.isFavorite ? "star.fill" : "star")
-                            .font(.system(size: 14))
-                            .foregroundColor(file.isFavorite ? .yellow : .secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(file.isFavorite ? "取消收藏" : "收藏")
-                    
-                    Button(action: onSecondaryAction) {
-                        Image(systemName: "folder")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("在 Finder 中显示")
-                    
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 14))
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("删除")
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    ActionButton(
+                        icon: file.isFavorite ? "star.fill" : "star",
+                        color: file.isFavorite ? .yellow : DesignSystem.Colors.secondaryText,
+                        action: onToggleFavorite,
+                        tooltip: file.isFavorite ? "取消收藏" : "收藏"
+                    )
+
+                    ActionButton(
+                        icon: "folder",
+                        color: DesignSystem.Colors.secondaryText,
+                        action: onSecondaryAction,
+                        tooltip: "在 Finder 中显示"
+                    )
+
+                    ActionButton(
+                        icon: "trash",
+                        color: DesignSystem.Colors.error,
+                        action: onDelete,
+                        tooltip: "删除"
+                    )
                 }
-                .transition(.opacity.combined(with: .scale))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
             }
         }
-        .padding(8)
-        .background(backgroundMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(DesignSystem.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                .fill(backgroundMaterial)
+                .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowOffset)
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
                 .strokeBorder(borderColor, lineWidth: borderWidth)
         )
+        .scaleEffect(isHovered ? 1.005 : 1.0, anchor: .leading)
         .onTapGesture {
             onPrimaryAction()
         }
@@ -728,30 +767,31 @@ struct FileItemListView: View {
             Button(file.isFavorite ? "取消收藏" : "收藏") {
                 onToggleFavorite()
             }
-            
+
             Divider()
-            
+
             Button("打开") {
                 onPrimaryAction()
             }
-            
+
             Button("在 Finder 中显示") {
                 onSecondaryAction()
             }
-            
+
             Button("重命名") {
                 onStartRename()
             }
-            
+
             Divider()
-            
+
             Button("删除", role: .destructive) {
                 onDelete()
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .animation(DesignSystem.Animation.spring, value: isHovered)
+        .animation(DesignSystem.Animation.standard, value: isSelected)
     }
-    
+
     private var backgroundMaterial: Material {
         if isSelected {
             return .thick
@@ -759,17 +799,216 @@ struct FileItemListView: View {
             return .thinMaterial
         }
     }
-    
+
     private var borderColor: Color {
         if isSelected {
-            return .accentColor
+            return DesignSystem.Colors.accent
+        } else if isHovered {
+            return DesignSystem.Colors.accent.opacity(0.2)
+        } else {
+            return Color.clear
+        }
+    }
+
+    private var borderWidth: CGFloat {
+        if isSelected {
+            return 2
+        } else if isHovered {
+            return 1
+        } else {
+            return 0
+        }
+    }
+
+    private var shadowColor: Color {
+        if isSelected {
+            return DesignSystem.Colors.accent.opacity(0.2)
+        } else if isHovered {
+            return .black.opacity(0.08)
+        } else {
+            return .black.opacity(0.03)
+        }
+    }
+
+    private var shadowRadius: CGFloat {
+        if isHovered || isSelected {
+            return 4
+        } else {
+            return 2
+        }
+    }
+
+    private var shadowOffset: CGFloat {
+        if isHovered || isSelected {
+            return 2
+        } else {
+            return 1
+        }
+    }
+}
+
+// MARK: - 工具栏组件
+
+/// 视图模式选择器
+struct ViewModePicker: View {
+    @Binding var selection: ViewMode
+    @State private var hoveredMode: ViewMode?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(ViewMode.allCases, id: \.self) { mode in
+                Button(action: {
+                    withAnimation(DesignSystem.Animation.spring) {
+                        selection = mode
+                    }
+                }) {
+                    Image(systemName: mode.systemImage)
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(foregroundColor(for: mode))
+                        .frame(width: 32, height: 24)
+                        .background(
+                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
+                                .fill(backgroundColor(for: mode))
+                        )
+                        .scaleEffect(scaleEffect(for: mode))
+                        .animation(DesignSystem.Animation.spring, value: hoveredMode)
+                        .animation(DesignSystem.Animation.spring, value: selection)
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    hoveredMode = hovering ? mode : nil
+                }
+            }
+        }
+        .padding(2)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small + 2)
+                .fill(.regularMaterial)
+        )
+    }
+
+    private func foregroundColor(for mode: ViewMode) -> Color {
+        if selection == mode {
+            return .white
+        } else if hoveredMode == mode {
+            return DesignSystem.Colors.primaryText
+        } else {
+            return DesignSystem.Colors.secondaryText
+        }
+    }
+
+    private func backgroundColor(for mode: ViewMode) -> Color {
+        if selection == mode {
+            return DesignSystem.Colors.accent
+        } else if hoveredMode == mode {
+            return DesignSystem.Colors.primaryText.opacity(0.1)
         } else {
             return .clear
         }
     }
-    
-    private var borderWidth: CGFloat {
-        isSelected ? 1 : 0
+
+    private func scaleEffect(for mode: ViewMode) -> CGFloat {
+        hoveredMode == mode && selection != mode ? 1.05 : 1.0
+    }
+}
+
+/// 排序菜单按钮
+struct SortMenuButton: View {
+    let sortOption: SortOption
+    let isAscending: Bool
+    let onSelectOption: (SortOption) -> Void
+    let onToggleOrder: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Menu {
+            Section("sort.by".localized) {
+                ForEach(SortOption.allCases, id: \.self) { option in
+                    Button(action: { onSelectOption(option) }) {
+                        HStack {
+                            Text(option.rawValue)
+                            if sortOption == option {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            Button(action: onToggleOrder) {
+                HStack {
+                    Text(isAscending ? "sort.ascending".localized : "sort.descending".localized)
+                    Spacer()
+                    Image(systemName: isAscending ? "arrow.up" : "arrow.down")
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(DesignSystem.Typography.body)
+                .foregroundColor(isHovered ? DesignSystem.Colors.primaryText : DesignSystem.Colors.secondaryText)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(isHovered ? DesignSystem.Colors.primaryText.opacity(0.1) : .clear)
+                )
+                .scaleEffect(isHovered ? 1.1 : 1.0)
+                .animation(DesignSystem.Animation.spring, value: isHovered)
+        }
+        .menuStyle(.borderlessButton)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+/// 多选模式按钮
+struct MultiSelectButton: View {
+    let isActive: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isActive ? "checkmark.circle.fill" : "checkmark.circle")
+                .font(DesignSystem.Typography.body)
+                .foregroundColor(foregroundColor)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(backgroundColor)
+                )
+                .scaleEffect(scaleEffect)
+                .animation(DesignSystem.Animation.spring, value: isHovered)
+                .animation(DesignSystem.Animation.spring, value: isActive)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .help(isActive ? "Exit selection mode" : "Enter selection mode")
+    }
+
+    private var foregroundColor: Color {
+        if isActive {
+            return DesignSystem.Colors.accent
+        } else if isHovered {
+            return DesignSystem.Colors.primaryText
+        } else {
+            return DesignSystem.Colors.secondaryText
+        }
+    }
+
+    private var backgroundColor: Color {
+        isHovered && !isActive ? DesignSystem.Colors.primaryText.opacity(0.1) : .clear
+    }
+
+    private var scaleEffect: CGFloat {
+        isActive ? 1.0 : (isHovered ? 1.1 : 1.0)
     }
 }
 
