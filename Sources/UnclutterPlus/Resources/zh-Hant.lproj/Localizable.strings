@@ -134,14 +134,14 @@
 "preferences.section.appearance" = "外觀";
 "preferences.section.interaction" = "互動";
 "preferences.section.features" = "功能開關";
-"preferences.section.files" = "檔案";
+"preferences.section.files" = "資料夾";
 "preferences.section.clipboard" = "剪貼簿";
 "preferences.section.storage_location" = "儲存位置";
 "preferences.section.data_management" = "資料管理";
 "preferences.section.developer" = "開發者選項";
 
 // MARK: - 功能開關設定
-"preferences.features.enable_files" = "啟用檔案管理";
+"preferences.features.enable_files" = "啟用資料夾快捷方式";
 "preferences.features.enable_clipboard" = "啟用剪貼簿歷史";
 "preferences.features.enable_notes" = "啟用筆記功能";
 "preferences.features.description" = "開啟或關閉功能。關閉功能後資料不會被刪除。";
@@ -152,7 +152,7 @@
 "preferences.storage.default_path" = "預設路徑：";
 "preferences.storage.current_path" = "目前路徑：";
 "preferences.storage.space_used" = "已用空間：";
-"preferences.storage.files_location" = "檔案儲存位置";
+"preferences.storage.files_location" = "資料夾數據儲存位置";
 "preferences.storage.clipboard_location" = "剪貼簿儲存位置";
 "preferences.storage.notes_location" = "筆記儲存位置";
 "preferences.storage.migrate_data" = "移轉資料";
@@ -161,7 +161,7 @@
 "preferences.storage.path_not_writable" = "所選路徑不可寫。請選擇另一個位置。";
 
 // MARK: - 資料管理
-"preferences.data.clear_files" = "清除所有檔案";
+"preferences.data.clear_files" = "清除所有資料夾";
 "preferences.data.clear_clipboard" = "清除剪貼簿歷史";
 "preferences.data.clear_notes" = "刪除所有筆記";
 "preferences.data.export" = "匯出資料";

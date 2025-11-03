@@ -17,7 +17,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupGlobalHotkey() {
-        // 添加全局键盘快捷键 Command+Shift+U
+        // 初始化截图快捷键管理器
+        _ = GlobalHotkey.shared
+        
+        // 添加全局键盘快捷键 Command+Shift+U 用于显示窗口
         NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.modifierFlags.contains([.command, .shift]) && event.charactersIgnoringModifiers == "u" {
                 print("检测到快捷键 Cmd+Shift+U")

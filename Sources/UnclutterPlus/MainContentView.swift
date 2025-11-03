@@ -120,7 +120,7 @@ struct MainContentView: View {
     private func getTabIcon(for tabId: String) -> String {
         switch tabId {
         case "files":
-            return "folder"
+            return "folder.fill"
         case "clipboard":
             return "doc.on.clipboard"
         case "notes":

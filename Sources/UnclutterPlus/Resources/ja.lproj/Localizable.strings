@@ -4,7 +4,7 @@
 */
 
 // MARK: - タブタイトル
-"tab.files" = "ファイル";
+"tab.files" = "フォルダ";
 "tab.clipboard" = "クリップボード";
 "tab.notes" = "メモ";
 
@@ -68,17 +68,22 @@
 "menu.show_menubar_icon" = "メニューバーアイコンを表示";
 "menu.hide_menubar_icon" = "メニューバーアイコンを非表示";
 
-// MARK: - ファイルビュー
-"files.drop_area.title" = "ファイルをここにドロップ";
-"files.drop_area.subtitle" = "ファイルをドラッグ＆ドロップして一時保存";
-"files.no_files" = "保存されたファイルはありません";
-"files.sort.by" = "並び順";
-"files.sort.name" = "名前";
-"files.sort.date" = "日付";
-"files.sort.size" = "サイズ";
-"files.contextmenu.reveal" = "Finderで表示";
-"files.contextmenu.open" = "開く";
-"files.contextmenu.delete" = "削除";
+// MARK: - フォルダビュー
+"folders.drop_area.title" = "フォルダをここにドロップ";
+"folders.drop_area.subtitle" = "フォルダをドラッグ＆ドロップしてクイックアクセス";
+"folders.no_matching" = "一致するフォルダがありません";
+"folders.search.placeholder" = "フォルダを検索...";
+"folders.contextmenu.open" = "Finderで開く";
+"folders.contextmenu.open_new_window" = "新しいウィンドウで開く";
+"folders.contextmenu.reveal" = "Finderで表示";
+"folders.contextmenu.favorite" = "お気に入り";
+"folders.contextmenu.unfavorite" = "お気に入りを削除";
+"folders.contextmenu.rename" = "名前を変更";
+"folders.contextmenu.delete" = "削除";
+"folders.delete_selected" = "選択したものを削除";
+"folders.clear_all" = "すべてクリア";
+"folders.count" = "フォルダ";
+"folders.selected" = "選択済み";
 
 // MARK: - クリップボードビュー
 "clipboard.empty" = "クリップボード履歴はありません";
@@ -186,14 +191,14 @@
 "preferences.section.appearance" = "外観";
 "preferences.section.interaction" = "インタラクション";
 "preferences.section.features" = "機能切り替え";
-"preferences.section.files" = "ファイル";
+"preferences.section.files" = "フォルダ";
 "preferences.section.clipboard" = "クリップボード";
 "preferences.section.storage_location" = "ストレージ場所";
 "preferences.section.data_management" = "データ管理";
 "preferences.section.developer" = "開発者オプション";
 
 // MARK: - 機能切り替え設定
-"preferences.features.enable_files" = "ファイル管理を有効にする";
+"preferences.features.enable_files" = "フォルダショートカットを有効にする";
 "preferences.features.enable_clipboard" = "クリップボード履歴を有効にする";
 "preferences.features.enable_notes" = "メモ機能を有効にする";
 "preferences.features.description" = "機能をオンまたはオフにします。機能を無効にしてもデータは保持されます。";
@@ -204,7 +209,7 @@
 "preferences.storage.default_path" = "デフォルトパス：";
 "preferences.storage.current_path" = "現在のパス：";
 "preferences.storage.space_used" = "使用容量：";
-"preferences.storage.files_location" = "ファイルストレージ場所";
+"preferences.storage.files_location" = "フォルダデータストレージ場所";
 "preferences.storage.clipboard_location" = "クリップボードストレージ場所";
 "preferences.storage.notes_location" = "メモストレージ場所";
 "preferences.storage.migrate_data" = "データを移行";
@@ -213,7 +218,7 @@
 "preferences.storage.path_not_writable" = "選択されたパスは書き込み可能ではありません。別の場所を選択してください。";
 
 // MARK: - データ管理
-"preferences.data.clear_files" = "すべてのファイルをクリア";
+"preferences.data.clear_files" = "すべてのフォルダをクリア";
 "preferences.data.clear_clipboard" = "クリップボード履歴をクリア";
 "preferences.data.clear_notes" = "すべてのメモを削除";
 "preferences.data.export" = "データをエクスポート";

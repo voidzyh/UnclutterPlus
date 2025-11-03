@@ -134,7 +134,7 @@
 "preferences.section.appearance" = "Apariencia";
 "preferences.section.interaction" = "Interacción";
 "preferences.section.features" = "Interruptores de características";
-"preferences.section.files" = "Archivos";
+"preferences.section.files" = "Carpetas";
 "preferences.section.clipboard" = "Portapapeles";
 "preferences.section.storage_location" = "Ubicaciones de almacenamiento";
 "preferences.section.data_management" = "Gestión de datos";
@@ -161,7 +161,7 @@
 "preferences.storage.path_not_writable" = "La ruta seleccionada no es escribible. Por favor elija otra ubicación.";
 
 // MARK: - Gestión de datos
-"preferences.data.clear_files" = "Borrar todos los archivos";
+"preferences.data.clear_files" = "Borrar todas las carpetas";
 "preferences.data.clear_clipboard" = "Borrar historial del portapapeles";
 "preferences.data.clear_notes" = "Eliminar todas las notas";
 "preferences.data.export" = "Exportar datos";

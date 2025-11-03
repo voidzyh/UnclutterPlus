@@ -4,7 +4,7 @@
 */
 
 // MARK: - 标签页标题
-"tab.files" = "文件";
+"tab.files" = "文件夹";
 "tab.clipboard" = "剪贴板";
 "tab.notes" = "笔记";
 
@@ -26,7 +26,7 @@
 "preferences.section.appearance" = "外观";
 "preferences.section.interaction" = "交互";
 "preferences.section.features" = "功能开关";
-"preferences.section.files" = "文件";
+"preferences.section.files" = "文件夹";
 "preferences.section.clipboard" = "剪贴板";
 "preferences.section.notes" = "笔记";
 "preferences.section.markdown" = "Markdown";
@@ -73,7 +73,7 @@
 "preferences.language.restart_required" = "需要重启应用以使语言更改生效";
 
 // MARK: - 功能开关设置
-"preferences.features.enable_files" = "启用文件管理";
+"preferences.features.enable_files" = "启用文件夹快捷方式";
 "preferences.features.enable_clipboard" = "启用剪贴板历史";
 "preferences.features.enable_notes" = "启用笔记功能";
 "preferences.features.description" = "开启或关闭功能。关闭功能后数据不会被删除。";
@@ -84,7 +84,7 @@
 "preferences.storage.default_path" = "默认路径：";
 "preferences.storage.current_path" = "当前路径：";
 "preferences.storage.space_used" = "已用空间：";
-"preferences.storage.files_location" = "文件存储位置";
+"preferences.storage.files_location" = "文件夹数据存储位置";
 "preferences.storage.clipboard_location" = "剪贴板存储位置";
 "preferences.storage.notes_location" = "笔记存储位置";
 "preferences.storage.migrate_data" = "迁移数据";
@@ -93,7 +93,7 @@
 "preferences.storage.path_not_writable" = "所选路径不可写。请选择另一个位置。";
 
 // MARK: - 数据管理
-"preferences.data.clear_files" = "清除所有文件";
+"preferences.data.clear_files" = "清除所有文件夹";
 "preferences.data.clear_clipboard" = "清除剪贴板历史";
 "preferences.data.clear_notes" = "删除所有笔记";
 "preferences.data.export" = "导出数据";
@@ -109,17 +109,22 @@
 "menu.show_menubar_icon" = "显示菜单栏图标";
 "menu.hide_menubar_icon" = "隐藏菜单栏图标";
 
-// MARK: - 文件视图
-"files.drop_area.title" = "拖放文件到此处";
-"files.drop_area.subtitle" = "拖放文件以临时存储";
-"files.no_files" = "没有存储的文件";
-"files.sort.by" = "排序方式";
-"files.sort.name" = "名称";
-"files.sort.date" = "日期";
-"files.sort.size" = "大小";
-"files.contextmenu.reveal" = "在 Finder 中显示";
-"files.contextmenu.open" = "打开";
-"files.contextmenu.delete" = "删除";
+// MARK: - 文件夹视图
+"folders.drop_area.title" = "拖放文件夹到此处";
+"folders.drop_area.subtitle" = "拖放文件夹以快速访问";
+"folders.no_matching" = "没有匹配的文件夹";
+"folders.search.placeholder" = "搜索文件夹...";
+"folders.contextmenu.open" = "在 Finder 中打开";
+"folders.contextmenu.open_new_window" = "在新窗口中打开";
+"folders.contextmenu.reveal" = "在 Finder 中显示";
+"folders.contextmenu.favorite" = "收藏";
+"folders.contextmenu.unfavorite" = "取消收藏";
+"folders.contextmenu.rename" = "重命名";
+"folders.contextmenu.delete" = "移除";
+"folders.delete_selected" = "删除已选";
+"folders.clear_all" = "清空全部";
+"folders.count" = "个文件夹";
+"folders.selected" = "已选";
 
 // MARK: - 剪贴板视图
 "clipboard.search.placeholder" = "搜索剪贴板历史...";

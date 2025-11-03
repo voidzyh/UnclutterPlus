@@ -4,7 +4,7 @@
 */
 
 // MARK: - Tab Titles
-"tab.files" = "Files";
+"tab.files" = "Folders";
 "tab.clipboard" = "Clipboard";
 "tab.notes" = "Notes";
 
@@ -26,7 +26,7 @@
 "preferences.section.appearance" = "Appearance";
 "preferences.section.interaction" = "Interaction";
 "preferences.section.features" = "Feature Toggles";
-"preferences.section.files" = "Files";
+"preferences.section.files" = "Folders";
 "preferences.section.clipboard" = "Clipboard";
 "preferences.section.notes" = "Notes";
 "preferences.section.markdown" = "Markdown";
@@ -73,7 +73,7 @@
 "preferences.language.restart_required" = "Restart required for language change to take effect";
 
 // MARK: - Feature Toggle Settings
-"preferences.features.enable_files" = "Enable Files";
+"preferences.features.enable_files" = "Enable Folders";
 "preferences.features.enable_clipboard" = "Enable Clipboard";
 "preferences.features.enable_notes" = "Enable Notes";
 "preferences.features.description" = "Turn features on or off. Data is preserved when features are disabled.";
@@ -84,7 +84,7 @@
 "preferences.storage.default_path" = "Default Path:";
 "preferences.storage.current_path" = "Current Path:";
 "preferences.storage.space_used" = "Space Used:";
-"preferences.storage.files_location" = "Files Storage";
+"preferences.storage.files_location" = "Folders Storage";
 "preferences.storage.clipboard_location" = "Clipboard Storage";
 "preferences.storage.notes_location" = "Notes Storage";
 "preferences.storage.migrate_data" = "Migrate Data";
@@ -93,7 +93,7 @@
 "preferences.storage.path_not_writable" = "The selected path is not writable. Please choose another location.";
 
 // MARK: - Data Management
-"preferences.data.clear_files" = "Clear All Files";
+"preferences.data.clear_files" = "Clear All Folders";
 "preferences.data.clear_clipboard" = "Clear Clipboard History";
 "preferences.data.clear_notes" = "Delete All Notes";
 "preferences.data.export" = "Export Data";
@@ -109,17 +109,22 @@
 "menu.show_menubar_icon" = "Show Menu Bar Icon";
 "menu.hide_menubar_icon" = "Hide Menu Bar Icon";
 
-// MARK: - Files View
-"files.drop_area.title" = "Drop Files Here";
-"files.drop_area.subtitle" = "Drag and drop files to temporarily store them";
-"files.no_files" = "No files stored";
-"files.sort.by" = "Sort by";
-"files.sort.name" = "Name";
-"files.sort.date" = "Date";
-"files.sort.size" = "Size";
-"files.contextmenu.reveal" = "Reveal in Finder";
-"files.contextmenu.open" = "Open";
-"files.contextmenu.delete" = "Delete";
+// MARK: - Folders View
+"folders.drop_area.title" = "Drop Folders Here";
+"folders.drop_area.subtitle" = "Drag and drop folders for quick access";
+"folders.no_matching" = "No matching folders";
+"folders.search.placeholder" = "Search folders...";
+"folders.contextmenu.open" = "Open in Finder";
+"folders.contextmenu.open_new_window" = "Open in New Window";
+"folders.contextmenu.reveal" = "Reveal in Finder";
+"folders.contextmenu.favorite" = "Favorite";
+"folders.contextmenu.unfavorite" = "Unfavorite";
+"folders.contextmenu.rename" = "Rename";
+"folders.contextmenu.delete" = "Remove";
+"folders.delete_selected" = "Delete Selected";
+"folders.clear_all" = "Clear All";
+"folders.count" = "folders";
+"folders.selected" = "selected";
 
 // MARK: - Clipboard View
 "clipboard.search.placeholder" = "Search clipboard history...";

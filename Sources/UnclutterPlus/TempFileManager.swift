@@ -1,285 +1,235 @@
 import Foundation
 import SwiftUI
 
-struct TempFile: Identifiable, Hashable {
+struct FavoriteFolder: Identifiable, Hashable {
     let id: UUID
     let url: URL
     let name: String
-    let size: Int64
     let dateAdded: Date
     var lastAccessed: Date
+    var accessCount: Int
     var tags: Set<String>
     var isFavorite: Bool
+    var customIcon: String?
     
-    init(id: UUID = UUID(), url: URL, name: String, size: Int64, dateAdded: Date, lastAccessed: Date, tags: Set<String> = [], isFavorite: Bool = false) {
+    init(id: UUID = UUID(), url: URL, name: String, dateAdded: Date, lastAccessed: Date, accessCount: Int = 0, tags: Set<String> = [], isFavorite: Bool = false, customIcon: String? = nil) {
         self.id = id
         self.url = url
         self.name = name
-        self.size = size
         self.dateAdded = dateAdded
         self.lastAccessed = lastAccessed
+        self.accessCount = accessCount
         self.tags = tags
         self.isFavorite = isFavorite
-    }
-    
-    var sizeString: String {
-        ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
-    }
-    
-    var fileExtension: String {
-        url.pathExtension.lowercased()
-    }
-    
-    var fileType: FileType {
-        FileType.from(extension: fileExtension)
-    }
-    
-    var typeColor: Color {
-        fileType.color
-    }
-    
-    
-    var systemImage: String {
-        fileType.systemImage
-    }
-}
-
-enum FileType: String, CaseIterable {
-    case image = "Image"
-    case video = "Video"
-    case audio = "Audio"
-    case document = "Document"
-    case spreadsheet = "Spreadsheet"
-    case presentation = "Presentation"
-    case archive = "Archive"
-    case text = "Text"
-    case code = "Code"
-    case pdf = "PDF"
-    case other = "Other"
-    
-    static func from(extension ext: String) -> FileType {
-        switch ext {
-        case "jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "heic", "svg":
-            return .image
-        case "mp4", "mov", "avi", "mkv", "wmv", "m4v", "flv":
-            return .video
-        case "mp3", "wav", "aac", "flac", "m4a", "ogg":
-            return .audio
-        case "pdf":
-            return .pdf
-        case "doc", "docx", "pages":
-            return .document
-        case "xls", "xlsx", "numbers":
-            return .spreadsheet
-        case "ppt", "pptx", "keynote":
-            return .presentation
-        case "zip", "rar", "7z", "tar", "gz", "bz2":
-            return .archive
-        case "txt", "rtf", "md":
-            return .text
-        case "swift", "py", "js", "html", "css", "java", "cpp", "c", "json", "xml":
-            return .code
-        default:
-            return .other
-        }
+        self.customIcon = customIcon
     }
     
     var systemImage: String {
-        switch self {
-        case .image: return "photo"
-        case .video: return "video"
-        case .audio: return "music.note"
-        case .pdf: return "doc.richtext"
-        case .document: return "doc.text"
-        case .spreadsheet: return "tablecells"
-        case .presentation: return "rectangle.on.rectangle"
-        case .archive: return "archivebox"
-        case .text: return "doc.plaintext"
-        case .code: return "chevron.left.forwardslash.chevron.right"
-        case .other: return "doc"
+        customIcon ?? "folder.fill"
+    }
+    
+    var itemCount: Int? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+            return contents.count
+        } catch {
+            return nil
         }
     }
     
-    var color: Color {
-        switch self {
-        case .image: return .green
-        case .video: return .purple
-        case .audio: return .orange
-        case .pdf: return .red
-        case .document: return .blue
-        case .spreadsheet: return .teal
-        case .presentation: return .pink
-        case .archive: return .brown
-        case .text: return .gray
-        case .code: return .indigo
-        case .other: return .secondary
+    var itemCountString: String {
+        if let count = itemCount {
+            return "\(count) items"
         }
+        return "N/A"
     }
 }
 
 enum SortOption: String, CaseIterable {
     case name = "Name"
     case dateAdded = "Date Added"
-    case size = "Size"
-    case type = "Type"
     case lastAccessed = "Last Accessed"
+    case accessCount = "Access Count"
 }
 
-class TempFileManager: ObservableObject {
-    @Published var files: [TempFile] = []
-    @Published var selectedFiles: Set<UUID> = []
+class FavoriteFoldersManager: ObservableObject {
+    @Published var folders: [FavoriteFolder] = []
+    @Published var selectedFolders: Set<UUID> = []
     @Published var sortOption: SortOption = .dateAdded
     @Published var isAscending: Bool = false
     
     private let config = ConfigurationManager.shared
-    private var tempDirectory: URL {
-        config.filesStoragePath
-    }
     private var metadataDirectory: URL {
-        config.filesStoragePath.appendingPathComponent("Metadata")
+        config.filesStoragePath.appendingPathComponent("FoldersMetadata")
     }
     
     init() {
-        // 确保目录存在
-        try? FileManager.default.createDirectory(at: tempDirectory, 
-                                               withIntermediateDirectories: true)
+        // 确保元数据目录存在
         try? FileManager.default.createDirectory(at: metadataDirectory, 
                                                withIntermediateDirectories: true)
         
-        loadExistingFiles()
+        loadExistingFolders()
     }
     
-    func addFile(from sourceURL: URL) {
-        let fileName = sourceURL.lastPathComponent
-        let destinationURL = tempDirectory.appendingPathComponent(fileName)
-        
-        do {
-            // 如果文件已存在，生成新名称
-            let finalURL = generateUniqueURL(for: destinationURL)
-            
-            // 复制文件到临时目录
-            try FileManager.default.copyItem(at: sourceURL, to: finalURL)
-            
-            // 获取文件大小
-            let attributes = try FileManager.default.attributesOfItem(atPath: finalURL.path)
-            let size = attributes[.size] as? Int64 ?? 0
-            let now = Date()
-            
-            // 创建 TempFile 对象
-            let tempFile = TempFile(
-                url: finalURL,
-                name: finalURL.lastPathComponent,
-                size: size,
-                dateAdded: now,
-                lastAccessed: now
-            )
-            
-            // 添加到列表
-            files.append(tempFile)
-            saveMetadata(for: tempFile)
-            
-        } catch {
-            print("Error copying file: \(error)")
+    func addFolder(url: URL) {
+        // 验证是否为文件夹
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            print("Error: Not a valid directory")
+            return
         }
+        
+        // 检查是否已存在
+        if folders.contains(where: { $0.url.path == url.path }) {
+            print("Folder already exists")
+            return
+        }
+        
+        let now = Date()
+        let folder = FavoriteFolder(
+            url: url,
+            name: url.lastPathComponent,
+            dateAdded: now,
+            lastAccessed: now
+        )
+        
+        folders.append(folder)
+        saveMetadata(for: folder)
     }
     
-    func removeFile(_ file: TempFile) {
-        // 从文件系统删除
-        try? FileManager.default.removeItem(at: file.url)
-        
+    func removeFolder(_ folder: FavoriteFolder) {
         // 删除元数据
-        let metadataURL = metadataDirectory.appendingPathComponent("\(file.id.uuidString).json")
+        let metadataURL = metadataDirectory.appendingPathComponent("\(folder.id.uuidString).json")
         try? FileManager.default.removeItem(at: metadataURL)
         
         // 从选择中移除
-        selectedFiles.remove(file.id)
+        selectedFolders.remove(folder.id)
         
         // 从列表移除
-        files.removeAll { $0.id == file.id }
+        folders.removeAll { $0.id == folder.id }
     }
     
-    func removeFiles(_ filesToRemove: [TempFile]) {
-        for file in filesToRemove {
-            removeFile(file)
+    func removeFolders(_ foldersToRemove: [FavoriteFolder]) {
+        for folder in foldersToRemove {
+            removeFolder(folder)
         }
     }
     
-    func renameFile(_ file: TempFile, to newName: String) {
-        let newURL = tempDirectory.appendingPathComponent(newName)
+    func renameFolder(_ folder: FavoriteFolder, to newName: String) {
+        if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+            let updatedFolder = FavoriteFolder(
+                id: folder.id,
+                url: folder.url,
+                name: newName,
+                dateAdded: folder.dateAdded,
+                lastAccessed: folder.lastAccessed,
+                accessCount: folder.accessCount,
+                tags: folder.tags,
+                isFavorite: folder.isFavorite,
+                customIcon: folder.customIcon
+            )
+            folders[index] = updatedFolder
+            saveMetadata(for: updatedFolder)
+        }
+    }
+    
+    func toggleFavorite(_ folder: FavoriteFolder) {
+        if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+            folders[index].isFavorite.toggle()
+            saveMetadata(for: folders[index])
+        }
+    }
+    
+    func addTag(_ tag: String, to folder: FavoriteFolder) {
+        if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+            folders[index].tags.insert(tag)
+            saveMetadata(for: folders[index])
+        }
+    }
+    
+    func removeTag(_ tag: String, from folder: FavoriteFolder) {
+        if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+            folders[index].tags.remove(tag)
+            saveMetadata(for: folders[index])
+        }
+    }
+    
+    func openFolder(_ folder: FavoriteFolder) {
+        // 更新访问统计
+        if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+            folders[index].lastAccessed = Date()
+            folders[index].accessCount += 1
+            saveMetadata(for: folders[index])
+        }
         
-        do {
-            try FileManager.default.moveItem(at: file.url, to: newURL)
-            
-            if let index = files.firstIndex(where: { $0.id == file.id }) {
-                let updatedFile = TempFile(
-                    id: file.id,
-                    url: newURL,
-                    name: newName,
-                    size: file.size,
-                    dateAdded: file.dateAdded,
-                    lastAccessed: file.lastAccessed,
-                    tags: file.tags,
-                    isFavorite: file.isFavorite
-                )
-                files[index] = updatedFile
-                saveMetadata(for: updatedFile)
-            }
-        } catch {
-            print("Error renaming file: \(error)")
-        }
-    }
-    
-    func toggleFavorite(_ file: TempFile) {
-        if let index = files.firstIndex(where: { $0.id == file.id }) {
-            files[index].isFavorite.toggle()
-            saveMetadata(for: files[index])
-        }
-    }
-    
-    func addTag(_ tag: String, to file: TempFile) {
-        if let index = files.firstIndex(where: { $0.id == file.id }) {
-            files[index].tags.insert(tag)
-            saveMetadata(for: files[index])
-        }
-    }
-    
-    func removeTag(_ tag: String, from file: TempFile) {
-        if let index = files.firstIndex(where: { $0.id == file.id }) {
-            files[index].tags.remove(tag)
-            saveMetadata(for: files[index])
-        }
-    }
-    
-    func openFile(_ file: TempFile) {
-        if let index = files.firstIndex(where: { $0.id == file.id }) {
-            files[index].lastAccessed = Date()
-            saveMetadata(for: files[index])
-        }
-        NSWorkspace.shared.open(file.url)
+        // 在 Finder 中打开文件夹
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.url.path)
         
         // 触发自动隐藏窗口
         WindowManager.shared.hideWindowAfterAction(.fileOpened)
     }
     
-    func toggleSelection(_ file: TempFile) {
-        if selectedFiles.contains(file.id) {
-            selectedFiles.remove(file.id)
+    func openFolderInNewWindow(_ folder: FavoriteFolder) {
+        // 更新访问统计
+        if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+            folders[index].lastAccessed = Date()
+            folders[index].accessCount += 1
+            saveMetadata(for: folders[index])
+        }
+        
+        // 在新窗口中打开
+        NSWorkspace.shared.open(folder.url)
+        
+        // 触发自动隐藏窗口
+        WindowManager.shared.hideWindowAfterAction(.fileOpened)
+    }
+    
+    func moveFileToFolder(fileURL: URL, folder: FavoriteFolder) -> Bool {
+        let fileName = fileURL.lastPathComponent
+        let destinationURL = folder.url.appendingPathComponent(fileName)
+        
+        do {
+            // 如果目标文件已存在，生成新名称
+            let finalURL = generateUniqueURL(for: destinationURL)
+            
+            // 移动文件
+            try FileManager.default.moveItem(at: fileURL, to: finalURL)
+            
+            // 更新访问统计
+            if let index = folders.firstIndex(where: { $0.id == folder.id }) {
+                folders[index].lastAccessed = Date()
+                folders[index].accessCount += 1
+                saveMetadata(for: folders[index])
+            }
+            
+            return true
+        } catch {
+            print("Error moving file: \(error)")
+            return false
+        }
+    }
+    
+    func toggleSelection(_ folder: FavoriteFolder) {
+        if selectedFolders.contains(folder.id) {
+            selectedFolders.remove(folder.id)
         } else {
-            selectedFiles.insert(file.id)
+            selectedFolders.insert(folder.id)
         }
     }
     
     func selectAll() {
-        selectedFiles = Set(files.map { $0.id })
+        selectedFolders = Set(folders.map { $0.id })
     }
     
     func deselectAll() {
-        selectedFiles.removeAll()
+        selectedFolders.removeAll()
     }
     
-    var sortedFiles: [TempFile] {
-        files.sorted { first, second in
-            // 收藏的文件总是在前面
+    var sortedFolders: [FavoriteFolder] {
+        folders.sorted { first, second in
+            // 收藏的文件夹总是在前面
             if first.isFavorite && !second.isFavorite {
                 return true
             } else if !first.isFavorite && second.isFavorite {
@@ -292,101 +242,90 @@ class TempFileManager: ObservableObject {
                 result = first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
             case .dateAdded:
                 result = first.dateAdded < second.dateAdded
-            case .size:
-                result = first.size < second.size
-            case .type:
-                result = first.fileType.rawValue.localizedCaseInsensitiveCompare(second.fileType.rawValue) == .orderedAscending
             case .lastAccessed:
                 result = first.lastAccessed < second.lastAccessed
+            case .accessCount:
+                result = first.accessCount < second.accessCount
             }
             
             return isAscending ? result : !result
         }
     }
     
-    var filesByType: [FileType: [TempFile]] {
-        Dictionary(grouping: sortedFiles) { $0.fileType }
-    }
-    
-    var totalSize: Int64 {
-        files.reduce(0) { $0 + $1.size }
-    }
-    
-    func clearAllFiles() {
-        for file in files {
-            try? FileManager.default.removeItem(at: file.url)
+    func clearAllFolders() {
+        for folder in folders {
+            let metadataURL = metadataDirectory.appendingPathComponent("\(folder.id.uuidString).json")
+            try? FileManager.default.removeItem(at: metadataURL)
         }
-        files.removeAll()
+        folders.removeAll()
     }
     
-    private func loadExistingFiles() {
+    private func loadExistingFolders() {
         do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(
-                at: tempDirectory,
-                includingPropertiesForKeys: [.fileSizeKey, .creationDateKey]
-            )
+            let metadataFiles = try FileManager.default.contentsOfDirectory(
+                at: metadataDirectory,
+                includingPropertiesForKeys: nil
+            ).filter { $0.pathExtension == "json" }
             
-            for url in fileURLs {
-                let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-                let size = attributes[.size] as? Int64 ?? 0
-                let dateAdded = attributes[.creationDate] as? Date ?? Date()
-                
-                let tempFile = TempFile(
-                    url: url,
-                    name: url.lastPathComponent,
-                    size: size,
-                    dateAdded: dateAdded,
-                    lastAccessed: dateAdded
-                )
-                
-                // 尝试加载元数据
-                let finalFile = loadMetadata(for: tempFile) ?? tempFile
-                
-                files.append(finalFile)
+            for metadataFile in metadataFiles {
+                if let folder = loadMetadata(from: metadataFile) {
+                    // 验证文件夹是否仍然存在
+                    if FileManager.default.fileExists(atPath: folder.url.path) {
+                        folders.append(folder)
+                    } else {
+                        // 文件夹不存在，删除元数据
+                        try? FileManager.default.removeItem(at: metadataFile)
+                    }
+                }
             }
             
         } catch {
-            print("Error loading existing files: \(error)")
+            print("Error loading existing folders: \(error)")
         }
     }
     
-    private func saveMetadata(for file: TempFile) {
-        let metadata = FileMetadata(
-            id: file.id,
-            tags: file.tags,
-            isFavorite: file.isFavorite,
-            lastAccessed: file.lastAccessed
+    private func saveMetadata(for folder: FavoriteFolder) {
+        let metadata = FolderMetadata(
+            id: folder.id,
+            url: folder.url,
+            name: folder.name,
+            dateAdded: folder.dateAdded,
+            lastAccessed: folder.lastAccessed,
+            accessCount: folder.accessCount,
+            tags: folder.tags,
+            isFavorite: folder.isFavorite,
+            customIcon: folder.customIcon
         )
         
         do {
             let data = try JSONEncoder().encode(metadata)
-            let metadataURL = metadataDirectory.appendingPathComponent("\(file.id.uuidString).json")
+            let metadataURL = metadataDirectory.appendingPathComponent("\(folder.id.uuidString).json")
             try data.write(to: metadataURL)
         } catch {
             print("Error saving metadata: \(error)")
         }
     }
     
-    private func loadMetadata(for file: TempFile) -> TempFile? {
-        let metadataURL = metadataDirectory.appendingPathComponent("\(file.id.uuidString).json")
-        
+    private func loadMetadata(from url: URL) -> FavoriteFolder? {
         do {
-            let data = try Data(contentsOf: metadataURL)
-            let metadata = try JSONDecoder().decode(FileMetadata.self, from: data)
+            let data = try Data(contentsOf: url)
+            let metadata = try JSONDecoder().decode(FolderMetadata.self, from: data)
             
-            let updatedFile = TempFile(
-                id: file.id,
-                url: file.url,
-                name: file.name,
-                size: file.size,
-                dateAdded: file.dateAdded,
+            let folder = FavoriteFolder(
+                id: metadata.id,
+                url: metadata.url,
+                name: metadata.name,
+                dateAdded: metadata.dateAdded,
                 lastAccessed: metadata.lastAccessed,
+                accessCount: metadata.accessCount,
                 tags: metadata.tags,
-                isFavorite: metadata.isFavorite
+                isFavorite: metadata.isFavorite,
+                customIcon: metadata.customIcon
             )
             
-            return updatedFile
+            return folder
         } catch {
+            print("Error loading metadata: \(error)")
             return nil
         }
     }
@@ -412,9 +351,14 @@ class TempFileManager: ObservableObject {
     }
 }
 
-struct FileMetadata: Codable {
+struct FolderMetadata: Codable {
     let id: UUID
+    let url: URL
+    let name: String
+    let dateAdded: Date
+    let lastAccessed: Date
+    let accessCount: Int
     let tags: Set<String>
     let isFavorite: Bool
-    let lastAccessed: Date
+    let customIcon: String?
 }

@@ -182,7 +182,7 @@
 "preferences.section.appearance" = "Erscheinungsbild";
 "preferences.section.interaction" = "Interaktion";
 "preferences.section.features" = "Funktionsschalter";
-"preferences.section.files" = "Dateien";
+"preferences.section.files" = "Ordner";
 "preferences.section.clipboard" = "Zwischenablage";
 "preferences.section.storage_location" = "Speicherorte";
 "preferences.section.data_management" = "Datenverwaltung";
@@ -209,7 +209,7 @@
 "preferences.storage.path_not_writable" = "Der ausgewählte Pfad ist nicht beschreibbar. Bitte wählen Sie einen anderen Ort.";
 
 // MARK: - Datenverwaltung
-"preferences.data.clear_files" = "Alle Dateien löschen";
+"preferences.data.clear_files" = "Alle Ordner löschen";
 "preferences.data.clear_clipboard" = "Zwischenablage-Verlauf löschen";
 "preferences.data.clear_notes" = "Alle Notizen löschen";
 "preferences.data.export" = "Daten exportieren";

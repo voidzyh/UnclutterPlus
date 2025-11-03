@@ -4,7 +4,7 @@
 */
 
 // MARK: - Titres d'onglets
-"tab.files" = "Fichiers";
+"tab.files" = "Dossiers";
 "tab.clipboard" = "Presse-papiers";
 "tab.notes" = "Notes";
 
@@ -69,16 +69,16 @@
 "menu.hide_menubar_icon" = "Masquer l'icône de la barre de menus";
 
 // MARK: - Vue des fichiers
-"files.drop_area.title" = "Déposer les fichiers ici";
-"files.drop_area.subtitle" = "Glissez-déposez des fichiers pour les stocker temporairement";
-"files.no_files" = "Aucun fichier stocké";
-"files.sort.by" = "Trier par";
-"files.sort.name" = "Nom";
-"files.sort.date" = "Date";
-"files.sort.size" = "Taille";
-"files.contextmenu.reveal" = "Révéler dans le Finder";
-"files.contextmenu.open" = "Ouvrir";
-"files.contextmenu.delete" = "Supprimer";
+"folders.drop_area.title" = "Déposer les fichiers ici";
+"folders.drop_area.subtitle" = "Glissez-déposez des fichiers pour les stocker temporairement";
+"folders.no_matching" = "Aucun fichier stocké";
+"folders.sort.by" = "Trier par";
+"folders.sort.name" = "Nom";
+"folders.sort.date" = "Date";
+"folders.sort.size" = "Taille";
+"folders.contextmenu.reveal" = "Révéler dans le Finder";
+"folders.contextmenu.open" = "Ouvrir";
+"folders.contextmenu.delete" = "Supprimer";
 
 // MARK: - Vue du presse-papiers
 "clipboard.empty" = "Aucun historique du presse-papiers";
@@ -134,7 +134,7 @@
 "preferences.section.appearance" = "Apparence";
 "preferences.section.interaction" = "Interaction";
 "preferences.section.features" = "Activation des fonctionnalités";
-"preferences.section.files" = "Fichiers";
+"preferences.section.files" = "Dossiers";
 "preferences.section.clipboard" = "Presse-papiers";
 "preferences.section.storage_location" = "Emplacements de stockage";
 "preferences.section.data_management" = "Gestion des données";
@@ -161,7 +161,7 @@
 "preferences.storage.path_not_writable" = "Le chemin sélectionné n'est pas accessible en écriture. Veuillez choisir un autre emplacement.";
 
 // MARK: - Gestion des données
-"preferences.data.clear_files" = "Effacer tous les fichiers";
+"preferences.data.clear_files" = "Effacer tous les dossiers";
 "preferences.data.clear_clipboard" = "Effacer l'historique du presse-papiers";
 "preferences.data.clear_notes" = "Supprimer toutes les notes";
 "preferences.data.export" = "Exporter les données";

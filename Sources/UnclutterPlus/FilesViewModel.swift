@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 
 /// FilesView 的视图模型
-/// 职责: 管理文件视图的状态、搜索过滤和视图模式
+/// 职责: 管理文件夹快捷方式视图的状态、搜索过滤和视图模式
 final class FilesViewModel: ObservableObject {
     // MARK: - Published Properties
 
@@ -19,49 +19,45 @@ final class FilesViewModel: ObservableObject {
     /// 多选模式标志
     @Published var isMultiSelectMode: Bool = false
 
-    /// 悬停的文件ID
-    @Published var hoveredFile: UUID?
+    /// 悬停的文件夹ID
+    @Published var hoveredFolder: UUID?
 
-    /// 正在编辑的文件名ID
-    @Published var editingFileName: UUID?
+    /// 正在编辑的文件夹名ID
+    @Published var editingFolderName: UUID?
 
-    /// 新文件名
-    @Published var newFileName: String = ""
+    /// 新文件夹名
+    @Published var newFolderName: String = ""
 
-    /// 过滤后的文件列表
-    @Published private(set) var filteredFiles: [TempFile] = []
+    /// 过滤后的文件夹列表
+    @Published private(set) var filteredFolders: [FavoriteFolder] = []
 
     // MARK: - Dependencies
 
-    private let fileManager: TempFileManager
+    private let foldersManager: FavoriteFoldersManager
     private var cancellables: Set<AnyCancellable> = []
 
-    // MARK: - Public Computed Properties (暴露 fileManager 必要属性)
+    // MARK: - Public Computed Properties (暴露 foldersManager 必要属性)
 
     var sortOption: SortOption {
-        fileManager.sortOption
+        foldersManager.sortOption
     }
 
     var isAscending: Bool {
-        fileManager.isAscending
+        foldersManager.isAscending
     }
 
-    var selectedFiles: Set<UUID> {
-        fileManager.selectedFiles
+    var selectedFolders: Set<UUID> {
+        foldersManager.selectedFolders
     }
 
-    var totalSize: Int64 {
-        fileManager.totalSize
-    }
-
-    var filesByType: [FileType: [TempFile]] {
-        fileManager.filesByType
+    var totalFolders: Int {
+        foldersManager.folders.count
     }
 
     // MARK: - Initialization
 
-    init(fileManager: TempFileManager = TempFileManager()) {
-        self.fileManager = fileManager
+    init(foldersManager: FavoriteFoldersManager = FavoriteFoldersManager()) {
+        self.foldersManager = foldersManager
         observeChanges()
     }
 
@@ -69,7 +65,7 @@ final class FilesViewModel: ObservableObject {
 
     /// 视图出现时调用
     func onAppear() {
-        updateFilteredFiles()
+        updateFilteredFolders()
     }
 
     /// 处理拖拽进入
@@ -82,8 +78,8 @@ final class FilesViewModel: ObservableObject {
         dragOver = false
     }
 
-    /// 处理文件拖放
-    func handleFileDrop(providers: [NSItemProvider]) -> Bool {
+    /// 处理文件夹拖放
+    func handleFolderDrop(providers: [NSItemProvider]) -> Bool {
         dragOver = false
 
         for provider in providers {
@@ -95,7 +91,12 @@ final class FilesViewModel: ObservableObject {
                     }
 
                     DispatchQueue.main.async {
-                        self?.fileManager.addFile(from: url)
+                        // 检查是否为文件夹
+                        var isDirectory: ObjCBool = false
+                        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+                           isDirectory.boolValue {
+                            self?.foldersManager.addFolder(url: url)
+                        }
                     }
                 }
             }
@@ -103,52 +104,83 @@ final class FilesViewModel: ObservableObject {
 
         return true
     }
+    
+    /// 处理拖放文件到文件夹
+    func handleFileDragToFolder(providers: [NSItemProvider], folder: FavoriteFolder) -> Bool {
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier("public.file-url") {
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { [weak self] item, error in
+                    guard let data = item as? Data,
+                          let url = URL(dataRepresentation: data, relativeTo: nil) else {
+                        return
+                    }
 
-    /// 打开文件
-    func openFile(_ file: TempFile) {
-        fileManager.openFile(file)
+                    DispatchQueue.main.async {
+                        let success = self?.foldersManager.moveFileToFolder(fileURL: url, folder: folder) ?? false
+                        if success {
+                            // 可以添加成功提示
+                            print("File moved successfully to \(folder.name)")
+                        } else {
+                            // 可以添加失败提示
+                            print("Failed to move file to \(folder.name)")
+                        }
+                    }
+                }
+            }
+        }
+        return true
+    }
+
+    /// 打开文件夹
+    func openFolder(_ folder: FavoriteFolder) {
+        foldersManager.openFolder(folder)
+    }
+    
+    /// 在新窗口中打开文件夹
+    func openFolderInNewWindow(_ folder: FavoriteFolder) {
+        foldersManager.openFolderInNewWindow(folder)
     }
 
     /// 设置排序选项
     func setSortOption(_ option: SortOption) {
-        fileManager.sortOption = option
+        foldersManager.sortOption = option
     }
 
     /// 切换排序顺序
     func toggleSortOrder() {
-        fileManager.isAscending.toggle()
+        foldersManager.isAscending.toggle()
     }
 
-    /// 在访达中显示文件
-    func showInFinder(_ file: TempFile) {
-        NSWorkspace.shared.activateFileViewerSelecting([file.url])
+    /// 在访达中显示文件夹
+    func showInFinder(_ folder: FavoriteFolder) {
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.url.path)
 
         // 通知 WindowManager 自动隐藏
         WindowManager.shared.hideWindowAfterAction(.fileShowInFinder)
     }
 
-    /// 删除文件
-    func deleteFile(_ file: TempFile) {
-        fileManager.removeFile(file)
+    /// 删除文件夹
+    func deleteFolder(_ folder: FavoriteFolder) {
+        foldersManager.removeFolder(folder)
     }
 
-    /// 重命名文件
-    func renameFile(_ file: TempFile, to newName: String) {
-        fileManager.renameFile(file, to: newName)
-        editingFileName = nil
-        newFileName = ""
+    /// 重命名文件夹
+    func renameFolder(_ folder: FavoriteFolder, to newName: String) {
+        foldersManager.renameFolder(folder, to: newName)
+        editingFolderName = nil
+        newFolderName = ""
     }
 
-    /// 开始编辑文件名
-    func startEditingFileName(_ file: TempFile) {
-        editingFileName = file.id
-        newFileName = file.name
+    /// 开始编辑文件夹名
+    func startEditingFolderName(_ folder: FavoriteFolder) {
+        editingFolderName = folder.id
+        newFolderName = folder.name
     }
 
-    /// 取消编辑文件名
-    func cancelEditingFileName() {
-        editingFileName = nil
-        newFileName = ""
+    /// 取消编辑文件夹名
+    func cancelEditingFolderName() {
+        editingFolderName = nil
+        newFolderName = ""
     }
 
     /// 清空搜索文本
@@ -161,47 +193,40 @@ final class FilesViewModel: ObservableObject {
         viewMode = mode
     }
 
-    /// 获取文件按类型分组
-    func groupedFiles() -> [(type: FileType, files: [TempFile])] {
-        let grouped = Dictionary(grouping: filteredFiles) { $0.fileType }
-        return grouped.map { (type: $0.key, files: $0.value) }
-            .sorted { $0.type.rawValue < $1.type.rawValue }
-    }
-
     /// 切换多选模式
     func toggleMultiSelectMode() {
         isMultiSelectMode.toggle()
         if !isMultiSelectMode {
-            fileManager.selectedFiles.removeAll()
+            foldersManager.selectedFolders.removeAll()
         }
     }
 
-    /// 切换文件选择状态
-    func toggleSelection(_ file: TempFile) {
-        fileManager.toggleSelection(file)
+    /// 切换文件夹选择状态
+    func toggleSelection(_ folder: FavoriteFolder) {
+        foldersManager.toggleSelection(folder)
     }
 
     /// 切换收藏状态
-    func toggleFavorite(_ file: TempFile) {
-        fileManager.toggleFavorite(file)
+    func toggleFavorite(_ folder: FavoriteFolder) {
+        foldersManager.toggleFavorite(folder)
     }
 
-    /// 删除选中的文件
-    func deleteSelectedFiles(_ files: [TempFile]) {
-        for file in files {
-            fileManager.removeFile(file)
+    /// 删除选中的文件夹
+    func deleteSelectedFolders(_ folders: [FavoriteFolder]) {
+        for folder in folders {
+            foldersManager.removeFolder(folder)
         }
-        fileManager.selectedFiles.removeAll()
+        foldersManager.selectedFolders.removeAll()
     }
 
     /// 全选
     func selectAll() {
-        fileManager.selectedFiles = Set(filteredFiles.map { $0.id })
+        foldersManager.selectedFolders = Set(filteredFolders.map { $0.id })
     }
 
-    /// 清空所有文件
-    func clearAllFiles() {
-        fileManager.clearAllFiles()
+    /// 清空所有文件夹
+    func clearAllFolders() {
+        foldersManager.clearAllFolders()
     }
 
     // MARK: - Private Methods
@@ -212,29 +237,28 @@ final class FilesViewModel: ObservableObject {
         $searchText
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.updateFilteredFiles()
+                self?.updateFilteredFolders()
             }
             .store(in: &cancellables)
 
-        // 监听文件管理器变化
-        fileManager.objectWillChange
+        // 监听文件夹管理器变化
+        foldersManager.objectWillChange
             .sink { [weak self] _ in
-                self?.updateFilteredFiles()
+                self?.updateFilteredFolders()
             }
             .store(in: &cancellables)
     }
 
-    /// 更新过滤后的文件列表
-    private func updateFilteredFiles() {
-        let files = fileManager.sortedFiles
+    /// 更新过滤后的文件夹列表
+    private func updateFilteredFolders() {
+        let folders = foldersManager.sortedFolders
 
         if searchText.isEmpty {
-            filteredFiles = files
+            filteredFolders = folders
         } else {
-            filteredFiles = files.filter { file in
-                file.name.localizedCaseInsensitiveContains(searchText) ||
-                file.fileType.rawValue.localizedCaseInsensitiveContains(searchText) ||
-                file.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            filteredFolders = folders.filter { folder in
+                folder.name.localizedCaseInsensitiveContains(searchText) ||
+                folder.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
             }
         }
     }

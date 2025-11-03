@@ -4,7 +4,6 @@ import UniformTypeIdentifiers
 enum ViewMode: String, CaseIterable {
     case grid = "Grid"
     case list = "List"
-    case grouped = "Grouped"
     
     var systemImage: String {
         switch self {
@@ -12,17 +11,15 @@ enum ViewMode: String, CaseIterable {
             return "square.grid.2x2"
         case .list:
             return "list.bullet"
-        case .grouped:
-            return "folder"
         }
     }
 }
 
 struct FilesView: View {
     @StateObject private var viewModel = FilesViewModel()
-    @State private var hoveredFile: UUID?
-    @State private var editingFileName: UUID?
-    @State private var newFileName = ""
+    @State private var hoveredFolder: UUID?
+    @State private var editingFolderName: UUID?
+    @State private var newFolderName = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +31,7 @@ struct FilesView: View {
                         .foregroundColor(DesignSystem.Colors.secondaryText)
                         .font(DesignSystem.Typography.caption)
 
-                    TextField("Search files...", text: $viewModel.searchText)
+                    TextField("folders.search.placeholder".localized, text: $viewModel.searchText)
                         .textFieldStyle(.plain)
                         .font(DesignSystem.Typography.body)
 
@@ -75,7 +72,7 @@ struct FilesView: View {
             .padding(.horizontal, DesignSystem.Spacing.md)
             .padding(.top, DesignSystem.Spacing.md)
             
-            if viewModel.filteredFiles.isEmpty {
+            if viewModel.filteredFolders.isEmpty {
                 // 空状态
                 VStack(spacing: 20) {
                     if viewModel.searchText.isEmpty {
@@ -83,12 +80,12 @@ struct FilesView: View {
                             .font(.system(size: 56))
                             .foregroundColor(.secondary)
                         
-                        Text("Drop files here")
+                        Text("folders.drop_area.title".localized)
                             .font(.title2)
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
                         
-                        Text("Drag and drop files to store them temporarily\nSupports all file types with intelligent categorization")
+                        Text("folders.drop_area.subtitle".localized)
                             .font(.callout)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
@@ -98,7 +95,7 @@ struct FilesView: View {
                             .font(.system(size: 48))
                             .foregroundColor(.secondary)
                         
-                        Text("No matching files")
+                        Text("folders.no_matching".localized)
                             .font(.title2)
                             .foregroundColor(.secondary)
                         
@@ -116,15 +113,13 @@ struct FilesView: View {
                         .strokeBorder(style: StrokeStyle(lineWidth: viewModel.dragOver ? 3 : 1, dash: [10]))
                 )
             } else {
-                // 文件内容区域
+                // 文件夹内容区域
                 ScrollView {
                     switch viewModel.viewMode {
                     case .grid:
                         gridView
                     case .list:
                         listView
-                    case .grouped:
-                        groupedView
                     }
                 }
                 .background(
@@ -135,31 +130,23 @@ struct FilesView: View {
             
             // 底部状态栏
             HStack {
-                if viewModel.isMultiSelectMode && !viewModel.selectedFiles.isEmpty {
-                    Button("删除已选 (\(viewModel.selectedFiles.count))") {
-                        let selectedFiles = viewModel.filteredFiles.filter { viewModel.selectedFiles.contains($0.id) }
-                        viewModel.deleteSelectedFiles(selectedFiles)
+                if viewModel.isMultiSelectMode && !viewModel.selectedFolders.isEmpty {
+                    Button("folders.delete_selected".localized + " (\(viewModel.selectedFolders.count))") {
+                        let selectedFolders = viewModel.filteredFolders.filter { viewModel.selectedFolders.contains($0.id) }
+                        viewModel.deleteSelectedFolders(selectedFolders)
                     }
                     .buttonStyle(.borderless)
                     .foregroundColor(.red)
                 } else {
-                    Button("清空全部") {
-                        viewModel.clearAllFiles()
+                    Button("folders.clear_all".localized) {
+                        viewModel.clearAllFolders()
                     }
                     .buttonStyle(.borderless)
                 }
 
                 Spacer()
 
-                Text("\(viewModel.filteredFiles.count) 文件")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text("|")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
-
-                Text(ByteCountFormatter.string(fromByteCount: viewModel.totalSize, countStyle: .file))
+                Text("\(viewModel.filteredFolders.count) " + "folders.count".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -167,7 +154,7 @@ struct FilesView: View {
                     Text("|")
                         .foregroundColor(.secondary)
                         .font(.caption)
-                    Text("\(viewModel.selectedFiles.count) 已选")
+                    Text("\(viewModel.selectedFolders.count) " + "folders.selected".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -176,7 +163,7 @@ struct FilesView: View {
             .padding(.bottom, 8)
         }
         .onDrop(of: [.fileURL], isTargeted: $viewModel.dragOver) { providers in
-            viewModel.handleFileDrop(providers: providers)
+            viewModel.handleFolderDrop(providers: providers)
         }
         .onChange(of: viewModel.dragOver) { _, isDragging in
             WindowManager.shared.setDraggingFile(isDragging)
@@ -189,148 +176,107 @@ struct FilesView: View {
     private var gridView: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 4)
         return LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(viewModel.filteredFiles) { file in
-                fileGridItem(file)
+            ForEach(viewModel.filteredFolders) { folder in
+                folderGridItem(folder)
             }
         }
         .padding()
     }
 
-    private func fileGridItem(_ file: TempFile) -> some View {
-        FileItemGridView(
-            file: file,
-            isSelected: viewModel.selectedFiles.contains(file.id),
-            isHovered: hoveredFile == file.id,
+    private func folderGridItem(_ folder: FavoriteFolder) -> some View {
+        FolderItemGridView(
+            folder: folder,
+            isSelected: viewModel.selectedFolders.contains(folder.id),
+            isHovered: hoveredFolder == folder.id,
             showSelectionMode: viewModel.isMultiSelectMode,
-            isEditing: editingFileName == file.id,
-            editingName: $newFileName
+            isEditing: editingFolderName == folder.id,
+            editingName: $newFolderName
         ) {
-            handleFileTap(file)
+            handleFolderTap(folder)
         } onSecondaryAction: {
-            viewModel.showInFinder(file)
+            viewModel.showInFinder(folder)
         } onDelete: {
-            viewModel.deleteFile(file)
+            viewModel.deleteFolder(folder)
         } onToggleFavorite: {
-            viewModel.toggleFavorite(file)
+            viewModel.toggleFavorite(folder)
         } onToggleSelection: {
-            viewModel.toggleSelection(file)
+            viewModel.toggleSelection(folder)
         } onRename: { newName in
-            viewModel.renameFile(file, to: newName)
-            editingFileName = nil
+            viewModel.renameFolder(folder, to: newName)
+            editingFolderName = nil
         } onStartRename: {
-            editingFileName = file.id
-            newFileName = file.name
+            editingFolderName = folder.id
+            newFolderName = folder.name
+        } onOpenInNewWindow: {
+            viewModel.openFolderInNewWindow(folder)
+        } onFileDrop: { providers in
+            viewModel.handleFileDragToFolder(providers: providers, folder: folder)
         }
         .onHover { isHovering in
-            hoveredFile = isHovering ? file.id : nil
+            hoveredFolder = isHovering ? folder.id : nil
         }
     }
 
-    private func handleFileTap(_ file: TempFile) {
+    private func handleFolderTap(_ folder: FavoriteFolder) {
         if viewModel.isMultiSelectMode {
-            viewModel.toggleSelection(file)
+            viewModel.toggleSelection(folder)
         } else {
-            viewModel.openFile(file)
+            viewModel.openFolder(folder)
         }
     }
     
     private var listView: some View {
         LazyVStack(spacing: 2) {
-            ForEach(viewModel.filteredFiles) { file in
-                fileListItem(file)
+            ForEach(viewModel.filteredFolders) { folder in
+                folderListItem(folder)
             }
         }
         .padding()
     }
 
-    private func fileListItem(_ file: TempFile) -> some View {
-        FileItemListView(
-            file: file,
-            isSelected: viewModel.selectedFiles.contains(file.id),
-            isHovered: hoveredFile == file.id,
+    private func folderListItem(_ folder: FavoriteFolder) -> some View {
+        FolderItemListView(
+            folder: folder,
+            isSelected: viewModel.selectedFolders.contains(folder.id),
+            isHovered: hoveredFolder == folder.id,
             showSelectionMode: viewModel.isMultiSelectMode,
-            isEditing: editingFileName == file.id,
-            editingName: $newFileName
+            isEditing: editingFolderName == folder.id,
+            editingName: $newFolderName
         ) {
-            handleFileTap(file)
+            handleFolderTap(folder)
         } onSecondaryAction: {
-            viewModel.showInFinder(file)
+            viewModel.showInFinder(folder)
         } onDelete: {
-            viewModel.deleteFile(file)
+            viewModel.deleteFolder(folder)
         } onToggleFavorite: {
-            viewModel.toggleFavorite(file)
+            viewModel.toggleFavorite(folder)
         } onToggleSelection: {
-            viewModel.toggleSelection(file)
+            viewModel.toggleSelection(folder)
         } onRename: { newName in
-            viewModel.renameFile(file, to: newName)
-            editingFileName = nil
+            viewModel.renameFolder(folder, to: newName)
+            editingFolderName = nil
         } onStartRename: {
-            editingFileName = file.id
-            newFileName = file.name
+            editingFolderName = folder.id
+            newFolderName = folder.name
+        } onOpenInNewWindow: {
+            viewModel.openFolderInNewWindow(folder)
+        } onFileDrop: { providers in
+            viewModel.handleFileDragToFolder(providers: providers, folder: folder)
         }
         .onHover { isHovering in
-            hoveredFile = isHovering ? file.id : nil
+            hoveredFolder = isHovering ? folder.id : nil
         }
-    }
-
-    private var groupedView: some View {
-        let sortedTypes = Array(viewModel.filesByType.keys.sorted(by: { $0.rawValue < $1.rawValue }))
-        return LazyVStack(alignment: .leading, spacing: 20) {
-            ForEach(sortedTypes, id: \.self) { type in
-                fileTypeGroup(type)
-            }
-        }
-        .padding()
-    }
-
-    @ViewBuilder
-    private func fileTypeGroup(_ type: FileType) -> some View {
-        if let files = viewModel.filesByType[type], !files.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                fileTypeHeader(type, count: files.count)
-                fileTypeGrid(files)
-            }
-        }
-    }
-
-    private func fileTypeHeader(_ type: FileType, count: Int) -> some View {
-        HStack {
-            Image(systemName: type.systemImage)
-                .foregroundColor(type.color)
-                .font(.title2)
-
-            Text(type.rawValue)
-                .font(.headline)
-                .fontWeight(.semibold)
-
-            Text("(\(count))")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            Spacer()
-        }
-        .padding(.horizontal)
-    }
-
-    private func fileTypeGrid(_ files: [TempFile]) -> some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 5)
-        return LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(files) { file in
-                fileGridItem(file)
-            }
-        }
-        .padding(.horizontal)
     }
     
     private func handleKeyDown(_ event: NSEvent) -> Bool {
         let keyCode = event.keyCode
         let modifierFlags = event.modifierFlags
 
-        // Delete 键删除选中文件
+        // Delete 键删除选中文件夹
         if keyCode == 51 { // Delete key
-            if !viewModel.selectedFiles.isEmpty {
-                let selectedFiles = viewModel.filteredFiles.filter { viewModel.selectedFiles.contains($0.id) }
-                viewModel.deleteSelectedFiles(selectedFiles)
+            if !viewModel.selectedFolders.isEmpty {
+                let selectedFolders = viewModel.filteredFolders.filter { viewModel.selectedFolders.contains($0.id) }
+                viewModel.deleteSelectedFolders(selectedFolders)
                 return true
             }
         }
@@ -345,12 +291,10 @@ struct FilesView: View {
 
         return false
     }
-
-    // 删除 handleFileDrop 函数,因为已由 ViewModel 处理
 }
 
-struct FileItemGridView: View {
-    let file: TempFile
+struct FolderItemGridView: View {
+    let folder: FavoriteFolder
     let isSelected: Bool
     let isHovered: Bool
     let showSelectionMode: Bool
@@ -364,6 +308,10 @@ struct FileItemGridView: View {
     let onToggleSelection: () -> Void
     let onRename: (String) -> Void
     let onStartRename: () -> Void
+    let onOpenInNewWindow: () -> Void
+    let onFileDrop: ([NSItemProvider]) -> Bool
+
+    @State private var isDraggingOver = false
 
     var body: some View {
         VStack(spacing: DesignSystem.Spacing.sm) {
@@ -383,7 +331,7 @@ struct FileItemGridView: View {
                         Spacer()
                     }
                     .padding(DesignSystem.Spacing.xs)
-                } else if file.isFavorite {
+                } else if folder.isFavorite {
                     VStack {
                         HStack {
                             Spacer()
@@ -396,18 +344,19 @@ struct FileItemGridView: View {
                     .padding(DesignSystem.Spacing.xs)
                 }
 
-                // 文件图标和信息
+                // 文件夹图标和信息
                 VStack(spacing: DesignSystem.Spacing.sm) {
-                    // 文件图标 - 添加微妙动画
-                    Image(systemName: file.systemImage)
+                    // 文件夹图标 - 添加微妙动画
+                    Image(systemName: folder.systemImage)
                         .font(.system(size: 40))
-                        .foregroundColor(file.typeColor)
-                        .scaleEffect(isHovered ? 1.05 : 1.0)
+                        .foregroundColor(.blue)
+                        .scaleEffect(isHovered || isDraggingOver ? 1.05 : 1.0)
                         .animation(DesignSystem.Animation.spring, value: isHovered)
+                        .animation(DesignSystem.Animation.spring, value: isDraggingOver)
 
-                    // 文件名
+                    // 文件夹名
                     if isEditing {
-                        TextField("File name", text: $editingName, onCommit: {
+                        TextField("Folder name", text: $editingName, onCommit: {
                             onRename(editingName)
                         })
                         .textFieldStyle(.plain)
@@ -419,7 +368,7 @@ struct FileItemGridView: View {
                                 .fill(.regularMaterial)
                         )
                     } else {
-                        Text(file.name)
+                        Text(folder.name)
                             .font(DesignSystem.Typography.caption)
                             .fontWeight(.medium)
                             .lineLimit(2)
@@ -428,17 +377,17 @@ struct FileItemGridView: View {
                             .foregroundColor(DesignSystem.Colors.primaryText)
                     }
 
-                    // 文件信息
+                    // 文件夹信息
                     VStack(spacing: DesignSystem.Spacing.xs) {
-                        Text(file.sizeString)
+                        Text(folder.itemCountString)
                             .font(DesignSystem.Typography.caption2)
                             .foregroundColor(DesignSystem.Colors.secondaryText)
 
-                        if !file.tags.isEmpty {
+                        if !folder.tags.isEmpty {
                             HStack(spacing: DesignSystem.Spacing.xs) {
-                                ForEach(Array(file.tags.prefix(2)), id: \.self) { tag in
+                                ForEach(Array(folder.tags.prefix(2)), id: \.self) { tag in
                                     Text(tag)
-                                        .tagStyle(color: file.typeColor)
+                                        .tagStyle(color: .blue)
                                 }
                             }
                         }
@@ -450,24 +399,24 @@ struct FileItemGridView: View {
             if isHovered && !showSelectionMode && !isEditing {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     ActionButton(
-                        icon: file.isFavorite ? "star.fill" : "star",
-                        color: file.isFavorite ? .yellow : DesignSystem.Colors.secondaryText,
+                        icon: folder.isFavorite ? "star.fill" : "star",
+                        color: folder.isFavorite ? .yellow : DesignSystem.Colors.secondaryText,
                         action: onToggleFavorite,
-                        tooltip: file.isFavorite ? "取消收藏" : "收藏"
+                        tooltip: folder.isFavorite ? "folders.contextmenu.unfavorite".localized : "folders.contextmenu.favorite".localized
                     )
 
                     ActionButton(
-                        icon: "folder",
+                        icon: "arrow.up.forward.square",
                         color: DesignSystem.Colors.secondaryText,
-                        action: onSecondaryAction,
-                        tooltip: "在 Finder 中显示"
+                        action: onOpenInNewWindow,
+                        tooltip: "folders.contextmenu.open_new_window".localized
                     )
 
                     ActionButton(
                         icon: "trash",
                         color: DesignSystem.Colors.error,
                         action: onDelete,
-                        tooltip: "删除"
+                        tooltip: "folders.contextmenu.delete".localized
                     )
                 }
                 .padding(.horizontal, DesignSystem.Spacing.sm)
@@ -499,29 +448,36 @@ struct FileItemGridView: View {
             onPrimaryAction()
         }
         .contextMenu {
-            Button(file.isFavorite ? "取消收藏" : "收藏") {
+            Button(folder.isFavorite ? "folders.contextmenu.unfavorite".localized : "folders.contextmenu.favorite".localized) {
                 onToggleFavorite()
             }
 
             Divider()
 
-            Button("打开") {
+            Button("folders.contextmenu.open".localized) {
                 onPrimaryAction()
             }
 
-            Button("在 Finder 中显示") {
+            Button("folders.contextmenu.open_new_window".localized) {
+                onOpenInNewWindow()
+            }
+
+            Button("folders.contextmenu.reveal".localized) {
                 onSecondaryAction()
             }
 
-            Button("重命名") {
+            Button("folders.contextmenu.rename".localized) {
                 onStartRename()
             }
 
             Divider()
 
-            Button("删除", role: .destructive) {
+            Button("folders.contextmenu.delete".localized, role: .destructive) {
                 onDelete()
             }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDraggingOver) { providers in
+            onFileDrop(providers)
         }
         .animation(DesignSystem.Animation.spring, value: isHovered)
         .animation(DesignSystem.Animation.standard, value: isSelected)
@@ -530,7 +486,7 @@ struct FileItemGridView: View {
     private var backgroundMaterial: Material {
         if isSelected {
             return .thick
-        } else if file.isFavorite {
+        } else if folder.isFavorite {
             return .regularMaterial
         } else {
             return .thinMaterial
@@ -538,11 +494,13 @@ struct FileItemGridView: View {
     }
 
     private var borderColor: Color {
-        if isSelected {
+        if isDraggingOver {
+            return DesignSystem.Colors.accent
+        } else if isSelected {
             return DesignSystem.Colors.accent
         } else if isHovered {
             return DesignSystem.Colors.accent.opacity(0.3)
-        } else if file.isFavorite {
+        } else if folder.isFavorite {
             return Color.yellow.opacity(0.3)
         } else {
             return Color.clear
@@ -550,9 +508,11 @@ struct FileItemGridView: View {
     }
 
     private var borderWidth: CGFloat {
-        if isSelected {
+        if isDraggingOver {
+            return 3
+        } else if isSelected {
             return 2
-        } else if isHovered || file.isFavorite {
+        } else if isHovered || folder.isFavorite {
             return 1.5
         } else {
             return 0
@@ -560,7 +520,9 @@ struct FileItemGridView: View {
     }
 
     private var shadowColor: Color {
-        if isSelected {
+        if isDraggingOver {
+            return DesignSystem.Colors.accent.opacity(0.4)
+        } else if isSelected {
             return DesignSystem.Colors.accent.opacity(0.3)
         } else if isHovered {
             return .black.opacity(0.15)
@@ -570,7 +532,9 @@ struct FileItemGridView: View {
     }
 
     private var shadowRadius: CGFloat {
-        if isSelected {
+        if isDraggingOver {
+            return 12
+        } else if isSelected {
             return 10
         } else if isHovered {
             return 12
@@ -580,7 +544,7 @@ struct FileItemGridView: View {
     }
 
     private var shadowOffset: CGFloat {
-        if isHovered {
+        if isHovered || isDraggingOver {
             return 6
         } else if isSelected {
             return 4
@@ -621,8 +585,8 @@ private struct ActionButton: View {
     }
 }
 
-struct FileItemListView: View {
-    let file: TempFile
+struct FolderItemListView: View {
+    let folder: FavoriteFolder
     let isSelected: Bool
     let isHovered: Bool
     let showSelectionMode: Bool
@@ -636,6 +600,10 @@ struct FileItemListView: View {
     let onToggleSelection: () -> Void
     let onRename: (String) -> Void
     let onStartRename: () -> Void
+    let onOpenInNewWindow: () -> Void
+    let onFileDrop: ([NSItemProvider]) -> Bool
+
+    @State private var isDraggingOver = false
 
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.md) {
@@ -649,32 +617,33 @@ struct FileItemListView: View {
                 .buttonStyle(.plain)
             }
 
-            // 文件图标
-            Image(systemName: file.systemImage)
+            // 文件夹图标
+            Image(systemName: folder.systemImage)
                 .font(.system(size: 24))
-                .foregroundColor(file.typeColor)
+                .foregroundColor(.blue)
                 .frame(width: 32)
-                .scaleEffect(isHovered ? 1.05 : 1.0)
+                .scaleEffect(isHovered || isDraggingOver ? 1.05 : 1.0)
                 .animation(DesignSystem.Animation.spring, value: isHovered)
+                .animation(DesignSystem.Animation.spring, value: isDraggingOver)
 
-            // 文件信息
+            // 文件夹信息
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     if isEditing {
-                        TextField("File name", text: $editingName, onCommit: {
+                        TextField("Folder name", text: $editingName, onCommit: {
                             onRename(editingName)
                         })
                         .textFieldStyle(.plain)
                         .font(DesignSystem.Typography.body)
                         .fontWeight(.medium)
                     } else {
-                        Text(file.name)
+                        Text(folder.name)
                             .font(DesignSystem.Typography.body)
                             .fontWeight(.medium)
                             .foregroundColor(DesignSystem.Colors.primaryText)
                     }
 
-                    if file.isFavorite {
+                    if folder.isFavorite {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
                             .font(DesignSystem.Typography.caption)
@@ -684,15 +653,7 @@ struct FileItemListView: View {
                 }
 
                 HStack(spacing: DesignSystem.Spacing.xs) {
-                    Text(file.fileType.rawValue)
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(file.typeColor)
-
-                    Text("•")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.Colors.secondaryText)
-
-                    Text(file.sizeString)
+                    Text(folder.itemCountString)
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.Colors.secondaryText)
 
@@ -700,18 +661,18 @@ struct FileItemListView: View {
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.Colors.secondaryText)
 
-                    Text(file.dateAdded.formatted(.relative(presentation: .named)))
+                    Text(folder.dateAdded.formatted(.relative(presentation: .named)))
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.Colors.secondaryText)
 
                     Spacer()
                 }
 
-                if !file.tags.isEmpty {
+                if !folder.tags.isEmpty {
                     HStack(spacing: DesignSystem.Spacing.xs) {
-                        ForEach(Array(file.tags), id: \.self) { tag in
+                        ForEach(Array(folder.tags), id: \.self) { tag in
                             Text(tag)
-                                .tagStyle(color: file.typeColor)
+                                .tagStyle(color: .blue)
                         }
                     }
                 }
@@ -723,24 +684,24 @@ struct FileItemListView: View {
             if isHovered || showSelectionMode {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     ActionButton(
-                        icon: file.isFavorite ? "star.fill" : "star",
-                        color: file.isFavorite ? .yellow : DesignSystem.Colors.secondaryText,
+                        icon: folder.isFavorite ? "star.fill" : "star",
+                        color: folder.isFavorite ? .yellow : DesignSystem.Colors.secondaryText,
                         action: onToggleFavorite,
-                        tooltip: file.isFavorite ? "取消收藏" : "收藏"
+                        tooltip: folder.isFavorite ? "folders.contextmenu.unfavorite".localized : "folders.contextmenu.favorite".localized
                     )
 
                     ActionButton(
-                        icon: "folder",
+                        icon: "arrow.up.forward.square",
                         color: DesignSystem.Colors.secondaryText,
-                        action: onSecondaryAction,
-                        tooltip: "在 Finder 中显示"
+                        action: onOpenInNewWindow,
+                        tooltip: "folders.contextmenu.open_new_window".localized
                     )
 
                     ActionButton(
                         icon: "trash",
                         color: DesignSystem.Colors.error,
                         action: onDelete,
-                        tooltip: "删除"
+                        tooltip: "folders.contextmenu.delete".localized
                     )
                 }
                 .transition(.asymmetric(
@@ -764,29 +725,36 @@ struct FileItemListView: View {
             onPrimaryAction()
         }
         .contextMenu {
-            Button(file.isFavorite ? "取消收藏" : "收藏") {
+            Button(folder.isFavorite ? "folders.contextmenu.unfavorite".localized : "folders.contextmenu.favorite".localized) {
                 onToggleFavorite()
             }
 
             Divider()
 
-            Button("打开") {
+            Button("folders.contextmenu.open".localized) {
                 onPrimaryAction()
             }
 
-            Button("在 Finder 中显示") {
+            Button("folders.contextmenu.open_new_window".localized) {
+                onOpenInNewWindow()
+            }
+
+            Button("folders.contextmenu.reveal".localized) {
                 onSecondaryAction()
             }
 
-            Button("重命名") {
+            Button("folders.contextmenu.rename".localized) {
                 onStartRename()
             }
 
             Divider()
 
-            Button("删除", role: .destructive) {
+            Button("folders.contextmenu.delete".localized, role: .destructive) {
                 onDelete()
             }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDraggingOver) { providers in
+            onFileDrop(providers)
         }
         .animation(DesignSystem.Animation.spring, value: isHovered)
         .animation(DesignSystem.Animation.standard, value: isSelected)
@@ -801,7 +769,9 @@ struct FileItemListView: View {
     }
 
     private var borderColor: Color {
-        if isSelected {
+        if isDraggingOver {
+            return DesignSystem.Colors.accent
+        } else if isSelected {
             return DesignSystem.Colors.accent
         } else if isHovered {
             return DesignSystem.Colors.accent.opacity(0.2)
@@ -811,7 +781,9 @@ struct FileItemListView: View {
     }
 
     private var borderWidth: CGFloat {
-        if isSelected {
+        if isDraggingOver {
+            return 3
+        } else if isSelected {
             return 2
         } else if isHovered {
             return 1
@@ -821,7 +793,9 @@ struct FileItemListView: View {
     }
 
     private var shadowColor: Color {
-        if isSelected {
+        if isDraggingOver {
+            return DesignSystem.Colors.accent.opacity(0.3)
+        } else if isSelected {
             return DesignSystem.Colors.accent.opacity(0.2)
         } else if isHovered {
             return .black.opacity(0.08)
@@ -831,7 +805,7 @@ struct FileItemListView: View {
     }
 
     private var shadowRadius: CGFloat {
-        if isHovered || isSelected {
+        if isHovered || isSelected || isDraggingOver {
             return 4
         } else {
             return 2
@@ -839,7 +813,7 @@ struct FileItemListView: View {
     }
 
     private var shadowOffset: CGFloat {
-        if isHovered || isSelected {
+        if isHovered || isSelected || isDraggingOver {
             return 2
         } else {
             return 1
@@ -1011,8 +985,6 @@ struct MultiSelectButton: View {
         isActive ? 1.0 : (isHovered ? 1.1 : 1.0)
     }
 }
-
-// Key event handling is already defined in ClipboardView.swift
 
 #if DEBUG && canImport(SwiftUI) && canImport(PreviewsMacros)
 #Preview {

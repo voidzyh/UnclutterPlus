@@ -4,7 +4,7 @@
 */
 
 // MARK: - 탭 제목
-"tab.files" = "파일";
+"tab.files" = "폴더";
 "tab.clipboard" = "클립보드";
 "tab.notes" = "메모";
 
@@ -68,17 +68,22 @@
 "menu.show_menubar_icon" = "메뉴 바 아이콘 표시";
 "menu.hide_menubar_icon" = "메뉴 바 아이콘 숨기기";
 
-// MARK: - 파일 뷰
-"files.drop_area.title" = "파일을 여기에 드롭";
-"files.drop_area.subtitle" = "파일을 드래그 앤 드롭하여 임시 저장";
-"files.no_files" = "저장된 파일이 없습니다";
-"files.sort.by" = "정렬 기준";
-"files.sort.name" = "이름";
-"files.sort.date" = "날짜";
-"files.sort.size" = "크기";
-"files.contextmenu.reveal" = "Finder에서 보기";
-"files.contextmenu.open" = "열기";
-"files.contextmenu.delete" = "삭제";
+// MARK: - 폴더 뷰
+"folders.drop_area.title" = "폴더를 여기에 드롭";
+"folders.drop_area.subtitle" = "폴더를 드래그 앤 드롭하여 빠른 접근";
+"folders.no_matching" = "일치하는 폴더가 없습니다";
+"folders.search.placeholder" = "폴더 검색...";
+"folders.contextmenu.open" = "Finder에서 열기";
+"folders.contextmenu.open_new_window" = "새 창에서 열기";
+"folders.contextmenu.reveal" = "Finder에서 보기";
+"folders.contextmenu.favorite" = "즐겨찾기";
+"folders.contextmenu.unfavorite" = "즐겨찾기 해제";
+"folders.contextmenu.rename" = "이름 바꾸기";
+"folders.contextmenu.delete" = "제거";
+"folders.delete_selected" = "선택된 항목 삭제";
+"folders.clear_all" = "모두 지우기";
+"folders.count" = "폴더";
+"folders.selected" = "선택됨";
 
 // MARK: - 클립보드 뷰
 "clipboard.search.placeholder" = "클립보드 기록 검색...";
@@ -185,14 +190,14 @@
 "preferences.section.appearance" = "외관";
 "preferences.section.interaction" = "상호작용";
 "preferences.section.features" = "기능 토글";
-"preferences.section.files" = "파일";
+"preferences.section.files" = "폴더";
 "preferences.section.clipboard" = "클립보드";
 "preferences.section.storage_location" = "저장 위치";
 "preferences.section.data_management" = "데이터 관리";
 "preferences.section.developer" = "개발자 옵션";
 
 // MARK: - 기능 토글 설정
-"preferences.features.enable_files" = "파일 관리 활성화";
+"preferences.features.enable_files" = "폴더 바로가기 활성화";
 "preferences.features.enable_clipboard" = "클립보드 기록 활성화";
 "preferences.features.enable_notes" = "메모 기능 활성화";
 "preferences.features.description" = "기능을 켜거나 끕니다. 기능을 비활성화해도 데이터는 보존됩니다.";
@@ -203,7 +208,7 @@
 "preferences.storage.default_path" = "기본 경로:";
 "preferences.storage.current_path" = "현재 경로:";
 "preferences.storage.space_used" = "사용된 공간:";
-"preferences.storage.files_location" = "파일 저장 위치";
+"preferences.storage.files_location" = "폴더 데이터 저장 위치";
 "preferences.storage.clipboard_location" = "클립보드 저장 위치";
 "preferences.storage.notes_location" = "메모 저장 위치";
 "preferences.storage.migrate_data" = "데이터 마이그레이션";
@@ -212,7 +217,7 @@
 "preferences.storage.path_not_writable" = "선택한 경로에 쓸 수 없습니다. 다른 위치를 선택하세요.";
 
 // MARK: - 데이터 관리
-"preferences.data.clear_files" = "모든 파일 지우기";
+"preferences.data.clear_files" = "모든 폴더 지우기";
 "preferences.data.clear_clipboard" = "클립보드 기록 지우기";
 "preferences.data.clear_notes" = "모든 메모 삭제";
 "preferences.data.export" = "데이터 내보내기";

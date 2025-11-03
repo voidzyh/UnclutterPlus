@@ -491,9 +491,9 @@ struct PreferencesView: View {
     }
     
     private func clearAllFiles() {
-        // 实现清除所有文件的逻辑
-        let fileManager = TempFileManager()
-        fileManager.clearAllFiles()
+        // 实现清除所有文件夹的逻辑
+        let foldersManager = FavoriteFoldersManager()
+        foldersManager.clearAllFolders()
     }
     
     private func clearClipboardHistory() {

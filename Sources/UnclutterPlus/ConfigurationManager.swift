@@ -8,16 +8,19 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("feature.files.enabled") var isFilesEnabled: Bool = true
     @AppStorage("feature.clipboard.enabled") var isClipboardEnabled: Bool = true
     @AppStorage("feature.notes.enabled") var isNotesEnabled: Bool = true
+    @AppStorage("feature.screenshots.enabled") var isScreenshotsEnabled: Bool = true
     
     // 存储路径
     @AppStorage("storage.files.customPath") private var filesCustomPath: String = ""
     @AppStorage("storage.clipboard.customPath") private var clipboardCustomPath: String = ""
     @AppStorage("storage.notes.customPath") private var notesCustomPath: String = ""
+    @AppStorage("storage.screenshots.customPath") private var screenshotsCustomPath: String = ""
     
     // 使用自定义路径
     @AppStorage("storage.files.useCustomPath") var useCustomFilesPath: Bool = false
     @AppStorage("storage.clipboard.useCustomPath") var useCustomClipboardPath: Bool = false
     @AppStorage("storage.notes.useCustomPath") var useCustomNotesPath: Bool = false
+    @AppStorage("storage.screenshots.useCustomPath") var useCustomScreenshotsPath: Bool = false
     
     // 窗口自动隐藏设置
     @AppStorage("window.autoHideAfterAction") var autoHideAfterAction: Bool = true
@@ -30,6 +33,15 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("clipboard.sortBy") var clipboardSortBy: String = "time" // "time", "useCount"
     // 启动默认筛选器：type/date/source/sort (启动时默认展开类型筛选)
     @AppStorage("clipboard.defaultFilter") var clipboardDefaultFilter: String = "type"
+
+    // 截图管理设置
+    // 全局快捷键（存储为字符串，如 "command-shift-1"），空字符串代表未设置
+    @AppStorage("screenshots.hotkey.region") var screenshotsHotkeyRegion: String = "command-shift-1"
+    @AppStorage("screenshots.hotkey.window") var screenshotsHotkeyWindow: String = "command-shift-2"
+    // OCR 配置
+    @AppStorage("ocr.deepseek.path") var deepseekBinaryPath: String = "" // 例如 /usr/local/bin/deepseek-ocr
+    @AppStorage("ocr.deepseek.langs") var deepseekLanguages: String = "zh,en" // 逗号分隔
+    @AppStorage("ocr.auto") var ocrAutoEnabled: Bool = true
     
     // 标签页顺序和默认设置
     @AppStorage("tabs.order") var tabsOrder: String = "files,clipboard,notes" // 默认顺序：文件、粘贴板、笔记
@@ -84,6 +96,20 @@ class ConfigurationManager: ObservableObject {
             return defaultURL
         }
     }
+
+    // 获取截图存储路径
+    var screenshotsStoragePath: URL {
+        if useCustomScreenshotsPath && !screenshotsCustomPath.isEmpty {
+            let customURL = URL(fileURLWithPath: screenshotsCustomPath)
+                .appendingPathComponent("UnclutterPlus_Screenshots")
+            createDirectoryIfNeeded(at: customURL)
+            return customURL
+        } else {
+            let defaultURL = defaultBasePath.appendingPathComponent("Screenshots")
+            createDirectoryIfNeeded(at: defaultURL)
+            return defaultURL
+        }
+    }
     
     // 设置自定义路径
     func setFilesCustomPath(_ path: String) {
@@ -101,6 +127,11 @@ class ConfigurationManager: ObservableObject {
         objectWillChange.send()
     }
     
+    func setScreenshotsCustomPath(_ path: String) {
+        screenshotsCustomPath = path
+        objectWillChange.send()
+    }
+    
     // 获取自定义路径（用于显示）
     var filesCustomPathDisplay: String {
         filesCustomPath.isEmpty ? "" : filesCustomPath
@@ -112,6 +143,10 @@ class ConfigurationManager: ObservableObject {
     
     var notesCustomPathDisplay: String {
         notesCustomPath.isEmpty ? "" : notesCustomPath
+    }
+    
+    var screenshotsCustomPathDisplay: String {
+        screenshotsCustomPath.isEmpty ? "" : screenshotsCustomPath
     }
     
     // 创建目录
@@ -196,21 +231,24 @@ class ConfigurationManager: ObservableObject {
     
     // 重置所有设置
     func resetToDefaults() {
-        isFilesEnabled = true
+        isFilesEnabled = false
         isClipboardEnabled = true
         isNotesEnabled = true
+        isScreenshotsEnabled = true
         
         useCustomFilesPath = false
         useCustomClipboardPath = false
         useCustomNotesPath = false
+        useCustomScreenshotsPath = false
         
         filesCustomPath = ""
         clipboardCustomPath = ""
         notesCustomPath = ""
+        screenshotsCustomPath = ""
         
         // 重置标签页设置
-        tabsOrder = "files,clipboard,notes"
-        defaultTab = "files"
+        tabsOrder = "screenshots,clipboard,notes"
+        defaultTab = "screenshots"
         
         objectWillChange.send()
     }
@@ -233,6 +271,7 @@ class ConfigurationManager: ObservableObject {
         var enabledTabs: [String] = []
         
         if isFilesEnabled { enabledTabs.append("files") }
+        if isScreenshotsEnabled { enabledTabs.append("screenshots") }
         if isClipboardEnabled { enabledTabs.append("clipboard") }
         if isNotesEnabled { enabledTabs.append("notes") }
         
@@ -268,7 +307,7 @@ class ConfigurationManager: ObservableObject {
     
     // 验证标签页顺序
     func validateTabsOrder(_ order: [String]) -> Bool {
-        let validTabs = ["files", "clipboard", "notes"]
+        let validTabs = ["files", "screenshots", "clipboard", "notes"]
         return order.allSatisfy { validTabs.contains($0) }
     }
 }
