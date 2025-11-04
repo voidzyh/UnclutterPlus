@@ -497,9 +497,10 @@ struct PreferencesView: View {
     }
     
     private func clearClipboardHistory() {
-        // 实现清除剪贴板历史的逻辑
-        let clipboardManager = ClipboardManager()
-        clipboardManager.clearAll()
+        // 使用新的 Repository 清空剪贴板历史
+        Task { @MainActor in
+            await AppStorageManager.shared.clipboardRepository.clearAll()
+        }
     }
     
     private func clearAllNotes() {

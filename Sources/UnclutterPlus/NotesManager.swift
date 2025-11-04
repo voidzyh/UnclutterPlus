@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 struct Note: Identifiable, Codable {
     var id = UUID()
@@ -9,17 +10,63 @@ struct Note: Identifiable, Codable {
     var modifiedAt: Date
     var tags: Set<String> = []
     var isFavorite: Bool = false
-    
+
+    // ✅ 性能优化：缓存计算属性，避免重复计算
+    private(set) var cachedPreview: String = ""
+    private(set) var cachedWordCount: Int = 0
+    private(set) var cachedCharacterCount: Int = 0
+    private(set) var cachedReadingTime: Int = 0
+    private(set) var cachedHeadings: [String] = []
+
     enum CodingKeys: String, CodingKey {
         case id, title, content, createdAt, modifiedAt, tags, isFavorite
+        case cachedPreview, cachedWordCount, cachedCharacterCount, cachedReadingTime, cachedHeadings
+    }
+
+    var preview: String {
+        cachedPreview
+    }
+
+    var wordCount: Int {
+        cachedWordCount
+    }
+
+    var characterCount: Int {
+        cachedCharacterCount
+    }
+
+    var readingTime: Int {
+        cachedReadingTime
+    }
+
+    var headings: [String] {
+        cachedHeadings
     }
     
-    var preview: String {
+    init(title: String, content: String = "", tags: Set<String> = [], isFavorite: Bool = false) {
+        self.title = title
+        self.content = content
+        self.createdAt = Date()
+        self.modifiedAt = Date()
+        self.tags = tags
+        self.isFavorite = isFavorite
+
+        // 计算并缓存所有派生属性
+        self.cachedPreview = Note.calculatePreview(from: content)
+        self.cachedWordCount = Note.calculateWordCount(from: content)
+        self.cachedCharacterCount = content.count
+        self.cachedReadingTime = max(1, self.cachedWordCount / 200)
+        self.cachedHeadings = Note.calculateHeadings(from: content)
+    }
+
+    // MARK: - 静态计算方法
+
+    private static func calculatePreview(from content: String) -> String {
         // 提取内容的前几行作为预览，去除 Markdown 标记
         let lines = content.components(separatedBy: .newlines)
         let previewLines = Array(lines.prefix(3))
         let preview = previewLines.joined(separator: " ")
-        
+
         // 简单去除常见的 Markdown 标记
         let cleaned = preview
             .replacingOccurrences(of: "# ", with: "")
@@ -36,26 +83,17 @@ struct Note: Identifiable, Codable {
             .replacingOccurrences(of: "- ", with: "")
             .replacingOccurrences(of: "+ ", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         return cleaned.isEmpty ? "Empty note" : cleaned
     }
-    
-    var wordCount: Int {
+
+    private static func calculateWordCount(from content: String) -> Int {
         let words = content.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
         return words.count
     }
-    
-    var characterCount: Int {
-        return content.count
-    }
-    
-    var readingTime: Int {
-        // 假设每分钟阅读 200 个词
-        return max(1, wordCount / 200)
-    }
-    
-    var headings: [String] {
+
+    private static func calculateHeadings(from content: String) -> [String] {
         let lines = content.components(separatedBy: .newlines)
         return lines.compactMap { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -65,14 +103,14 @@ struct Note: Identifiable, Codable {
             return nil
         }
     }
-    
-    init(title: String, content: String = "", tags: Set<String> = [], isFavorite: Bool = false) {
-        self.title = title
-        self.content = content
-        self.createdAt = Date()
-        self.modifiedAt = Date()
-        self.tags = tags
-        self.isFavorite = isFavorite
+
+    /// 更新缓存值（在内容变化时调用）
+    mutating func updateCachedValues() {
+        cachedPreview = Note.calculatePreview(from: content)
+        cachedWordCount = Note.calculateWordCount(from: content)
+        cachedCharacterCount = content.count
+        cachedReadingTime = max(1, cachedWordCount / 200)
+        cachedHeadings = Note.calculateHeadings(from: content)
     }
 }
 
@@ -85,16 +123,22 @@ enum NotesSortOption: String, CaseIterable {
 
 class NotesManager: ObservableObject {
     static let shared = NotesManager()
-    
+
     @Published var notes: [Note] = []
     @Published var selectedNotes: Set<UUID> = []
     @Published var sortOption: NotesSortOption = .modified
     @Published var isAscending: Bool = false
     @Published var searchText: String = ""
-    
+
+    // ✅ 性能优化：将 filteredNotes 改为缓存属性
+    @Published private(set) var filteredNotes: [Note] = []
+
     private let config = ConfigurationManager.shared
     private var hasInitialized = false
-    
+
+    // Combine 订阅管理
+    private var cancellables = Set<AnyCancellable>()
+
     private var notesStorageURL: URL {
         config.notesStoragePath.appendingPathComponent("notes.json")
     }
@@ -103,6 +147,79 @@ class NotesManager: ObservableObject {
         print("NotesManager: 初始化 (单例)")
         loadNotes()
         hasInitialized = true
+
+        // ✅ 性能优化：设置属性监听，自动更新 filteredNotes
+        setupObservers()
+        // 初始化时计算一次
+        updateFilteredNotes()
+    }
+
+    /// 设置属性监听
+    private func setupObservers() {
+        // 监听搜索文本变化（防抖）
+        $searchText
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateFilteredNotes()
+            }
+            .store(in: &cancellables)
+
+        // 监听排序选项变化
+        $sortOption
+            .sink { [weak self] _ in
+                self?.updateFilteredNotes()
+            }
+            .store(in: &cancellables)
+
+        // 监听排序顺序变化
+        $isAscending
+            .sink { [weak self] _ in
+                self?.updateFilteredNotes()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// 更新过滤后的笔记列表（单次计算）
+    private func updateFilteredNotes() {
+        PerformanceMonitor.measure("NotesFilter") {
+            var filtered = notes
+
+            // 搜索过滤
+            if !searchText.isEmpty {
+                let searchLower = searchText.lowercased()
+                filtered = filtered.filter { note in
+                    note.title.lowercased().contains(searchLower) ||
+                    note.content.lowercased().contains(searchLower) ||
+                    note.tags.contains { $0.lowercased().contains(searchLower) }
+                }
+            }
+
+            // 排序
+            filtered.sort { first, second in
+                // 收藏的笔记总是在前面
+                if first.isFavorite && !second.isFavorite {
+                    return true
+                } else if !first.isFavorite && second.isFavorite {
+                    return false
+                }
+
+                let result: Bool
+                switch sortOption {
+                case .modified:
+                    result = first.modifiedAt > second.modifiedAt
+                case .created:
+                    result = first.createdAt > second.createdAt
+                case .title:
+                    result = first.title.localizedCaseInsensitiveCompare(second.title) == .orderedAscending
+                case .wordCount:
+                    result = first.wordCount > second.wordCount
+                }
+
+                return isAscending ? !result : result
+            }
+
+            filteredNotes = filtered
+        }
     }
     
     func createNote(title: String, tags: Set<String> = []) -> Note {
@@ -110,6 +227,7 @@ class NotesManager: ObservableObject {
         let note = Note(title: title, tags: tags)
         notes.insert(note, at: 0)  // 新笔记添加到顶部，更容易找到
         saveNotes()
+        updateFilteredNotes()  // ✅ 触发过滤更新
         print("NotesManager: 现有 \(notes.count) 个笔记")
         return note
     }
@@ -117,66 +235,75 @@ class NotesManager: ObservableObject {
     func updateNote(_ updatedNote: Note) {
         if let index = notes.firstIndex(where: { $0.id == updatedNote.id }) {
             let oldNote = notes[index]
-            
+
             // 检查内容是否真的改变了
-            let hasChanged = oldNote.title != updatedNote.title || 
+            let hasChanged = oldNote.title != updatedNote.title ||
                            oldNote.content != updatedNote.content
-            
+
             // 只有内容真正改变时才更新
             if hasChanged {
                 var note = updatedNote
                 note.modifiedAt = Date()
-                
+
+                // ✅ 性能优化：更新缓存的计算属性
+                note.updateCachedValues()
+
                 // 只在标题变化或内容有重大改变时才移到顶部
-                let shouldMoveToTop = oldNote.title != note.title || 
+                let shouldMoveToTop = oldNote.title != note.title ||
                                       abs(oldNote.content.count - note.content.count) > 50
-                
+
                 if shouldMoveToTop && index > 0 {
                     notes.remove(at: index)
                     notes.insert(note, at: 0)
                 } else {
                     notes[index] = note
                 }
-                
+
                 saveNotes()
+                updateFilteredNotes()  // ✅ 触发过滤更新
             }
         }
     }
-    
+
     func deleteNote(_ note: Note) {
         notes.removeAll { $0.id == note.id }
         selectedNotes.remove(note.id)
         saveNotes()
+        updateFilteredNotes()  // ✅ 触发过滤更新
     }
-    
+
     func deleteNotes(_ notesToDelete: [Note]) {
         let idsToDelete = Set(notesToDelete.map { $0.id })
         notes.removeAll { idsToDelete.contains($0.id) }
         selectedNotes.subtract(idsToDelete)
         saveNotes()
+        updateFilteredNotes()  // ✅ 触发过滤更新
     }
-    
+
     func toggleFavorite(_ note: Note) {
         if let index = notes.firstIndex(where: { $0.id == note.id }) {
             notes[index].isFavorite.toggle()
             saveNotes()
+            updateFilteredNotes()  // ✅ 触发过滤更新
         }
     }
-    
+
     func addTag(_ tag: String, to note: Note) {
         if let index = notes.firstIndex(where: { $0.id == note.id }) {
             notes[index].tags.insert(tag)
             saveNotes()
+            updateFilteredNotes()  // ✅ 触发过滤更新
         }
     }
-    
+
     func removeTag(_ tag: String, from note: Note) {
         if let index = notes.firstIndex(where: { $0.id == note.id }) {
             notes[index].tags.remove(tag)
             saveNotes()
+            updateFilteredNotes()  // ✅ 触发过滤更新
         }
     }
-    
+
     func toggleSelection(_ note: Note) {
         if selectedNotes.contains(note.id) {
             selectedNotes.remove(note.id)
@@ -184,62 +311,26 @@ class NotesManager: ObservableObject {
             selectedNotes.insert(note.id)
         }
     }
-    
+
     func selectAll() {
         selectedNotes = Set(filteredNotes.map { $0.id })
     }
-    
+
     func deselectAll() {
         selectedNotes.removeAll()
     }
-    
-    var filteredNotes: [Note] {
-        var filtered = notes
-        
-        // 搜索过滤
-        if !searchText.isEmpty {
-            filtered = filtered.filter { note in
-                note.title.localizedCaseInsensitiveContains(searchText) ||
-                note.content.localizedCaseInsensitiveContains(searchText) ||
-                note.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
-            }
-        }
-        
-        // 排序
-        filtered.sort { first, second in
-            // 收藏的笔记总是在前面
-            if first.isFavorite && !second.isFavorite {
-                return true
-            } else if !first.isFavorite && second.isFavorite {
-                return false
-            }
-            
-            let result: Bool
-            switch sortOption {
-            case .modified:
-                result = first.modifiedAt > second.modifiedAt
-            case .created:
-                result = first.createdAt > second.createdAt
-            case .title:
-                result = first.title.localizedCaseInsensitiveCompare(second.title) == .orderedAscending
-            case .wordCount:
-                result = first.wordCount > second.wordCount
-            }
-            
-            return isAscending ? !result : result
-        }
-        
-        return filtered
-    }
-    
+
+    // ❌ 旧的 filteredNotes 计算属性已删除，改为 @Published 缓存属性
+
     var allTags: [String] {
         let allTags = notes.flatMap { $0.tags }
         return Array(Set(allTags)).sorted()
     }
-    
+
     func deleteAllNotes() {
         notes.removeAll()
         saveNotes()
+        updateFilteredNotes()  // ✅ 触发过滤更新
     }
     
     private func saveNotes() {
@@ -259,9 +350,17 @@ class NotesManager: ObservableObject {
         if FileManager.default.fileExists(atPath: notesStorageURL.path) {
             do {
                 let data = try Data(contentsOf: notesStorageURL)
-                notes = try JSONDecoder().decode([Note].self, from: data)
-                print("NotesManager: 从文件加载了 \(notes.count) 个笔记")
-                
+                var loadedNotes = try JSONDecoder().decode([Note].self, from: data)
+                print("NotesManager: 从文件加载了 \(loadedNotes.count) 个笔记")
+
+                // ✅ 性能优化：更新缓存值（兼容旧数据）
+                for i in 0..<loadedNotes.count {
+                    if loadedNotes[i].cachedPreview.isEmpty {
+                        loadedNotes[i].updateCachedValues()
+                    }
+                }
+                notes = loadedNotes
+
                 if notes.isEmpty {
                     createWelcomeNote()
                     print("NotesManager: 笔记列表为空，创建了默认样本笔记")
@@ -271,16 +370,22 @@ class NotesManager: ObservableObject {
                 print("Error loading notes from file: \(error)")
             }
         }
-        
+
         // 如果新位置没有数据，尝试从旧的 UserDefaults 迁移
         if let data = UserDefaults.standard.data(forKey: "SavedNotes") {
             do {
-                notes = try JSONDecoder().decode([Note].self, from: data)
-                print("NotesManager: 从 UserDefaults 迁移了 \(notes.count) 个笔记")
-                
+                var loadedNotes = try JSONDecoder().decode([Note].self, from: data)
+                print("NotesManager: 从 UserDefaults 迁移了 \(loadedNotes.count) 个笔记")
+
+                // ✅ 更新缓存值（旧数据迁移）
+                for i in 0..<loadedNotes.count {
+                    loadedNotes[i].updateCachedValues()
+                }
+                notes = loadedNotes
+
                 // 保存到新位置
                 saveNotes()
-                
+
                 // 清理旧数据
                 UserDefaults.standard.removeObject(forKey: "SavedNotes")
                 

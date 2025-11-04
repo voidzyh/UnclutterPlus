@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ClipboardView: View {
-    @StateObject private var viewModel = ClipboardViewModel()
+    @StateObject private var viewModel = ClipboardViewModel(repository: AppStorageManager.shared.clipboardRepository)
     @State private var hoveredItem: UUID?
 
     var body: some View {
@@ -420,36 +420,38 @@ struct ClipboardItemView: View {
                         }
                     }
 
-                case .image(let image):
+                case .image(let imageData):
                     VStack(alignment: .leading, spacing: 8) {
                         // 图片预览
-                        Image(nsImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: 200, maxHeight: 150)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(.secondary.opacity(0.3), lineWidth: 1)
-                            )
-                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                        if let image = NSImage(data: imageData) {
+                            Image(nsImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 200, maxHeight: 150)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(.secondary.opacity(0.3), lineWidth: 1)
+                                )
+                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
 
-                        // 图片信息
-                        HStack {
-                            Text("clipboard.item.image.content".localized)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
+                            // 图片信息
+                            HStack {
+                                Text("clipboard.item.image.content".localized)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
 
-                            Spacer()
+                                Spacer()
 
-                            // 显示图片尺寸
-                            let size = image.size
-                            Text("\(Int(size.width))×\(Int(size.height))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(.tertiary.opacity(0.3), in: RoundedRectangle(cornerRadius: 4))
+                                // 显示图片尺寸
+                                let size = image.size
+                                Text("\(Int(size.width))×\(Int(size.height))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.tertiary.opacity(0.3), in: RoundedRectangle(cornerRadius: 4))
+                            }
                         }
                     }
 

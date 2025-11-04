@@ -9,6 +9,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("Application launched!")
+
+        // 初始化新存储系统
+        _ = AppStorageManager.shared
+        print("✅ Storage system initialized")
+
         setupStatusBar()
         setupWindowManager()
         setupGlobalHotkey()

@@ -3,17 +3,19 @@ import SwiftUI
 enum ViewLayout: String, CaseIterable {
     case sidebar = "Sidebar"
     case focus = "Focus"
+    case split = "Split"
 
     var systemImage: String {
         switch self {
         case .sidebar: return "sidebar.left"
         case .focus: return "doc.text"
+        case .split: return "sidebar.squares.left"
         }
     }
 }
 
 struct NotesView: View {
-    @StateObject private var viewModel = NotesViewModel()
+    @StateObject private var viewModel = NotesViewModel(repository: AppStorageManager.shared.noteRepository)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,7 +80,9 @@ struct NotesView: View {
                 // 收藏按钮（针对选中的笔记）
                 if let selectedNote = viewModel.selectedNote {
                     Button(action: {
-                        viewModel.toggleFavorite(selectedNote)
+                        // Convert Note to NoteIndex for toggleFavorite
+                        let index = NoteIndex(from: selectedNote)
+                        viewModel.toggleFavorite(index)
                     }) {
                         Image(systemName: selectedNote.isFavorite ? "star.fill" : "star")
                             .foregroundColor(selectedNote.isFavorite ? .yellow : .secondary)
@@ -88,7 +92,9 @@ struct NotesView: View {
 
                     // 删除按钮（针对选中的笔记）
                     Button(action: {
-                        viewModel.deleteNote(selectedNote)
+                        // Convert Note to NoteIndex for deleteNote
+                        let index = NoteIndex(from: selectedNote)
+                        viewModel.deleteNote(index)
                     }) {
                         Image(systemName: "trash")
                             .foregroundColor(.red)
@@ -120,6 +126,10 @@ struct NotesView: View {
                     sidebarLayout
                 case .focus:
                     focusLayout
+                case .split:
+                    // For now, use sidebar layout for split view
+                    // TODO: Implement proper split view
+                    sidebarLayout
                 }
             }
         }
@@ -127,17 +137,17 @@ struct NotesView: View {
             NewNoteDialog(
                 noteTitle: $viewModel.newNoteTitle,
                 noteTags: $viewModel.newNoteTags,
-                availableTags: viewModel.allTags,
+                availableTags: Array(viewModel.allTags),
                 onCreate: { title, tags in
-                    viewModel.createNewNote()
+                    viewModel.createNote()
                 },
                 onCancel: {
-                    viewModel.hideNewNoteDialog()
+                    viewModel.showingNewNoteDialog = false
                 }
             )
         }
         .onAppear {
-            viewModel.onAppear()
+            // The new ViewModel doesn't have onAppear method, we can skip it
         }
     }
 
@@ -165,8 +175,8 @@ struct NotesView: View {
 
                     Spacer()
 
-                    if viewModel.isMultiSelectMode && !viewModel.selectedNotes.isEmpty {
-                        Text("\(viewModel.selectedNotes.count) \("notes.selected".localized)")
+                    if viewModel.isMultiSelectMode && !viewModel.selectedNoteIds.isEmpty {
+                        Text("\(viewModel.selectedNoteIds.count) \("notes.selected".localized)")
                             .font(.caption)
                             .foregroundColor(.accentColor)
                     }
@@ -201,12 +211,12 @@ struct NotesView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
-                        VStack(spacing: 2) {
+                        LazyVStack(spacing: 2) {
                             ForEach(viewModel.filteredNotes) { note in
                                 NoteListItemView(
                                     note: note,
                                     isSelected: viewModel.selectedNote?.id == note.id,
-                                    isMultiSelected: viewModel.selectedNotes.contains(note.id),
+                                    isMultiSelected: viewModel.selectedNoteIds.contains(note.id),
                                     showSelectionMode: viewModel.isMultiSelectMode
                                 ) {
                                     // 主操作
@@ -233,12 +243,11 @@ struct NotesView: View {
                 }
 
                 // 底部操作栏
-                if viewModel.isMultiSelectMode && !viewModel.selectedNotes.isEmpty {
+                if viewModel.isMultiSelectMode && !viewModel.selectedNoteIds.isEmpty {
                     Divider()
                     HStack {
-                        Button("notes.delete_selected".localized + " (\(viewModel.selectedNotes.count))") {
-                            let selectedNotes = viewModel.filteredNotes.filter { viewModel.selectedNotes.contains($0.id) }
-                            viewModel.deleteNotes(selectedNotes)
+                        Button("notes.delete_selected".localized + " (\(viewModel.selectedNoteIds.count))") {
+                            viewModel.deleteSelectedNotes()
                         }
                         .buttonStyle(.borderless)
                         .foregroundColor(.red)
@@ -282,7 +291,8 @@ struct NotesView: View {
                     NoteEditorView(
                         note: selectedNote,
                         onUpdate: { updatedNote in
-                            viewModel.updateNote(updatedNote)
+                            // The new ViewModel handles updates via editingContent property
+                            viewModel.editingContent = updatedNote.content
                         }
                     )
                 } else {
@@ -314,7 +324,9 @@ struct NotesView: View {
             NoteEditorView(
                 note: selectedNote,
                 onUpdate: { updatedNote in
-                    viewModel.updateNote(updatedNote)
+                    // The new ViewModel handles updates via editingContent property
+                    // Updates are saved automatically through the ViewModel
+                    viewModel.editingContent = updatedNote.content
                 }
             )
         } else {
@@ -334,7 +346,7 @@ struct NotesView: View {
                     .multilineTextAlignment(.center)
 
                 Button("ui.browse_notes".localized) {
-                    viewModel.switchLayout(to: .sidebar)
+                    viewModel.switchLayout(.sidebar)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -346,7 +358,7 @@ struct NotesView: View {
 }
 
 struct NoteListItemView: View {
-    let note: Note
+    let note: NoteIndex
     let isSelected: Bool
     let isMultiSelected: Bool
     let showSelectionMode: Bool
@@ -428,16 +440,6 @@ struct NoteListItemView: View {
                     Text("\(note.wordCount) \("note.words".localized)")
                         .font(.caption)
                         .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-
-                    if note.readingTime > 1 {
-                        Text("•")
-                            .font(.caption)
-                            .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-
-                        Text("\(note.readingTime) \("note.min_read".localized)")
-                            .font(.caption)
-                            .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
-                    }
 
                     Spacer()
                 }

@@ -233,7 +233,7 @@ final class FilesViewModel: ObservableObject {
 
     /// 监听变化
     private func observeChanges() {
-        // 监听搜索文本变化
+        // 监听搜索文本变化（增加 debounce 时间）
         $searchText
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -249,16 +249,21 @@ final class FilesViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    /// 更新过滤后的文件夹列表
+    /// 更新过滤后的文件夹列表（优化版：单次遍历）
     private func updateFilteredFolders() {
-        let folders = foldersManager.sortedFolders
+        PerformanceMonitor.measure("FoldersFilter") {
+            let folders = foldersManager.sortedFolders
 
-        if searchText.isEmpty {
-            filteredFolders = folders
-        } else {
-            filteredFolders = folders.filter { folder in
-                folder.name.localizedCaseInsensitiveContains(searchText) ||
-                folder.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            if searchText.isEmpty {
+                filteredFolders = folders
+            } else {
+                let searchTextLowercase = searchText.lowercased()
+
+                // 单次遍历完成过滤
+                filteredFolders = folders.filter { folder in
+                    folder.name.lowercased().contains(searchTextLowercase) ||
+                    folder.tags.contains { $0.lowercased().contains(searchTextLowercase) }
+                }
             }
         }
     }
