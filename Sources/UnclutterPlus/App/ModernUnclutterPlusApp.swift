@@ -1,39 +1,53 @@
 import SwiftUI
 import Combine
 
-/// 现代化 UnclutterPlus 应用入口 - 集成所有新组件
+/// 现代化 UnclutterPlus 应用入口
 @main
 struct ModernUnclutterPlusApp: App {
     @NSApplicationDelegateAdaptor(ModernAppDelegate.self) var appDelegate
-    @StateObject private var appState = AppState.shared
-    @StateObject private var designSystem = ModernDesignSystem.shared
-    @StateObject private var performanceOptimizer = PerformanceOptimizer.shared
 
     var body: some Scene {
-        ModernPreferencesView()
-            .frame(minWidth: 600, minHeight: 500)
+        Settings {
+            ModernPreferencesView()
+                .frame(minWidth: 600, minHeight: 500)
+        }
+        .commands {
+            CommandGroup(after: .help) {
+                Button("About Modern UnclutterPlus") {
+                    NSApplication.shared.orderFrontStandardAboutPanel(nil)
+                }
+            }
+        }
     }
-    .commands {
-        // 应用菜单命令
-        CommandGroup(after: .appSettings) {
-            Button("Show UnclutterPlus") {
-                appState.showApp()
-            }
-            .keyboardShortcut("u", modifiers: [.command, .shift]) {
-                appState.hideApp()
-            }
-            Button("Hide UnclutterPlus") {
-                appState.hideApp()
-            }
-        }
+}
 
-        CommandGroup(after: .help) {
-            Button("Performance Monitor") {
-                appState.showPerformanceMonitorWindow()
-            }
-            Button("About Modern UnclutterPlus") {
-                appState.showAbout()
-            }
+/// 现代化偏好设置视图
+struct ModernPreferencesView: View {
+    var body: some View {
+        VStack {
+            Text("UnclutterPlus v2.0.0")
+                .font(.title)
+                .padding()
+
+            Text("现代化 macOS 生产力应用")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Text("© 2025 UnclutterPlus")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
+        .padding()
+    }
+}
+
+/// 现代化应用委托
+final class ModernAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        print("✅ UnclutterPlus v2.0.0 启动完成")
+        print("📦 现代化架构: Swift 6.0 + SwiftUI 5.0")
+        print("🏗️ MVVM + Repository 模式")
     }
 }
