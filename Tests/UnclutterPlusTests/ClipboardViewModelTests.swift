@@ -203,7 +203,8 @@ final class ClipboardViewModelTests: XCTestCase {
         XCTAssertTrue(sut.filteredItems.isEmpty, "初始状态过滤列表应为空")
     }
 
-    func testMultipleFiltersCombination() {
+      @MainActor
+    func testMultipleFiltersCombination() async {
         // 同时应用多个过滤器
         sut.selectedContentType = "text"
         sut.selectedDateRange = "week"
