@@ -113,7 +113,7 @@ final class PerformanceBenchmarkSuite: ObservableObject {
         
         let score = calculateStartupScore(averageDuration)
         
-        print("Startup: Avg: \(String(format: "%.3f", averageDuration)s, Min: \(String(format: "3f", minDuration)s, Max: \(String(format: "3f", maxDuration)s")
+        print("Startup: Avg: \(String(format: "%.3f", averageDuration))s, Min: \(String(format: "%.3f", minDuration))s, Max: \(String(format: "%.3f", maxDuration))s")
         
         return AppStartupBenchmark(
             iterations: iterations,

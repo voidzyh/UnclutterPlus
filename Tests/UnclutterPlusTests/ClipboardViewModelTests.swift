@@ -3,6 +3,7 @@ import Combine
 @testable import UnclutterPlus
 
 /// ClipboardViewModel 的单元测试
+@MainActor
 final class ClipboardViewModelTests: XCTestCase {
     var sut: ClipboardViewModel!
     var mockClipboardManager: ClipboardManager!

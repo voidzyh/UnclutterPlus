@@ -3,6 +3,7 @@ import Combine
 @testable import UnclutterPlus
 
 /// MainContentViewModel 的单元测试
+@MainActor
 final class MainContentViewModelTests: XCTestCase {
     var sut: MainContentViewModel!
     var mockConfig: ConfigurationManager!
