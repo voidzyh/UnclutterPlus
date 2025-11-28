@@ -1,0 +1,179 @@
+name: UnclutterPlus CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  SWIFT_VERSION: '5.10'
+
+jobs:
+  # 代码质量检查
+  code-quality:
+    name: 代码质量检查
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Swift
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: 代码格式化检查
+        run: |
+          # 检查Swift代码格式
+          swift package format --lint
+
+      - name: 静态代码分析
+        run: |
+          # 检查未使用的代码
+          find Sources -name "*.swift" -exec grep -l "TODO\|FIXME\|XXX" {} \;
+          echo "检查完成 - 查看是否有TODO/FIXME/XXX标记"
+
+  # 构建和测试
+  build-and-test:
+    name: 构建和测试
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        swift-version: ['5.10', '6.0']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Swift ${{ matrix.swift-version }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: 缓存依赖
+        uses: actions/cache@v3
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: 解析依赖
+        run: swift package resolve
+
+      - name: 构建
+        run: swift build --configuration release
+
+      - name: 运行测试
+        run: |
+          swift test --enable-code-coverage --parallel
+
+      - name: 生成覆盖率报告
+        if: matrix.swift-version == '5.10'
+        run: |
+          # 使用xcov生成覆盖率报告
+          xcrun llvm-cov export -format="lcov" \
+            .build/debug/UnclutterPlusPackageTests.xctest/Contents/MacOS/UnclutterPlusPackageTests \
+            -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
+
+      - name: 上传覆盖率到Codecov
+        if: matrix.swift-version == '5.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage.lcov
+          flags: unittests
+          name: codecov-umbrella
+
+  # 性能基准测试
+  performance-benchmark:
+    name: 性能基准测试
+    runs-on: macos-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Swift
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: 运行性能基准测试
+        run: |
+          chmod +x performance_benchmark.sh
+          ./performance_benchmark.sh
+
+      - name: 上传性能报告
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: performance_report_*.md
+
+  # 构建发布包 (仅在发布时)
+  create-release:
+    name: 创建发布包
+    runs-on: macos-latest
+    needs: [build-and-test, performance-benchmark]
+    if: github.event_name == 'release'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Swift
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: 构建发布版本
+        run: swift build --configuration release --triple x86_64-apple-macosx14.0
+
+      - name: 创建应用包
+        run: |
+          mkdir -p UnclutterPlus.app/Contents/MacOS
+          mkdir -p UnclutterPlus.app/Contents/Resources
+          cp .build/release/UnclutterPlus UnclutterPlus.app/Contents/MacOS/
+          cp Sources/UnclutterPlus/Resources/Info.plist UnclutterPlus.app/Contents/
+          cp Sources/UnclutterPlus/Resources/UnclutterPlus.icns UnclutterPlus.app/Contents/Resources/
+
+      - name: 创建DMG
+        run: |
+          # 创建临时文件夹
+          mkdir -p dmgcontents
+          cp -r UnclutterPlus.app dmgcontents/
+          cp README.md dmgcontents/
+
+          # 创建DMG (使用hdiutil)
+          hdiutil create -volname "UnclutterPlus" -srcfolder dmgcontents -ov -format UDZO UnclutterPlus-v${{ github.event.release.tag_name }}.dmg
+
+      - name: 上传发布资产
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: UnclutterPlus-v${{ github.event.release.tag_name }}.dmg
+          asset_name: UnclutterPlus-v${{ github.event.release.tag_name }}.dmg
+          asset_content_type: application/octet-stream
+
+  # 安全扫描
+  security-scan:
+    name: 安全扫描
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检查敏感信息
+        run: |
+          # 检查是否包含密钥或密码
+          if grep -r "password\|secret\|api_key" Sources/ 2>/dev/null; then
+            echo "⚠️ 警告：发现可能的敏感信息"
+            exit 1
+          else
+            echo "✅ 未发现敏感信息泄露"
+          fi
+
+      - name: Swift依赖安全检查
+        run: |
+          # 检查是否有已知的安全漏洞
+          swift package show-dependencies
