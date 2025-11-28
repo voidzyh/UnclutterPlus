@@ -1,15 +1,17 @@
 import Foundation
 
 /// 笔记索引（轻量级元数据）
-struct NoteIndex: Codable, Identifiable {
-    let id: UUID
-    let title: String
-    let createdAt: Date
-    let modifiedAt: Date
-    let tags: Set<String>
-    let isFavorite: Bool
-    let wordCount: Int
-    let preview: String
+public struct NoteIndex: Codable, Identifiable, StorageIndex {
+    public typealias SortKey = Date
+    
+    public let id: UUID
+    public let title: String
+    public let createdAt: Date
+    public let modifiedAt: Date
+    public let tags: Set<String>
+    public let wordCount: Int
+    public let previewText: String  // 重命名避免冲突
+    public let isFavorited: Bool    // 重命名避免冲突
 
     /// 从完整笔记创建索引
     init(from note: Note) {
@@ -17,23 +19,35 @@ struct NoteIndex: Codable, Identifiable {
         self.title = note.title
         self.createdAt = note.createdAt
         self.modifiedAt = note.modifiedAt
-        self.tags = note.tags
-        self.isFavorite = note.isFavorite
+        self.tags = Set(note.tags)
         self.wordCount = note.cachedWordCount
-        self.preview = note.cachedPreview
+        self.previewText = note.cachedPreview
+        self.isFavorited = note.isFavorite
     }
 
     /// 直接初始化索引
     init(id: UUID, title: String, createdAt: Date, modifiedAt: Date,
-         tags: Set<String>, isFavorite: Bool, wordCount: Int, preview: String) {
+         tags: Set<String>, wordCount: Int, previewText: String, isFavorited: Bool) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
         self.tags = tags
-        self.isFavorite = isFavorite
         self.wordCount = wordCount
-        self.preview = preview
+        self.previewText = previewText
+        self.isFavorited = isFavorited
+    }
+    
+    var sortKey: Date {
+        modifiedAt
+    }
+    
+    var isFavorite: Bool {
+        isFavorited
+    }
+    
+    var preview: String {
+        previewText
     }
 }
 

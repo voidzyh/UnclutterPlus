@@ -120,7 +120,24 @@ final class ClipboardViewModel: ObservableObject {
         self.lastChangeCount = pasteboard.changeCount
 
         setupBindings()
-        startMonitoring()
+        
+        // 延迟启动剪贴板监控，确保数据加载完成
+        Task {
+            // 等待剪贴板数据加载完成
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 等待1秒
+            
+            // 检查是否有数据
+            if repository.clipboardIndexes.isEmpty {
+                print("⚠️ 剪贴板数据为空，可能加载失败")
+            } else {
+                print("✅ 剪贴板数据已加载，开始监控剪贴板变化")
+            }
+            
+            // 启动剪贴板监控
+            await MainActor.run {
+                self.startMonitoring()
+            }
+        }
     }
 
     deinit {

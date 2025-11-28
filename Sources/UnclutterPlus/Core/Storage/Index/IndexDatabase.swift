@@ -170,9 +170,9 @@ class IndexDatabase {
                         Int(index.createdAt.timeIntervalSince1970),
                         Int(index.modifiedAt.timeIntervalSince1970),
                         tagsString ?? "[]",
-                        index.isFavorite ? 1 : 0,
+                        index.isFavorited ? 1 : 0,
                         index.wordCount,
-                        index.preview
+                        index.previewText
                     ])
                     continuation.resume()
                 } catch {
@@ -307,7 +307,7 @@ class IndexDatabase {
         guard let uuid = UUID(uuidString: id) else { return nil }
 
         // 创建临时 Note 对象来生成索引
-        let note = Note(title: title, content: "", tags: tags, isFavorite: isFavorite)
+        let note = Note(title: title, content: "", tags: Array(tags), isFavorite: isFavorite)
 
         // Create a NoteIndex with the necessary data
         var index = NoteIndex(from: note)
@@ -318,9 +318,9 @@ class IndexDatabase {
             createdAt: createdAt,
             modifiedAt: modifiedAt,
             tags: tags,
-            isFavorite: isFavorite,
             wordCount: wordCount,
-            preview: preview
+            previewText: preview,
+            isFavorited: isFavorite
         )
 
         return index
@@ -359,7 +359,7 @@ class IndexDatabase {
             case let bool as Bool:
                 sqlite3_bind_int(stmt, position, bool ? 1 : 0)
             case let data as Data:
-                data.withUnsafeBytes { bytes in
+                _ = data.withUnsafeBytes { bytes in
                     sqlite3_bind_blob(stmt, position, bytes.baseAddress, Int32(data.count), SQLITE_TRANSIENT)
                 }
             default:

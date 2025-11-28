@@ -63,7 +63,7 @@ final class NotesViewModel: ObservableObject {
     }
 
     /// 排序选项
-    var sortOption: NotesSortOption {
+    var sortOption: NoteSortOption {
         get { repository.sortOption }
         set { repository.sortOption = newValue }
     }
@@ -82,14 +82,6 @@ final class NotesViewModel: ObservableObject {
     /// 当前选中的笔记数量
     var selectedCount: Int {
         selectedNoteIds.count
-    }
-
-    // MARK: - View Layout
-
-    enum ViewLayout: String, CaseIterable {
-        case sidebar = "Sidebar"
-        case focus = "Focus"
-        case split = "Split"
     }
 
     // MARK: - Initialization
@@ -154,9 +146,7 @@ final class NotesViewModel: ObservableObject {
     func deleteNote(_ index: NoteIndex) {
         Task {
             // 创建临时笔记对象用于删除
-            let note = Note(title: index.title)
-            var noteToDelete = note
-            noteToDelete.id = index.id
+            let noteToDelete = Note(id: index.id, title: index.title, content: "")
 
             await repository.deleteNote(noteToDelete)
 
@@ -176,9 +166,7 @@ final class NotesViewModel: ObservableObject {
             // 创建临时笔记对象用于删除
             let notesToDelete = selectedNoteIds.compactMap { id in
                 filteredNotes.first { $0.id == id }.map { index in
-                    var note = Note(title: index.title)
-                    note.id = id
-                    return note
+                    Note(id: id, title: index.title, content: "")
                 }
             }
 

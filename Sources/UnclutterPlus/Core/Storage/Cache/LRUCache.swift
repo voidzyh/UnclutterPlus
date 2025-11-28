@@ -238,7 +238,7 @@ actor CacheManager {
         }
 
         // L2: 检查索引缓存
-        if let index = await l2Cache.get(id) as? NoteIndex {
+        if (await l2Cache.get(id) as? NoteIndex) != nil {
             print("CacheHit: L2: NoteIndex \(id)")
             // 这里需要从存储加载内容，但我们有索引信息
             return nil // 调用者需要加载完整内容

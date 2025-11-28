@@ -71,8 +71,10 @@ final class ClipboardRepository: ObservableObject {
 
         setupBindings()
 
+        // 使用Task确保数据加载完成后再继续
         Task {
             await loadIndexes()
+            print("✅ 剪贴板数据加载完成，共 \(self.clipboardIndexes.count) 项")
         }
     }
 

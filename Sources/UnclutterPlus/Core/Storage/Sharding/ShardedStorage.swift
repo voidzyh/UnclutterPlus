@@ -16,7 +16,7 @@ enum ShardingStrategy {
 }
 
 /// 分片存储实现
-class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
+public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
     private let baseURL: URL
     private let strategy: ShardingStrategy
     private let fileManager = FileManager.default
@@ -53,8 +53,8 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
 
     // MARK: - Public Methods
 
-    /// 保存项目
-    func save(_ item: Item) async throws {
+    /// 保存项目（创建或更新）
+    public func create(_ item: Item) async throws {
         let shardPath = getShardPath(for: item)
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -88,13 +88,18 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
         }
     }
 
+    /// 更新项目（与create相同，因为保存操作会覆盖现有数据）
+    public func update(_ item: Item) async throws {
+        try await create(item)
+    }
+    
     /// 批量保存
-    func saveBatch(_ items: [Item]) async throws {
+    public func saveBatch(_ items: [Item]) async throws {
         await withTaskGroup(of: Error?.self) { group in
             for item in items {
                 group.addTask { [weak self] in
                     do {
-                        try await self?.save(item)
+                        try await self?.create(item)
                         return nil
                     } catch {
                         return error
@@ -116,8 +121,8 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
         }
     }
 
-    /// 加载项目
-    func load(id: UUID) async throws -> Item? {
+    /// 读取项目
+    public func read(id: UUID) async throws -> Item? {
         guard let shardName = shardIndex[id] else {
             // 尝试查找
             if let path = try await findItemPath(id: id) {
@@ -130,12 +135,12 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
         return try await loadFromPath(shardPath)
     }
 
-    /// 批量加载
-    func loadBatch(ids: [UUID]) async throws -> [Item] {
+    /// 批量读取
+    public func readBatch(ids: [UUID]) async throws -> [Item] {
         return await withTaskGroup(of: Item?.self) { group in
             for id in ids {
                 group.addTask { [weak self] in
-                    try? await self?.load(id: id)
+                    try? await self?.read(id: id)
                 }
             }
 
@@ -150,7 +155,7 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
     }
 
     /// 删除项目
-    func delete(id: UUID) async throws {
+    public func delete(id: UUID) async throws {
         guard let shardName = shardIndex[id] else {
             return
         }
@@ -171,8 +176,19 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
         }
     }
 
+    /// 批量删除
+    public func deleteBatch(ids: [UUID]) async throws {
+        await withTaskGroup(of: Void.self) { group in
+            for id in ids {
+                group.addTask { [weak self] in
+                    try? await self?.delete(id: id)
+                }
+            }
+        }
+    }
+
     /// 获取所有项目
-    func loadAll() async throws -> [Item] {
+    public func loadAll() async throws -> [Item] {
         var items: [Item] = []
 
         let shardDirs = try fileManager.contentsOfDirectory(
@@ -210,9 +226,47 @@ class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
 
         return items
     }
+    
+    /// 搜索项目（基础实现 - 加载所有项目并过滤）
+    public func search(query: String) async throws -> [Item] {
+        let allItems = try await loadAll()
+        
+        // 简单的文本搜索实现
+        return allItems.filter { item in
+            // 这里假设Item有某种文本内容可以搜索
+            // 实际实现可能需要根据具体的Item类型来调整
+            if let note = item as? Note {
+                return note.content.localizedCaseInsensitiveContains(query) ||
+                       note.title.localizedCaseInsensitiveContains(query)
+            }
+            return false
+        }
+    }
+    
+    /// 获取所有索引（基础实现 - 为每个项目创建索引）
+    public func getAllIndexes() async throws -> [NoteIndex] {
+        let allItems = try await loadAll()
+        return allItems.map { item in
+            if let note = item as? Note {
+                return NoteIndex(from: note)
+            } else {
+                // 为其他类型创建基础索引
+                return NoteIndex(
+                    id: item.id,
+                    title: "Item \(item.id)",
+                    createdAt: Date(),
+                    modifiedAt: Date(),
+                    tags: [],
+                    wordCount: 0,
+                    previewText: "",
+                    isFavorited: false
+                )
+            }
+        }
+    }
 
     /// 清空所有数据
-    func clear() async throws {
+    public func clear() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async(flags: .barrier) { [weak self] in
                 guard let self = self else {
@@ -407,7 +461,7 @@ class ModernNoteStorage: StorageProtocol {
 
     func create(_ item: Note) async throws {
         // 1. 保存到分片存储
-        try await shardedStorage.save(item)
+        try await shardedStorage.create(item)
 
         // 2. 更新索引
         let index = NoteIndex(from: item)
@@ -424,7 +478,7 @@ class ModernNoteStorage: StorageProtocol {
         }
 
         // 2. 从分片存储读取
-        if let note = try await shardedStorage.load(id: id) {
+        if let note = try await shardedStorage.read(id: id) {
             // 3. 更新缓存
             await cacheManager.cacheNote(note)
             return note
@@ -448,7 +502,7 @@ class ModernNoteStorage: StorageProtocol {
 
         // 2. 批量从存储加载
         if !missingIds.isEmpty {
-            let loaded = try await shardedStorage.loadBatch(ids: missingIds)
+            let loaded = try await shardedStorage.readBatch(ids: missingIds)
             results.append(contentsOf: loaded)
 
             // 3. 更新缓存
@@ -462,7 +516,7 @@ class ModernNoteStorage: StorageProtocol {
 
     func update(_ item: Note) async throws {
         // 1. 更新分片存储
-        try await shardedStorage.save(item)
+        try await shardedStorage.create(item)
 
         // 2. 更新索引
         let index = NoteIndex(from: item)
@@ -519,7 +573,7 @@ class ModernNoteStorage: StorageProtocol {
         return page
     }
 
-    func getAllIndexes() async throws -> [NoteIndex] {
+    public func getAllIndexes() async throws -> [NoteIndex] {
         let indexes = try await indexDB.getAllNoteIndexes()
         await cacheManager.cacheNoteIndexes(indexes)
         return indexes

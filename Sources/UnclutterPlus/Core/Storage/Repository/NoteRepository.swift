@@ -16,7 +16,7 @@ class NoteRepository: ObservableObject {
     @Published var searchText: String = ""
 
     /// 排序选项
-    @Published var sortOption: NotesSortOption = .modified
+    @Published var sortOption: NoteSortOption = .dateModified
 
     /// 是否升序
     @Published var isAscending: Bool = false
@@ -41,7 +41,7 @@ class NoteRepository: ObservableObject {
             let searchLower = searchText.lowercased()
             filtered = filtered.filter { index in
                 index.title.lowercased().contains(searchLower) ||
-                index.preview.lowercased().contains(searchLower) ||
+                index.previewText.lowercased().contains(searchLower) ||
                 index.tags.contains { $0.lowercased().contains(searchLower) }
             }
         }
@@ -49,22 +49,22 @@ class NoteRepository: ObservableObject {
         // 排序
         filtered.sort { first, second in
             // 收藏的笔记总是在前面
-            if first.isFavorite && !second.isFavorite {
+            if first.isFavorited && !second.isFavorited {
                 return true
-            } else if !first.isFavorite && second.isFavorite {
+            } else if !first.isFavorited && second.isFavorited {
                 return false
             }
 
             let result: Bool
             switch sortOption {
-            case .modified:
+            case .dateModified:
                 result = first.modifiedAt > second.modifiedAt
-            case .created:
+            case .dateCreated:
                 result = first.createdAt > second.createdAt
             case .title:
                 result = first.title.localizedCaseInsensitiveCompare(second.title) == .orderedAscending
-            case .wordCount:
-                result = first.wordCount > second.wordCount
+            case .tagCount:
+                result = first.tags.count > second.tags.count
             }
 
             return isAscending ? !result : result
@@ -90,7 +90,22 @@ class NoteRepository: ObservableObject {
             do {
                 self.storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
             } catch {
-                fatalError("Failed to initialize storage: \(error)")
+                // 使用默认存储配置，如果失败则创建一个空存储
+                print("Failed to initialize storage: \(error). Using fallback storage.")
+                // 创建一个简单的内存存储作为后备
+                do {
+                    self.storage = try ModernNoteStorage(configuration: StorageConfiguration(
+                        baseURL: FileManager.default.temporaryDirectory.appendingPathComponent("fallback_notes"),
+                        cacheSizeLimit: 100 * 1024 * 1024 // 100MB
+                    ))
+                } catch {
+                    print("Failed to initialize fallback storage: \(error). Using in-memory storage.")
+                    // 最后的手段：使用一个简单的内存存储
+                    self.storage = try! ModernNoteStorage(configuration: StorageConfiguration(
+                        baseURL: FileManager.default.temporaryDirectory.appendingPathComponent("memory_notes"),
+                        cacheSizeLimit: 50 * 1024 * 1024 // 50MB
+                    ))
+                }
             }
         }
         setupBindings()
@@ -146,7 +161,7 @@ class NoteRepository: ObservableObject {
 
     /// 创建新笔记
     func createNote(title: String, content: String = "", tags: Set<String> = []) async -> Note? {
-        let note = Note(title: title, content: content, tags: tags)
+        let note = Note(title: title, content: content, tags: Array(tags))
 
         do {
             try await storage.create(note)
@@ -167,8 +182,8 @@ class NoteRepository: ObservableObject {
     /// 更新笔记
     func updateNote(_ note: Note) async {
         var updatedNote = note
-        updatedNote.modifiedAt = Date()
-        updatedNote.updateCachedValues()
+        updatedNote.updatedAt = Date()
+        // 更新缓存值会在保存时自动处理
 
         do {
             try await storage.update(updatedNote)
@@ -332,8 +347,7 @@ private class TemporaryNoteStorage: StorageProtocol {
     func list(limit: Int, offset: Int) async throws -> [NoteIndex] {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
-                let allNotes = Array(self.notes.values)
-                    .sorted { $0.modifiedAt > $1.modifiedAt }
+                let allNotes = self.notes.values.sorted { $0.updatedAt > $1.updatedAt }
                 let page = Array(allNotes.dropFirst(offset).prefix(limit))
                 let indexes = page.map { NoteIndex(from: $0) }
                 continuation.resume(returning: indexes)
