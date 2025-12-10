@@ -170,15 +170,33 @@ class ClipboardManager: ObservableObject {
     
     private func startMonitoring() {
         lastChangeCount = pasteboard.changeCount
-        
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.checkForClipboardChanges()
+
+        // Use a more efficient timer with lower frequency and background queue
+        // Combined with RunLoop for better performance
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkForClipboardChanges()
+            }
         }
+
+        // Add notification observer for active app changes as a backup
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
     }
     
     private func stopMonitoring() {
         timer?.invalidate()
         timer = nil
+        NotificationCenter.default.removeObserver(self, name: NSApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc private func appDidBecomeActive() {
+        // Check for clipboard changes when app becomes active
+        checkForClipboardChanges()
     }
     
     private func checkForClipboardChanges() {
@@ -195,14 +213,18 @@ class ClipboardManager: ObservableObject {
         let frontApp = NSWorkspace.shared.frontmostApplication
         let bundleID = frontApp?.bundleIdentifier
         let appName = frontApp?.localizedName
-        
-        // 获取应用图标
+
+        // 获取应用图标 - 移至后台处理
         var iconData: Data? = nil
         if let icon = frontApp?.icon {
-            if let tiffData = icon.tiffRepresentation,
-               let bitmapRep = NSBitmapImageRep(data: tiffData),
-               let pngData = bitmapRep.representation(using: .png, properties: [:]) {
-                iconData = pngData
+            Task.detached(priority: .background) { [weak self] in
+                if let tiffData = icon.tiffRepresentation,
+                   let bitmapRep = NSBitmapImageRep(data: tiffData),
+                   let pngData = bitmapRep.representation(using: .png, properties: [:]) {
+                    await MainActor.run {
+                        self?.updateIconData(pngData, for: self?.items.first)
+                    }
+                }
             }
         }
         

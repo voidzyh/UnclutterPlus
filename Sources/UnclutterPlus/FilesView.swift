@@ -1,6 +1,9 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - SwiftUI 2025: Modern Search Bar
+// 利用 SwiftUI 2025 的现代化搜索栏
+
 enum ViewMode: String, CaseIterable {
     case grid = "Grid"
     case list = "List"
@@ -46,26 +49,9 @@ struct FilesView: View {
         VStack(spacing: 0) {
             // 顶部工具栏
             HStack {
-                // 搜索栏
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
-                    TextField("Search files...", text: $searchText)
-                        .textFieldStyle(.plain)
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
-                .frame(maxWidth: 200)
+                // SwiftUI 2025: 现代化搜索栏
+                ModernSearchBar(text: $searchText)
+                    .frame(maxWidth: 300)
                 
                 Spacer()
                 

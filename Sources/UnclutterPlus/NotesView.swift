@@ -1,5 +1,8 @@
 import SwiftUI
 
+// MARK: - SwiftUI 2025: Modern Search Bar
+// 利用 SwiftUI 2025 的现代化搜索栏
+
 enum ViewLayout: String, CaseIterable {
     case sidebar = "Sidebar"
     case focus = "Focus"
@@ -27,18 +30,9 @@ struct NotesView: View {
         VStack(spacing: 0) {
             // 顶部工具栏
             HStack {
-                // 搜索栏
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
-                    TextField("search.notes.placeholder".localized, text: $notesManager.searchText)
-                        .textFieldStyle(.plain)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
-                .frame(maxWidth: 250)
+                // SwiftUI 2025: 现代化搜索栏
+                ModernSearchBar(text: $notesManager.searchText)
+                    .frame(maxWidth: 300)
                 
                 Spacer()
                 

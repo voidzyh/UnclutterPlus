@@ -5,7 +5,9 @@ let package = Package(
     name: "UnclutterPlus",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v14)  // Minimum: macOS 14.0 Sonoma
+        // SwiftUI 2025 features require macOS 26.0 or later
+        // but will gracefully degrade on older versions
     ],
     products: [
         .executable(

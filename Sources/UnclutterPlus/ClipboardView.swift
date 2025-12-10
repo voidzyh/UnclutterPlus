@@ -1,5 +1,8 @@
 import SwiftUI
 
+// MARK: - SwiftUI 2025: Modern Search Bar
+// 利用 SwiftUI 2025 的现代化搜索栏
+
 struct ClipboardView: View {
     @StateObject private var clipboardManager = ClipboardManager()
     @ObservedObject private var config = ConfigurationManager.shared
@@ -133,25 +136,9 @@ struct ClipboardView: View {
         VStack(spacing: 0) {
             // 顶部工具栏
             HStack {
-                // 搜索栏
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
-                    TextField("clipboard.search.placeholder".localized, text: $searchText)
-                        .textFieldStyle(.plain)
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                                                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                // SwiftUI 2025: 现代化搜索栏
+                ModernSearchBar(text: $searchText)
+                    .frame(maxWidth: 300)
                 
                 // 过滤和排序控件（仅图标按钮，点击后弹出选项）
                 HStack(spacing: 12) {

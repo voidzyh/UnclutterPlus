@@ -14,6 +14,7 @@ struct MainContentView: View {
     @State private var refreshID = UUID()
     @State private var lastConfigHash = 0
     @State private var configMonitorTimer: Timer?
+    @Namespace private var namespace  // SwiftUI 2025: glassEffectID 命名空间
     
     var body: some View {
         VStack(spacing: 0) {
@@ -25,9 +26,11 @@ struct MainContentView: View {
                         TabButton(
                             title: getTabTitle(for: tabId),
                             systemImage: getTabIcon(for: tabId),
-                            isSelected: selectedTab == index
+                            isSelected: selectedTab == index,
+                            namespace: namespace,
+                            id: tabId
                         ) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                 selectedTab = index
                             }
                         }
@@ -43,9 +46,8 @@ struct MainContentView: View {
                     }) {
                         Image(systemName: "gearshape")
                             .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.liquidGlass)
                     .help("button.preferences".localized)
                 }
             }
@@ -73,7 +75,7 @@ struct MainContentView: View {
                         Button("features.open_settings".localized) {
                             showPreferencesWindow()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.liquidGlass)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -106,11 +108,7 @@ struct MainContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.easeInOut(duration: 0.2), value: selectedTab)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .shadow(radius: 20)
-        )
+        .liquidGlass(cornerRadius: 16, opacity: 0.1)
         .padding(8)
         .id(refreshID) // 强制刷新视图
         .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
@@ -234,41 +232,62 @@ struct TabButton: View {
     let title: String
     let systemImage: String
     let isSelected: Bool
+    let namespace: Namespace.ID
+    let id: String
     let action: () -> Void
-    
-    @State private var isHovered = false
-    @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
                     .font(.system(size: 14, weight: .medium))
-                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .scaleEffect(isSelected ? 1.1 : 1.0)
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
             }
-            .foregroundColor(isSelected ? .white : (isHovered ? .primary : .secondary))
+            .foregroundStyle(isSelected ? .white : .primary)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Color.accentColor : (isHovered ? Color.primary.opacity(0.1) : Color.clear))
+                    .fill(
+                        isSelected ?
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ) :
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.1),
+                                Color.white.opacity(0.05),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(isHovered && !isSelected ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1)
+                            .stroke(
+                                isSelected ?
+                                Color.white.opacity(0.3) :
+                                Color.white.opacity(0.2),
+                                lineWidth: 1
+                            )
                     )
             )
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .shadow(color: isHovered ? Color.black.opacity(0.1) : Color.clear, radius: 2, x: 0, y: 1)
-            .animation(.easeInOut(duration: 0.15), value: isHovered)
-            .animation(.easeInOut(duration: 0.1), value: isPressed)
+            .scaleEffect(isSelected ? 1.05 : 1.0)
+            .shadow(
+                color: isSelected ? Color.accentColor.opacity(0.3) : Color.black.opacity(0.1),
+                radius: isSelected ? 8 : 3,
+                x: 0,
+                y: isSelected ? 3 : 1
+            )
         }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
+        .buttonStyle(.liquidGlass)
+        .glassEffectID(id, in: namespace)  // SwiftUI 2025: 流畅过渡动画
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSelected)
     }
 }
 

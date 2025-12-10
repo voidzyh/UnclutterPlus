@@ -154,7 +154,35 @@ struct NoteEditorView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.regularMaterial)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.3),
+                            Color.white.opacity(0.15),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.5),
+                                    Color.white.opacity(0.25),
+                                    Color.clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
     }
 
     @ViewBuilder
@@ -182,19 +210,18 @@ struct NoteEditorView: View {
     
     @ViewBuilder
     private var editOnlyView: some View {
-        VStack(spacing: 0) {
-            AppKitTextEditor(
-                text: $content,
-                font: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
-            ) { _ in
-                saveNoteDebounced()
-            }
-            .focused($isContentFocused)
-            .onChange(of: isContentFocused) { oldValue, newValue in
-                WindowManager.shared.setEditingNote(newValue)
-            }
+        RichTextEditor(
+            text: $content,
+            placeholder: "开始编写你的笔记...",
+            fontSize: 14
+        ) { _ in
+            saveNoteDebounced()
         }
-        .padding()
+        .focused($isContentFocused)
+        .onChange(of: isContentFocused) { oldValue, newValue in
+            WindowManager.shared.setEditingNote(newValue)
+        }
+        .padding(16)
     }
     
     @ViewBuilder
@@ -248,9 +275,10 @@ struct NoteEditorView: View {
                 .padding(.vertical, 8)
                 .background(.regularMaterial)
                 
-                AppKitTextEditor(
+                RichTextEditor(
                     text: $content,
-                    font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+                    placeholder: "开始编写...",
+                    fontSize: 13
                 ) { _ in
                     saveNoteDebounced()
                 }
@@ -490,16 +518,16 @@ struct MarkdownToolbar: View {
                 .strikethrough(strikethrough)
                 .frame(minWidth: 24, minHeight: 24)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.liquidGlassNoScale)
     }
-    
+
     private func ToolbarIconButton(_ systemName: String, action: MarkdownAction) -> some View {
         Button(action: { onAction(action) }) {
             Image(systemName: systemName)
                 .font(.system(size: 14))
                 .frame(minWidth: 24, minHeight: 24)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.liquidGlassNoScale)
     }
 }
 
