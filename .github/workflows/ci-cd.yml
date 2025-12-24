@@ -102,14 +102,19 @@ jobs:
 
       - name: 运行性能基准测试
         run: |
-          chmod +x performance_benchmark.sh
-          ./performance_benchmark.sh
+          # 性能基准测试通过Swift测试框架运行
+          swift test --filter PerformanceBenchmarkTests --enable-code-coverage
+          echo "性能基准测试完成"
 
-      - name: 上传性能报告
+      - name: 上传性能测试日志
+        if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: performance-report
-          path: performance_report_*.md
+          name: performance-test-logs
+          path: |
+            .build/debug/**/*.log
+            TestOutputs/
+          retention-days: 7
 
   # 构建发布包 (仅在发布时)
   create-release:

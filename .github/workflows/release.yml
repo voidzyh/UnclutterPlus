@@ -54,13 +54,12 @@ jobs:
         mkdir -p "${{ env.APP_NAME }}.app/Contents/Resources"
         
         # 复制可执行文件 (检查通用二进制构建路径)
-        if [ -f ".build/apple/Products/Release/${{ env.APP_NAME }}" ]; then
-          cp ".build/apple/Products/Release/${{ env.APP_NAME }}" "${{ env.APP_NAME }}.app/Contents/MacOS/"
-        elif [ -f "${{ env.BUILD_PATH }}/${{ env.APP_NAME }}" ]; then
+        # Swift Package Manager 构建的可执行文件在 .build/release 目录
+        if [ -f "${{ env.BUILD_PATH }}/${{ env.APP_NAME }}" ]; then
           cp "${{ env.BUILD_PATH }}/${{ env.APP_NAME }}" "${{ env.APP_NAME }}.app/Contents/MacOS/"
         else
-          echo "❌ Error: Cannot find executable file"
-          find .build -name "${{ env.APP_NAME }}" -type f
+          echo "❌ Error: Cannot find executable file at ${{ env.BUILD_PATH }}/${{ env.APP_NAME }}"
+          find .build -name "${{ env.APP_NAME }}" -type f 2>/dev/null || echo "Executable not found in .build"
           exit 1
         fi
         
@@ -68,11 +67,10 @@ jobs:
         cp "Sources/${{ env.APP_NAME }}/Info.plist" "${{ env.APP_NAME }}.app/Contents/"
         
         # 查找并复制 Swift Package Manager 资源包
+        # Swift Package Manager 构建的资源包在 .build/release 目录
         RESOURCE_BUNDLE_PATH=""
-        if [ -d ".build/apple/Products/Release" ]; then
-          RESOURCE_BUNDLE_PATH=$(find .build/apple/Products/Release -name "*${{ env.APP_NAME }}*.bundle" | head -1)
-        elif [ -d ".build/release" ]; then
-          RESOURCE_BUNDLE_PATH=$(find .build/release -name "*${{ env.APP_NAME }}*.bundle" | head -1)
+        if [ -d ".build/release" ]; then
+          RESOURCE_BUNDLE_PATH=$(find .build/release -name "*${{ env.APP_NAME }}*.bundle" 2>/dev/null | head -1)
         fi
         
         if [ -n "$RESOURCE_BUNDLE_PATH" ] && [ -d "$RESOURCE_BUNDLE_PATH" ]; then
