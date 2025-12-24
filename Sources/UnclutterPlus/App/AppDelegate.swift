@@ -6,7 +6,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windowManager: WindowManager?
     private var statusMenu: NSMenu?
     private var dockMenu: NSMenu?
-    
+
+    // 菜单栏滚动触发器
+    private let menuBarTracker = MenuBarScrollTracker.shared
+
     // 优化的服务管理器
     private let serviceManager = ApplicationServiceManager.shared
     
@@ -31,6 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // 设置UI和系统集成（这些可以在服务初始化期间并行进行）
         setupStatusBar()
         setupWindowManager()
+        setupMenuBarScrollTracking()
         setupGlobalHotkey()
         setupDockMenu()
         setupNotificationObservers()
@@ -54,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        print("已设置全局快捷键 Command+Shift+U")
+        logger.info("已设置全局快捷键 Command+Shift+U", category: "AppDelegate")
     }
     
     private func setupStatusBar() {
@@ -67,7 +71,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "tray.2", accessibilityDescription: "UnclutterPlus")
+            // 使用应用图标或者更合适的系统图标
+            if let appIcon = NSImage(named: NSImage.Name("AppIcon")) {
+                button.image = appIcon
+                button.image?.size = NSSize(width: 16, height: 16)
+            } else {
+                // 使用更合适的系统图标
+                button.image = NSImage(systemSymbolName: "note.text", accessibilityDescription: "UnclutterPlus")
+                button.image?.size = NSSize(width: 16, height: 16)
+            }
         }
 
         // Build a persistent status menu
@@ -99,7 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func setupWindowManager() {
         windowManager = WindowManager.shared
-        print("WindowManager 已初始化")
+        logger.info("WindowManager 已初始化", category: "AppDelegate")
     }
     
     @objc private func statusBarButtonClicked() { /* menu shown automatically by NSStatusItem */ }
@@ -220,16 +232,60 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    // MARK: - 菜单栏滚动触发
+
+    private func setupMenuBarScrollTracking() {
+        logger.info("设置菜单栏滚动触发器...", category: "UI")
+
+        // 启动菜单栏滚动触发器
+        menuBarTracker.startTracking { [weak self] direction in
+            self?.handleMenuBarScroll(direction: direction)
+        } onClick: { [weak self] in
+            self?.handleMenuBarClick()
+        }
+    }
+
+    private func handleMenuBarScroll(direction: MenuBarScrollTracker.ScrollDirection) {
+        logger.info("菜单栏滚动触发：\(direction.description)", category: "UI")
+
+        // 实现直观的操作逻辑
+        switch direction {
+        case .up:
+            // 向上滚动：显示主窗口（符合"拉出"窗口的直觉）
+            logger.info("向上滚动 - 显示主窗口", category: "UI")
+            windowManager?.showWindow()
+
+        case .down:
+            // 向下滚动：隐藏主窗口（符合"收起"窗口的直觉）
+            logger.info("向下滚动 - 隐藏主窗口", category: "UI")
+            windowManager?.hideWindow()
+
+        case .unknown:
+            logger.info("未知滚动方向，忽略", category: "UI")
+            break
+        }
+    }
+
+    private func handleMenuBarClick() {
+        logger.info("菜单栏空白区域点击", category: "UI")
+
+        // 点击逻辑：基于窗口状态进行切换
+        if let windowManager = windowManager {
+            if windowManager.isWindowVisible {
+                // 如果窗口可见，点击后隐藏
+                logger.info("点击 - 隐藏主窗口", category: "UI")
+                windowManager.hideWindow()
+            } else {
+                // 如果窗口不可见，点击后显示
+                logger.info("点击 - 显示主窗口", category: "UI")
+                windowManager.showWindow()
+            }
+        }
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
+        menuBarTracker.stopTracking()
     }
 }
 
-// MARK: - 配置扩展
-
-private extension ConfigurationManager {
-    var isMenuBarIconEnabled: Bool {
-        get { ApplicationServiceManager.shared.showMenuBarIcon }
-        set { ApplicationServiceManager.shared.showMenuBarIcon = newValue }
-    }
-}

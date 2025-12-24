@@ -443,7 +443,7 @@ struct ModernFilesView: View {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, error in
                 if let data = data as? Data,
                    let url = URL(dataRepresentation: data, relativeTo: nil) {
-                    print("Dropped file: \(url)")
+                    logger.info("Dropped file: \(url)", category: "ModernFilesView")
                 }
             }
         }

@@ -552,12 +552,12 @@ struct ModernNotesView: View {
     
     private func applyMarkdownTool(_ tool: MarkdownTool) {
         // 实现Markdown工具逻辑
-        print("Applying tool: \(tool.title)")
+        logger.info("Applying tool: \(tool.title)", category: "ModernNotesView")
     }
     
     private func applyMarkdownFormat(_ format: MarkdownFormat) {
         // 实现Markdown格式逻辑
-        print("Applying format: \(format.title)")
+        logger.info("Applying format: \(format.title)", category: "ModernNotesView")
     }
 }
 

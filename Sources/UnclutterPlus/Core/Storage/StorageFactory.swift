@@ -14,13 +14,12 @@ class StorageFactory {
             // 包装缓存层（可选，因为 ModernNoteStorage 已内置缓存）
             // let cachedStorage = CachedStorage(storage: storage, cacheManager: CacheManager())
 
-            print("✅ Modern storage initialized successfully")
-            print("📁 Storage path: \(config.baseURL.path)")
+            logger.info("现代化存储初始化成功", category: "Storage")
+            logger.debug("存储路径: \(config.baseURL.path)", category: "Storage")
 
             return storage
         } catch {
-            print("❌ Failed to create modern storage: \(error)")
-            print("⚠️ Falling back to temporary storage")
+            logger.error("创建现代化存储失败: \(error.localizedDescription)，降级到临时存储", category: "Storage")
 
             // 降级到临时存储
             return TemporaryStorage(configuration: config)
@@ -62,7 +61,7 @@ class TemporaryStorage: StorageProtocol {
     private var notes: [UUID: Note] = [:]
 
     init(configuration: StorageConfiguration) {
-        print("⚠️ Using temporary in-memory storage")
+        logger.warning("使用临时内存存储", category: "Storage")
     }
 
     func create(_ item: Note) async throws {
@@ -138,9 +137,9 @@ class ClipboardStorageAdapter: StorageProtocol {
             // 尝试加载所有数据，触发存储初始化
             _ = try await shardedStorage.loadAll()
             isInitialized = true
-            print("✅ 剪贴板存储初始化完成")
+            logger.info("剪贴板存储初始化完成", category: "Storage")
         } catch {
-            print("❌ 剪贴板存储初始化失败: \(error)")
+            logger.error("剪贴板存储初始化失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -314,7 +313,7 @@ class AppStorageManager {
 
     /// 执行维护任务
     private func performMaintenance() async {
-        print("🔧 Starting maintenance tasks...")
+        logger.info("开始维护任务", category: "Storage")
 
         // 1. 压缩数据库
         if let modernStorage = noteStorage as? ModernNoteStorage,
@@ -323,12 +322,12 @@ class AppStorageManager {
         }
 
         // 2. 清理过期数据
-        // TODO: 实现数据过期策略
+        await cleanupExpiredData()
 
         // 3. 优化缓存
-        // TODO: 根据使用情况调整缓存大小
+        await optimizeCache()
 
-        print("✅ Maintenance tasks completed")
+        logger.info("维护任务完成", category: "Storage")
     }
 
     /// 获取存储统计信息
@@ -358,6 +357,97 @@ class AppStorageManager {
         }
 
         return size
+    }
+
+    /// 清理过期数据
+    private func cleanupExpiredData() async {
+        logger.info("开始清理过期数据", category: "Storage")
+
+        // 清理超过 30 天的临时文件和缓存
+        let calendar = Calendar.current
+        let cutoffDate = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+
+        // 获取临时目录
+        let tempURL = FileManager.default.temporaryDirectory
+
+        if let enumerator = FileManager.default.enumerator(at: tempURL, includingPropertiesForKeys: [.creationDateKey, .fileSizeKey]) {
+            var totalSizeCleaned: Int64 = 0
+            var filesDeleted: Int = 0
+
+            for case let fileURL as URL in enumerator {
+                guard let resourceValues = try? fileURL.resourceValues(forKeys: [.creationDateKey, .fileSizeKey]),
+                      let creationDate = resourceValues.creationDate,
+                      creationDate < cutoffDate else {
+                    continue
+                }
+
+                // 删除过期文件
+                try? FileManager.default.removeItem(at: fileURL)
+
+                if let fileSize = resourceValues.fileSize {
+                    totalSizeCleaned += Int64(fileSize)
+                }
+                filesDeleted += 1
+            }
+
+            if filesDeleted > 0 {
+                logger.info(
+                    "清理过期文件完成: \(filesDeleted) 个文件，释放空间 \(ByteCountFormatter.string(fromByteCount: totalSizeCleaned, countStyle: .file))",
+                    category: "Storage"
+                )
+            } else {
+                logger.debug("没有找到需要清理的过期文件", category: "Storage")
+            }
+        }
+
+        // 清理应用的缓存目录
+        if let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let appCacheURL = cachesURL.appendingPathComponent("UnclutterPlus")
+
+            if FileManager.default.fileExists(atPath: appCacheURL.path) {
+                let cacheContents = try? FileManager.default.contentsOfDirectory(
+                    at: appCacheURL,
+                    includingPropertiesForKeys: [.creationDateKey, .fileSizeKey]
+                )
+
+                if let cacheContents = cacheContents {
+                    let expiredCacheFiles = cacheContents.filter { url -> Bool in
+                        guard let resourceValues = try? url.resourceValues(forKeys: [.creationDateKey]),
+                              let creationDate = resourceValues.creationDate else {
+                            return false
+                        }
+                        return creationDate < cutoffDate
+                    }
+
+                    for fileURL in expiredCacheFiles {
+                        try? FileManager.default.removeItem(at: fileURL)
+                    }
+
+                    if !expiredCacheFiles.isEmpty {
+                        logger.info("清理了 \(expiredCacheFiles.count) 个过期缓存文件", category: "Storage")
+                    }
+                }
+            }
+        }
+
+        logger.info("过期数据清理完成", category: "Storage")
+    }
+
+    /// 优化缓存
+    private func optimizeCache() async {
+        logger.info("开始优化缓存", category: "Storage")
+
+        // 获取缓存统计信息
+        let stats = GlobalCacheManager.shared.getCacheStatistics()
+
+        // 根据命中率动态调整缓存大小
+        GlobalCacheManager.shared.optimizeBasedOnHitRate()
+
+        // 记录优化结果
+        logger.info(
+            "缓存优化完成 - 命中率: \(String(format: "%.1f%%", stats.hitRate * 100))，条目数: \(stats.entryCount)",
+            category: "Storage"
+        )
     }
 }
 

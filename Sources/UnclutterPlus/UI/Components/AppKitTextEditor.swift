@@ -161,7 +161,7 @@ struct AppKitTextEditor: NSViewRepresentable {
         
         var body: some View {
             AppKitTextEditor(text: $text) { newText in
-                print("Text changed: \(newText)")
+                logger.debug("Text changed: \(newText)", category: "AppKitTextEditor")
             }
             .frame(width: 400, height: 300)
         }

@@ -46,6 +46,9 @@ class ConfigurationManager: ObservableObject {
     // 标签页顺序和默认设置
     @AppStorage("tabs.order") var tabsOrder: String = "files,clipboard,notes" // 默认顺序：文件、粘贴板、笔记
     @AppStorage("tabs.defaultTab") var defaultTab: String = "files" // 默认标签页：files, clipboard, notes
+
+    // 菜单栏设置
+    @AppStorage("ui.menuBarIcon.enabled") var isMenuBarIconEnabled: Bool = true
     
     private init() {}
     
@@ -156,7 +159,7 @@ class ConfigurationManager: ObservableObject {
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
             }
         } catch {
-            print("Failed to create directory at \(url): \(error)")
+            logger.info("Failed to create directory at \(url): \(error)", category: "ConfigurationManager")
         }
     }
     

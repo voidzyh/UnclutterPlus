@@ -58,9 +58,9 @@ final class NotesService: ObservableObject {
     private let storage: UnifiedNoteStorage
     private var cancellables = Set<AnyCancellable>()
     private var saveWorkItem: DispatchWorkItem?
-    
-    // 缓存完整笔记内容（避免重复加载）
-    private var noteCache: [UUID: Note] = [:]
+
+    // LRU 缓存完整笔记内容（限制最多 100 个，优化内存使用）
+    private let noteCache: LRUCache<UUID, Note>
     
     // 防抖动定时器
     private let debounceInterval: TimeInterval = 0.3
@@ -71,13 +71,13 @@ final class NotesService: ObservableObject {
     var filteredNotes: [NoteIndex] {
         var filtered = noteIndexes
         
-        // 搜索过滤
+        // 搜索过滤（使用预计算的小写版本优化性能）
         if !searchText.isEmpty {
             let query = searchText.lowercased()
             filtered = filtered.filter { index in
-                index.title.lowercased().contains(query) ||
-                index.previewText.lowercased().contains(query) ||
-                index.tags.contains { $0.lowercased().contains(query) }
+                index.titleLowercased.contains(query) ||
+                index.previewTextLowercased.contains(query) ||
+                index.tagsLowercased.contains { $0.contains(query) }
             }
         }
         
@@ -91,7 +91,7 @@ final class NotesService: ObservableObject {
             case .dateCreated:
                 return ascending ? lhs.createdAt < rhs.createdAt : lhs.createdAt > rhs.createdAt
             case .title:
-                return ascending ? lhs.title.lowercased() < rhs.title.lowercased() : lhs.title.lowercased() > rhs.title.lowercased()
+                return ascending ? lhs.titleLowercased < rhs.titleLowercased : lhs.titleLowercased > rhs.titleLowercased
             case .tagCount:
                 return ascending ? lhs.tags.count < rhs.tags.count : lhs.tags.count > rhs.tags.count
             }
@@ -130,7 +130,10 @@ final class NotesService: ObservableObject {
                 configuration: StorageConfiguration.default
             )
         }
-        
+
+        // 初始化 LRU 缓存（最多 100 个笔记）
+        self.noteCache = LRUCache(maxSize: 100)
+
         setupBindings()
         setupObservers()
         
@@ -186,91 +189,131 @@ final class NotesService: ObservableObject {
     func loadNoteIndexes() async {
         isLoading = true
         defer { isLoading = false }
-        
+
         let result = await storage.getAllIndexes()
         switch result {
         case .success(let indexes):
             noteIndexes = indexes
         case .failure(let error):
-            print("❌ Failed to load note indexes: \(error)")
-            // 显示用户友好的错误提示
-            await showErrorAlert("加载笔记失败", error.localizedDescription)
+            // 使用全局错误处理器处理错误
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "加载笔记索引",
+                showAlert: true
+            )
         }
     }
     
     /// 加载完整笔记内容（不设置为选中）
     func loadNote(for id: UUID) async -> Note? {
-        // 检查缓存
-        if let cached = noteCache[id] {
+        // 检查缓存（LRU）
+        if let cached = await noteCache.get(id) {
             return cached
         }
-        
+
         // 从存储加载
         let result = await storage.read(id: id)
         switch result {
         case .success(let note):
             if let note = note {
-                noteCache[id] = note
+                await noteCache.set(id, note)
                 return note
             } else {
                 return nil
             }
         case .failure(let error):
-            print("❌ Failed to load note \(id): \(error)")
+            // 静默处理错误，只记录日志
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "加载笔记 [ID: \(id.uuidString.prefix(8))]",
+                showAlert: false  // 不显示对话框，避免打扰用户
+            )
             return nil
         }
     }
-    
+
+    /// 获取笔记（loadNote的别名，用于兼容性）
+    func getNote(id: UUID) async -> Note? {
+        return await loadNote(for: id)
+    }
+
+    /// 获取所有笔记（用于测试）
+    func getAllNotes() async -> [Note] {
+        var allNotes: [Note] = []
+        for index in noteIndexes {
+            if let note = await loadNote(for: index.id) {
+                allNotes.append(note)
+            }
+        }
+        return allNotes
+    }
+
     /// 加载完整笔记内容
     func loadFullNoteContent(for id: UUID) async {
-        // 检查缓存
-        if let cached = noteCache[id] {
+        // 检查缓存（LRU）
+        if let cached = await noteCache.get(id) {
             selectedNote = cached
             editingContent = cached.content
             return
         }
-        
+
         // 从存储加载
         let result = await storage.read(id: id)
         switch result {
         case .success(let note):
             if let note = note {
-                noteCache[id] = note
+                await noteCache.set(id, note)
                 selectedNote = note
                 editingContent = note.content
             } else {
-                await showErrorAlert("加载失败", "笔记内容不存在")
+                GlobalErrorHandler.shared.handle(
+                    StorageError.notFound(id),
+                    context: "加载完整笔记内容",
+                    showAlert: true
+                )
             }
         case .failure(let error):
-            print("❌ Failed to load note \(id): \(error)")
-            await showErrorAlert("加载失败", error.localizedDescription)
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "加载完整笔记内容 [ID: \(id.uuidString.prefix(8))]",
+                showAlert: true
+            )
         }
     }
     
     /// 创建新笔记
     func createNote(title: String, content: String = "", tags: [String] = []) async -> Bool {
-        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            await showErrorAlert("创建失败", "笔记标题不能为空")
+        // 验证输入
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else {
+            GlobalErrorHandler.shared.handle(
+                ValidationError.emptyTitle,
+                context: "创建笔记",
+                showAlert: true
+            )
             return false
         }
-        
+
         let note = Note(
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            title: trimmedTitle,
             content: content,
             tags: tags
         )
-        
+
         let result = await storage.create([note])
         switch result {
         case .success:
             // 重新加载索引以获取最新的索引信息
             await loadNoteIndexes()
             selectedNote = note
-            noteCache[note.id] = note
+            await noteCache.set(note.id, note)
             return true
         case .failure(let error):
-            print("❌ Failed to create note: \(error)")
-            await showErrorAlert("创建失败", error.localizedDescription)
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "创建笔记 [标题: \(trimmedTitle)]",
+                showAlert: true
+            )
             return false
         }
     }
@@ -278,31 +321,33 @@ final class NotesService: ObservableObject {
     /// 更新笔记
     func updateNote(_ note: Note, content: String? = nil) async -> Bool {
         var updatedNote = note
-        
+
         // 更新内容
         if let newContent = content {
             updatedNote.content = newContent
-
         }
-        
+
         // 更新时间戳
         updatedNote.updatedAt = Date()
-        
+
         let result = await storage.update([updatedNote])
         switch result {
         case .success:
-            // 更新缓存
-            noteCache[note.id] = updatedNote
+            // 更新缓存（LRU）
+            await noteCache.set(note.id, updatedNote)
             if selectedNote?.id == note.id {
                 selectedNote = updatedNote
             }
-            
+
             // 更新索引（重新加载以确保索引是最新的）
             await loadNoteIndexes()
             return true
         case .failure(let error):
-            print("❌ Failed to update note: \(error)")
-            await showErrorAlert("保存失败", error.localizedDescription)
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "更新笔记 [标题: \(note.title)]",
+                showAlert: true
+            )
             return false
         }
     }
@@ -312,21 +357,24 @@ final class NotesService: ObservableObject {
         let result = await storage.delete(ids: [note.id])
         switch result {
         case .success:
-            // 清理缓存
-            noteCache.removeValue(forKey: note.id)
-            
+            // 清理缓存（LRU）
+            await noteCache.remove(note.id)
+
             // 如果删除的是当前选中的笔记，清除选择
             if selectedNote?.id == note.id {
                 selectedNote = nil
                 editingContent = ""
             }
-            
+
             // 重新加载索引
             await loadNoteIndexes()
             return true
         case .failure(let error):
-            print("❌ Failed to delete note: \(error)")
-            await showErrorAlert("删除失败", error.localizedDescription)
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "删除笔记 [标题: \(note.title)]",
+                showAlert: true
+            )
             return false
         }
     }
@@ -337,23 +385,26 @@ final class NotesService: ObservableObject {
         let result = await storage.delete(ids: ids)
         switch result {
         case .success:
-            // 清理缓存
+            // 清理缓存（LRU）
             for note in notes {
-                noteCache.removeValue(forKey: note.id)
+                await noteCache.remove(note.id)
             }
-            
+
             // 如果删除的是当前选中的笔记，清除选择
             if let selectedNoteId = selectedNote?.id, ids.contains(selectedNoteId) {
                 selectedNote = nil
                 editingContent = ""
             }
-            
+
             // 重新加载索引
             await loadNoteIndexes()
             return true
         case .failure(let error):
-            print("❌ Failed to delete notes: \(error)")
-            await showErrorAlert("批量删除失败", error.localizedDescription)
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "批量删除笔记 (\(notes.count) 条)",
+                showAlert: true
+            )
             return false
         }
     }
@@ -363,23 +414,27 @@ final class NotesService: ObservableObject {
         var updatedNote = note
         updatedNote.isFavorite.toggle()
         updatedNote.updatedAt = Date()
-        
+
         let result = await storage.update([updatedNote])
         switch result {
         case .success:
-            noteCache[note.id] = updatedNote
+            // 更新缓存（LRU）
+            await noteCache.set(note.id, updatedNote)
             if selectedNote?.id == note.id {
                 selectedNote = updatedNote
             }
-            
+
             // 更新索引（只更新相关的索引项）
             if let index = noteIndexes.firstIndex(where: { $0.id == note.id }) {
                 noteIndexes[index] = NoteIndex(from: updatedNote)
             }
             return true
         case .failure(let error):
-            print("❌ Failed to toggle favorite: \(error)")
-            await showErrorAlert("操作失败", error.localizedDescription)
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "切换收藏状态 [标题: \(note.title)]",
+                showAlert: true
+            )
             return false
         }
     }
@@ -391,8 +446,12 @@ final class NotesService: ObservableObject {
         case .success(let indexes):
             return indexes
         case .failure(let error):
-            print("❌ Failed to search notes: \(error)")
-            await showErrorAlert("搜索失败", error.localizedDescription)
+            // 搜索失败不应打断用户，静默记录错误
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "搜索笔记 [关键词: \(query)]",
+                showAlert: false
+            )
             return []
         }
     }
@@ -415,28 +474,22 @@ final class NotesService: ObservableObject {
     private func autoSaveContent(_ content: String, for noteId: UUID) {
         // 取消之前的保存任务
         saveWorkItem?.cancel()
-        
+
         // 创建新的保存任务
         let workItem = DispatchWorkItem { [weak self] in
-            guard let self = self,
-                  let note = self.noteCache[noteId] else { return }
-            
+            guard let self = self else { return }
+
             Task {
-                await self.updateNote(note, content: content)
+                // 从缓存获取笔记（LRU）
+                guard let note = await self.noteCache.get(noteId) else { return }
+                _ = await self.updateNote(note, content: content)
             }
         }
-        
+
         saveWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
-    
-    /// 显示错误提示（简化版）
-    private func showErrorAlert(_ title: String, _ message: String) async {
-        // 在实际应用中，这里应该显示用户界面错误提示
-        // 现在使用print作为占位符
-        print("🚨 \(title): \(message)")
-    }
-    
+
     /// 获取笔记统计信息
     func getStatistics() async -> NoteStatistics {
         let result = await storage.getStatistics()
@@ -451,7 +504,12 @@ final class NotesService: ObservableObject {
                 storageType: stats.storageType.rawValue
             )
         case .failure(let error):
-            print("❌ Failed to get statistics: \(error)")
+            // 静默记录错误，返回默认统计信息
+            GlobalErrorHandler.shared.handle(
+                error,
+                context: "获取笔记统计信息",
+                showAlert: false
+            )
             return NoteStatistics(totalNotes: 0, favoriteNotes: 0, totalWords: 0, averageWordsPerNote: 0, storageSize: 0, storageType: "unknown")
         }
     }

@@ -50,7 +50,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
                             do {
                                 try await indexDB.upsertNoteIndex(index)
                             } catch {
-                                print("Warning: Failed to update index for note: \(error)")
+                                logger.warning("更新笔记索引失败: \(error.localizedDescription)", category: "Storage")
                             }
                         }
                     }
@@ -132,7 +132,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
                             do {
                                 try await indexDB.upsertNoteIndex(index)
                             } catch {
-                                print("Warning: Failed to update index for note: \(error)")
+                                logger.warning("更新笔记索引失败: \(error.localizedDescription)", category: "Storage")
                             }
                         }
                     }
@@ -163,7 +163,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
                             do {
                                 try await indexDB.deleteNoteIndex(id: id)
                             } catch {
-                                print("Warning: Failed to delete index for note: \(error)")
+                                logger.warning("删除笔记索引失败: \(error.localizedDescription)", category: "Storage")
                             }
                         }
                     }
@@ -366,10 +366,31 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     // MARK: - Private Helper Methods
     
     private static func mapError(_ error: Error) -> StorageOperationError {
-        if let storageError = error as? StorageError {
-            switch storageError {
-            case .notFound:
+        // 尝试将错误转换为新的 StorageError
+        let unclutterError = error.asUnclutterError()
+
+        if unclutterError.category == .storage {
+            // 由于无法直接访问 StorageError，我们根据用户消息判断具体类型
+            if unclutterError.userMessage.contains("未找到") {
                 return .itemNotFound(id: UUID()) // 泛化处理
+            } else if unclutterError.userMessage.contains("损坏") {
+                return .corruptedData(location: "notes")
+            } else if unclutterError.userMessage.contains("空间不足") {
+                return .diskFull(requiredSpace: 0)
+            } else {
+                return .unknown(underlying: error)
+            }
+        }
+
+        // 处理旧的 LegacyStorageError（向后兼容）
+        if #available(macOS 14.0, *) {
+            // 新版本不再使用 LegacyStorageError
+        } else {
+            // 向后兼容旧版本
+            if let legacyError = error as? LegacyStorageError {
+                switch legacyError {
+            case .notFound:
+                return .itemNotFound(id: UUID())
             case .corrupted:
                 return .corruptedData(location: "notes")
             case .diskFull:
@@ -382,7 +403,8 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
                 return .unauthorized(accessPath: "notes")
             }
         }
-        
+        }
+
         // 处理其他类型错误
         if error.localizedDescription.contains("disk") || error.localizedDescription.contains("space") {
             return .diskFull(requiredSpace: 0)

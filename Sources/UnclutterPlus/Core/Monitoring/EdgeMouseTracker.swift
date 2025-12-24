@@ -56,20 +56,20 @@ class EdgeMouseTracker {
     }
     
     private func startTracking() {
-        print("Starting gesture and scroll tracking...")
-        
+        logger.debug("开始手势和滚轮追踪", category: "EdgeMouseTracker")
+
         // 监听滚轮事件
         scrollEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             self?.handleScrollEvent(event)
         }
-        
+
         // 专注于双指滑动，使用scrollWheel事件获得最佳响应速度
         // swipe事件通常有延迟，scrollWheel事件更实时
         let gestureEventMask: NSEvent.EventTypeMask = [.swipe]
         gestureEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: gestureEventMask) { [weak self] event in
             self?.handleGestureEvent(event)
         }
-        
+
         // 同时监听本地事件（当应用是前台时）- scrollWheel优先处理双指滑动
         NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             // 先尝试作为手势处理，如果不是手势再作为滚轮处理
@@ -80,17 +80,17 @@ class EdgeMouseTracker {
             }
             return event
         }
-        
+
         NSEvent.addLocalMonitorForEvents(matching: gestureEventMask) { [weak self] event in
             self?.handleGestureEvent(event)
             return event
         }
-        
+
         if scrollEventMonitor != nil {
-            print("手势和滚轮追踪已启动")
-            print("触发配置: 滚轮[\(enabledScrollDirection.description)]，手势[\(enabledGestureType.description)]")
+            logger.info("手势和滚轮追踪已启动", category: "EdgeMouseTracker")
+            logger.debug("触发配置: 滚轮[\(enabledScrollDirection.description)]，手势[\(enabledGestureType.description)]", category: "EdgeMouseTracker")
         } else {
-            print("警告：手势追踪启动失败 - 可能需要辅助功能权限")
+            logger.warning("手势追踪启动失败 - 可能需要辅助功能权限", category: "EdgeMouseTracker")
         }
     }
     
@@ -103,7 +103,7 @@ class EdgeMouseTracker {
             NSEvent.removeMonitor(monitor)
             gestureEventMonitor = nil
         }
-        print("手势和滚轮追踪已停止")
+        logger.info("手势和滚轮追踪已停止", category: "EdgeMouseTracker")
     }
     
     // 处理滚轮事件
@@ -140,7 +140,7 @@ class EdgeMouseTracker {
             let now = Date()
             if now.timeIntervalSince(lastLogTime) > logCooldownInterval {
                 lastLogTime = now
-                print("滚轮触发: deltaY=\(scrollY), hasPreciseScrollingDeltas=\(event.hasPreciseScrollingDeltas)")
+                logger.debug("滚轮触发: deltaY=\(scrollY), hasPreciseScrollingDeltas=\(event.hasPreciseScrollingDeltas)", category: "EdgeMouseTracker")
             }
             
             // 区分设备类型和方向
@@ -206,26 +206,26 @@ class EdgeMouseTracker {
             let now = Date()
             if now.timeIntervalSince(lastLogTime) > logCooldownInterval {
                 lastLogTime = now
-                print("手势触发: \(gestureDescription) at \(mouseLocation)")
+                logger.debug("手势触发: \(gestureDescription) at \(mouseLocation)", category: "EdgeMouseTracker")
             }
-            
+
             // 立即触发，不添加额外的延迟
             attemptTrigger(source: gestureDescription, direction: .down)
         }
     }
-    
+
     // 统一的触发尝试方法
     private func attemptTrigger(source: String, direction: ScrollDirection) {
         let now = Date()
         if now.timeIntervalSince(lastTriggerTime) > cooldownInterval {
             lastTriggerTime = now
-            print("✅ 触发成功! 来源: \(source)")
+            logger.info("触发成功! 来源: \(source)", category: "EdgeMouseTracker")
             DispatchQueue.main.async {
                 self.onEdgeTriggered(direction)
             }
         } else {
             let remainingTime = cooldownInterval - now.timeIntervalSince(lastTriggerTime)
-            print("⏳ 冷却中，剩余 \(String(format: "%.1f", remainingTime))秒 - 来源: \(source)")
+            logger.debug("冷却中，剩余 \(String(format: "%.1f", remainingTime))秒 - 来源: \(source)", category: "EdgeMouseTracker")
         }
     }
     
@@ -264,12 +264,12 @@ class EdgeMouseTracker {
     // 配置更新方法
     func updateScrollDirection(_ direction: ScrollDirection) {
         enabledScrollDirection = direction
-        print("更新滚轮触发方向: \(direction.description)")
+        logger.info("更新滚轮触发方向: \(direction.description)", category: "EdgeMouseTracker")
     }
-    
+
     func updateGestureType(_ gestureType: GestureType) {
         enabledGestureType = gestureType
-        print("更新手势触发类型: \(gestureType.description)")
+        logger.info("更新手势触发类型: \(gestureType.description)", category: "EdgeMouseTracker")
     }
     
     // 获取当前配置

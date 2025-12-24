@@ -109,13 +109,13 @@ class LocalizationManager: ObservableObject {
         }
         
         // 调试：打印bundle信息
-        print("Warning: Missing localization for key: \(key), language: \(currentLanguage.rawValue)")
-        print("Bundle.module paths:")
+        logger.info("Warning: Missing localization for key: \(key), language: \(currentLanguage.rawValue)", category: "LocalizationManager")
+        logger.info("Bundle.module paths:", category: "LocalizationManager")
         if let resourcePath = Bundle.module.resourcePath {
-            print("Resource path: \(resourcePath)")
+            logger.info("Resource path: \(resourcePath)", category: "LocalizationManager")
             let fm = FileManager.default
             if let contents = try? fm.contentsOfDirectory(atPath: resourcePath) {
-                print("Contents: \(contents)")
+                logger.info("Contents: \(contents)", category: "LocalizationManager")
             }
         }
         

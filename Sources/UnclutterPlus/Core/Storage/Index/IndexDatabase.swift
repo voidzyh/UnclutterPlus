@@ -37,7 +37,7 @@ class IndexDatabase {
         )
 
         guard result == SQLITE_OK else {
-            throw StorageError.corrupted
+            throw StorageError.corrupted("数据库损坏")
         }
 
         // 创建表
@@ -159,7 +159,7 @@ class IndexDatabase {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async(flags: .barrier) { [weak self] in
                 guard let self = self else {
-                    continuation.resume(throwing: StorageError.corrupted)
+                    continuation.resume(throwing: StorageError.corrupted("数据库损坏"))
                     return
                 }
 
@@ -246,7 +246,7 @@ class IndexDatabase {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async(flags: .barrier) { [weak self] in
                 guard let self = self else {
-                    continuation.resume(throwing: StorageError.corrupted)
+                    continuation.resume(throwing: StorageError.corrupted("数据库损坏"))
                     return
                 }
 
@@ -267,7 +267,7 @@ class IndexDatabase {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async(flags: .barrier) { [weak self] in
                 guard let self = self else {
-                    continuation.resume(throwing: StorageError.corrupted)
+                    continuation.resume(throwing: StorageError.corrupted("数据库损坏"))
                     return
                 }
 
@@ -335,7 +335,7 @@ class IndexDatabase {
         if result != SQLITE_OK {
             let error = errorMsg.map { String(cString: $0) } ?? "Unknown error"
             sqlite3_free(errorMsg)
-            throw StorageError.unknown(NSError(domain: "SQLite", code: Int(result), userInfo: [NSLocalizedDescriptionKey: error]))
+            throw StorageError.writeFailed(underlying: NSError(domain: "SQLite", code: Int(result), userInfo: [NSLocalizedDescriptionKey: error]))
         }
     }
 
@@ -344,7 +344,7 @@ class IndexDatabase {
         defer { sqlite3_finalize(stmt) }
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            throw StorageError.corrupted
+            throw StorageError.corrupted("数据库损坏")
         }
 
         // 绑定参数
@@ -368,7 +368,7 @@ class IndexDatabase {
         }
 
         guard sqlite3_step(stmt) == SQLITE_DONE else {
-            throw StorageError.corrupted
+            throw StorageError.corrupted("数据库损坏")
         }
     }
 
@@ -377,7 +377,7 @@ class IndexDatabase {
         defer { sqlite3_finalize(stmt) }
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            throw StorageError.corrupted
+            throw StorageError.corrupted("数据库损坏")
         }
 
         // 绑定参数

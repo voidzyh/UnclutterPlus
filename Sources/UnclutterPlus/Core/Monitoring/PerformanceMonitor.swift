@@ -106,15 +106,15 @@ final class PerformanceMonitor {
 
         if elapsed > threshold {
             // 慢操作警告
-            print("⚠️ [Performance] [\(label)] took \(String(format: "%.2f", elapsed))ms (threshold: \(String(format: "%.2f", threshold))ms)")
+            logger.warning("[\(label)] took \(String(format: "%.2f", elapsed))ms (threshold: \(String(format: "%.2f", threshold))ms)", category: "Performance")
         } else if elapsed > threshold * 0.7 {
             // 接近阈值的操作
-            print("⏱️ [Performance] [\(label)] took \(String(format: "%.2f", elapsed))ms")
+            logger.info("[\(label)] took \(String(format: "%.2f", elapsed))ms", category: "Performance")
         } else {
             // 正常操作（可选日志）
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "PerformanceMonitor.VerboseLogging") {
-                print("✅ [Performance] [\(label)] took \(String(format: "%.2f", elapsed))ms")
+                logger.debug("[\(label)] took \(String(format: "%.2f", elapsed))ms", category: "Performance")
             }
             #endif
         }

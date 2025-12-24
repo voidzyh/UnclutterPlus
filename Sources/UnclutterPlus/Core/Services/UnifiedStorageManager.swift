@@ -23,7 +23,7 @@ final class UnifiedStorageManager: ObservableObject {
     // MARK: - Initialization
     
     private init() {
-        print("🔧 Initializing Unified Storage Manager...")
+        logger.info("Initializing Unified Storage Manager...", category: "Storage")
         
         // 创建笔记服务
         self.notesService = NotesService()
@@ -34,7 +34,7 @@ final class UnifiedStorageManager: ObservableObject {
             await loadStorageStatistics()
         }
         
-        print("✅ Unified Storage Manager initialized successfully")
+        logger.info("Unified Storage Manager initialized successfully", category: "Service")
     }
     
     // MARK: - Public Methods
@@ -64,12 +64,12 @@ final class UnifiedStorageManager: ObservableObject {
             }
         }
         
-        print("🔧 Storage maintenance tasks started")
+        logger.info("Storage maintenance tasks started", category: "Storage")
     }
     
     /// 执行存储维护
     func performMaintenance() async {
-        print("🧹 Starting storage maintenance...")
+        logger.info("Starting storage maintenance...", category: "Storage")
         
         // 压缩数据库
         if let modernStorage = await getModernStorage() {
@@ -85,13 +85,13 @@ final class UnifiedStorageManager: ObservableObject {
         // 更新统计信息
         await loadStorageStatistics()
         
-        print("✅ Storage maintenance completed")
+        logger.info("Storage maintenance completed", category: "Service")
     }
     
     /// 清空所有存储数据（谨慎使用）
-    func clearAllData() async {
-        print("⚠️ Clearing all storage data...")
-        
+    func clearAllData() async -> Result<Void, StorageManagerError> {
+        logger.warning("正在清空所有存储数据...", category: "Service")
+
         // 通过 NotesService 的公共方法清空数据
         var allNotes: [Note] = []
         for index in notesService.noteIndexes {
@@ -99,35 +99,48 @@ final class UnifiedStorageManager: ObservableObject {
                 allNotes.append(note)
             }
         }
-        
+
         if !allNotes.isEmpty {
             let success = await notesService.deleteNotes(allNotes)
             if success {
-                print("✅ All data cleared successfully")
+                logger.info("所有数据已清空", category: "Service")
+                return .success(())
             } else {
-                print("❌ Failed to clear data")
+                let error = StorageManagerError.maintenanceFailed("删除笔记失败")
+                logger.error("清空数据失败", category: "Service")
+                GlobalErrorHandler.shared.handle(
+                    error,
+                    context: "清空所有存储数据"
+                )
+                return .failure(error)
             }
         }
+
+        return .success(())
     }
     
     /// 导出存储数据
-    func exportStorageData() async -> Data? {
-        print("📤 Exporting storage data...")
-        
+    func exportStorageData() async throws -> Data {
+        logger.info("📤 正在导出存储数据...", category: "UnifiedStorageManager")
+
         let stats = await getStorageStatistics()
         let exportData = ExportData(
             timestamp: Date(),
             statistics: stats,
             version: "1.0.0"
         )
-        
+
         do {
             let jsonData = try JSONEncoder().encode(exportData)
-            print("✅ Storage data exported successfully")
+            logger.info("存储数据导出成功", category: "Service")
             return jsonData
         } catch {
-            print("❌ Failed to export storage data: \(error)")
-            return nil
+            let exportError = StorageManagerError.exportFailed
+            GlobalErrorHandler.shared.handle(
+                exportError,
+                context: "导出存储数据失败"
+            )
+            throw exportError
         }
     }
     
@@ -141,17 +154,17 @@ final class UnifiedStorageManager: ObservableObject {
     
     private func compressDatabase(_ storage: any StorageProtocol) async {
         // 实现数据库压缩逻辑
-        print("💾 Database compression completed")
+        logger.info("Database compression completed", category: "Storage")
     }
     
     private func cleanupExpiredData() async {
         // 实现过期数据清理逻辑
-        print("🗑️ Expired data cleanup completed")
+        logger.info("Expired data cleanup completed", category: "Storage")
     }
     
     private func optimizeCache() async {
         // 实现缓存优化逻辑
-        print("⚡ Cache optimization completed")
+        logger.info("⚡ Cache optimization completed", category: "UnifiedStorageManager")
     }
     
     private func loadStorageStatistics() async {
@@ -184,12 +197,12 @@ extension UnifiedStorageManager {
     }
     
     func applicationWillTerminate() {
-        print("📴 Application terminating, cleaning up storage...")
+        logger.info("📴 Application terminating, cleaning up storage...", category: "UnifiedStorageManager")
         // 执行最终的清理工作
     }
     
     func handleMemoryWarning() {
-        print("⚠️ Memory warning received, optimizing storage...")
+        logger.warning("Memory warning received, optimizing storage...", category: "Service")
         Task {
             await optimizeCache()
         }

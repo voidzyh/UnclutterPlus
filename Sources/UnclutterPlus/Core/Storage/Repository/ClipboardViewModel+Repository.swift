@@ -128,9 +128,9 @@ final class ClipboardViewModel: ObservableObject {
             
             // 检查是否有数据
             if repository.clipboardIndexes.isEmpty {
-                print("⚠️ 剪贴板数据为空，可能加载失败")
+                logger.debug("⚠️ 剪贴板数据为空，可能加载失败", category: "ClipboardViewModel")
             } else {
-                print("✅ 剪贴板数据已加载，开始监控剪贴板变化")
+                logger.debug("✅ 剪贴板数据已加载，开始监控剪贴板变化", category: "ClipboardViewModel")
             }
             
             // 启动剪贴板监控

@@ -30,7 +30,7 @@ class GlobalHotkey: ObservableObject {
         }
         
         guard let monitor = monitor else {
-            print("Failed to register global hotkey")
+            logger.debug("Failed to register global hotkey", category: "GlobalHotkey")
             return false
         }
         

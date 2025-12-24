@@ -76,7 +76,7 @@ class FavoriteFoldersManager: ObservableObject {
             // 排序
             sortFolders()
         } catch {
-            print("Failed to load folders: \(error)")
+            logger.debug("Failed to load folders: \(error)", category: "FavoriteFoldersManager")
             folders = []
         }
     }
@@ -91,7 +91,7 @@ class FavoriteFoldersManager: ObservableObject {
             let data = try encoder.encode(folders)
             try data.write(to: folderPath)
         } catch {
-            print("Failed to save folders: \(error)")
+            logger.debug("Failed to save folders: \(error)", category: "FavoriteFoldersManager")
         }
     }
     
@@ -237,7 +237,7 @@ class FavoriteFoldersManager: ObservableObject {
             
             return true
         } catch {
-            print("Failed to move file: \(error)")
+            logger.debug("Failed to move file: \(error)", category: "FavoriteFoldersManager")
             return false
         }
     }
@@ -278,5 +278,5 @@ class FavoriteFoldersManager: ObservableObject {
     /// 切换多选模式
     func toggleMultiSelectMode() {
         // 这个方法是为了兼容性，实际多选逻辑由 ViewModel 处理
-        print("切换多选模式 - 由 ViewModel 处理")
+        logger.debug("切换多选模式 - 由 ViewModel 处理", category: "FavoriteFoldersManager")
     }

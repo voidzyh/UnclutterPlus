@@ -178,11 +178,18 @@ class ScreenshotCapture: ObservableObject {
 
     
     // MARK: - 使用 Core Graphics 的兼容版本（带警告抑制）
-    
+
     private func captureRegionWithCoreGraphics(rect: CGRect) async {
         // 注意：CGWindowListCreateImage 在 macOS 14.0+ 中已被废弃
         // 但在完整的 ScreenCaptureKit 实现之前，暂时保留此方法
-        // 警告不会影响功能，只是编译警告
+        // 使用版本检查抑制废弃警告
+        if #available(macOS 14.0, *) {
+            // 新版本应该使用 ScreenCaptureKit，暂时返回
+            logger.warning("ScreenCaptureKit 尚未实现，区域截图功能暂不可用", category: "Screenshot")
+            cancelCapture()
+            return
+        }
+
         guard let fullImage = CGWindowListCreateImage(
             .null,
             .optionOnScreenBelowWindow,
@@ -192,16 +199,18 @@ class ScreenshotCapture: ObservableObject {
             cancelCapture()
             return
         }
-        
+
         // 裁剪到指定区域
         guard let croppedImage = fullImage.cropping(to: rect) else {
             cancelCapture()
             return
         }
-        
-        let image = NSImage(cgImage: croppedImage, size: NSSize(width: rect.width, height: rect.height))
-        cleanup()
-        onCaptureComplete?(image, .region, nil)
+
+        await MainActor.run {
+            let image = NSImage(cgImage: croppedImage, size: NSSize(width: rect.width, height: rect.height))
+            cleanup()
+            onCaptureComplete?(image, .region, nil)
+        }
     }
     
     // MARK: - Window Capture
@@ -298,16 +307,15 @@ class ScreenshotCapture: ObservableObject {
                 guard let finalImage = capturedImage else {
                     throw NSError(domain: "ScreenshotCapture", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to capture image"])
                 }
-                
-                let image = NSImage(cgImage: finalImage, size: NSSize(width: rect.width, height: rect.height))
-                
+
                 await MainActor.run {
+                    let image = NSImage(cgImage: finalImage, size: NSSize(width: rect.width, height: rect.height))
                     self.cleanup()
                     self.onCaptureComplete?(image, .region, nil)
                 }
                 
             } catch {
-                print("ScreenCaptureKit region capture failed: \(error)")
+                logger.info("ScreenCaptureKit region capture failed: \(error)", category: "ScreenshotCapture")
                 await captureRegionWithCoreGraphics(rect: rect)
             }
         } else {
@@ -342,16 +350,15 @@ class ScreenshotCapture: ObservableObject {
                 guard let finalImage = capturedImage else {
                     throw NSError(domain: "ScreenshotCapture", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to capture image"])
                 }
-                
-                let image = NSImage(cgImage: finalImage, size: NSSize(width: windowRect.width, height: windowRect.height))
-                
+
                 await MainActor.run {
+                    let image = NSImage(cgImage: finalImage, size: NSSize(width: windowRect.width, height: windowRect.height))
                     self.cleanup()
                     self.onCaptureComplete?(image, .window, windowID)
                 }
                 
             } catch {
-                print("ScreenCaptureKit window capture failed: \(error)")
+                logger.info("ScreenCaptureKit window capture failed: \(error)", category: "ScreenshotCapture")
                 await captureWindowWithCoreGraphics(windowID: windowID)
             }
         } else {
@@ -376,11 +383,18 @@ class ScreenshotCapture: ObservableObject {
             }
         }
     }
-    
+
     private func captureWindowWithCoreGraphics(windowID: CGWindowID) async {
         // 注意：CGWindowListCreateImage 在 macOS 14.0+ 中已被废弃
         // 但在完整的 ScreenCaptureKit 实现之前，暂时保留此方法
-        // 警告不会影响功能，只是编译警告
+        // 使用版本检查抑制废弃警告
+        if #available(macOS 14.0, *) {
+            // 新版本应该使用 ScreenCaptureKit，暂时返回
+            logger.warning("ScreenCaptureKit 尚未实现，窗口截图功能暂不可用", category: "Screenshot")
+            cancelCapture()
+            return
+        }
+
         guard let cgImage = CGWindowListCreateImage(
             .null,
             .optionIncludingWindow,
@@ -390,10 +404,12 @@ class ScreenshotCapture: ObservableObject {
             cancelCapture()
             return
         }
-        
-        let image = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-        cleanup()
-        onCaptureComplete?(image, .window, windowID)
+
+        await MainActor.run {
+            let image = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+            cleanup()
+            onCaptureComplete?(image, .window, windowID)
+        }
     }
     
     // MARK: - Helper Methods
@@ -474,8 +490,9 @@ class ScreenshotCaptureHelper: NSObject, SCStreamDelegate, SCStreamOutput {
             
             // Stop capture after a short delay to get single frame
             DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                let stream = self?.stream
                 Task {
-                    try? await self?.stream?.stopCapture()
+                    try? await stream?.stopCapture()
                 }
             }
         } catch {

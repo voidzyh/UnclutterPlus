@@ -48,7 +48,7 @@ struct IntegrationTestRunner: View {
                     VStack {
                         Text("正在运行测试...")
                         ProgressView()
-                        Text("当前测试: \(testManager.currentTest ?? "准备中...")
+                        Text("当前测试: \(testManager.currentTest ?? "准备中...")")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -82,7 +82,7 @@ struct IntegrationTestRunner: View {
             case .errorHandling:
                 await runErrorHandlingTests()
             case .asyncTasks:
-                await runAsyncTests()
+                await runAsyncTasks()
             case .security:
                 await runSecurityTests()
             case .performance:
@@ -120,42 +120,35 @@ struct IntegrationTestRunner: View {
     }
     
     private func runStorageTests() async {
-        // TODO: 实现存储集成测试
-        print("Storage integration tests (coming soon)")
+        _ = await testManager.runStorageIntegrationTests()
     }
-    
+
     private func runCacheTests() async {
-        // TODO: 实现缓存集成测试
-        print("Cache integration tests (coming soon)")
+        _ = await testManager.runCacheIntegrationTests()
     }
-    
+
     private func runErrorHandlingTests() async {
-        // TODO: 实现错误处理集成测试
-        print("Error handling integration tests (coming soon)")
+        _ = await testManager.runErrorHandlingIntegrationTests()
     }
-    
+
     private func runAsyncTasks() async {
-        // TODO: 实现异步任务集成测试
-        print("Async tasks integration tests (coming soon)")
+        _ = await testManager.runAsyncTasksIntegrationTests()
     }
-    
+
     private func runSecurityTests() async {
-        // TODO: 实现安全集成测试
-        print("Security integration tests (coming soon)")
+        _ = await testManager.runSecurityIntegrationTests()
     }
-    
+
     private func runPerformanceTests() async {
         _ = await testManager.runPerformanceBenchmarks()
     }
-    
+
     private func runMemoryTests() async {
-        // TODO: 实现内存集成测试
-        print("Memory integration tests (coming soon)")
+        _ = await testManager.runMemoryIntegrationTests()
     }
-    
+
     private func runMultiComponentTests() async {
-        // TODO: 实现多组件集成测试
-        print("Multi-component integration tests (coming soon)")
+        _ = await testManager.runMultiComponentIntegrationTests()
     }
 }
 
@@ -188,8 +181,8 @@ struct TestResultsView: View {
                         }
                         
                         Spacer()
-                        
-                        Text(String(format: "%.3fs", result.duration)
+
+                        Text(String(format: "%.3fs", result.duration))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -201,28 +194,6 @@ struct TestResultsView: View {
                         .foregroundColor(.secondary)
                 }
             }
-        }
-    }
-}
-
-extension TestResult.TestStatus {
-    var icon: String {
-        switch self {
-        case .passed: return "checkmark.circle.fill"
-        case .failed: return "xmark.circle.fill"
-        case .skipped: return "pause.circle.fill"
-        case .timedOut: return "clock.circle.fill"
-        case .crashed: return "exclamationmark.triangle.fill"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .passed: return .green
-        case .failed: return .red
-        case .skipped: return .orange
-        case .timedOut: return .yellow
-        case .crashed: return .red
         }
     }
 }

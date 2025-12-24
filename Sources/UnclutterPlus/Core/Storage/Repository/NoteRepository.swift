@@ -91,7 +91,7 @@ class NoteRepository: ObservableObject {
                 self.storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
             } catch {
                 // 使用默认存储配置，如果失败则创建一个空存储
-                print("Failed to initialize storage: \(error). Using fallback storage.")
+                logger.error("初始化存储失败: \(error.localizedDescription)，使用后备存储", category: "Storage")
                 // 创建一个简单的内存存储作为后备
                 do {
                     self.storage = try ModernNoteStorage(configuration: StorageConfiguration(
@@ -99,7 +99,7 @@ class NoteRepository: ObservableObject {
                         cacheSizeLimit: 100 * 1024 * 1024 // 100MB
                     ))
                 } catch {
-                    print("Failed to initialize fallback storage: \(error). Using in-memory storage.")
+                    logger.error("初始化后备存储失败: \(error.localizedDescription)，使用内存存储", category: "Storage")
                     // 最后的手段：使用一个简单的内存存储
                     self.storage = try! ModernNoteStorage(configuration: StorageConfiguration(
                         baseURL: FileManager.default.temporaryDirectory.appendingPathComponent("memory_notes"),
@@ -135,7 +135,7 @@ class NoteRepository: ObservableObject {
                 self.noteIndexes = indexes
             }
         } catch {
-            print("❌ Failed to load note indexes: \(error)")
+            logger.error("Failed to load note indexes: \(error)", category: "Service")
         }
     }
 
@@ -153,7 +153,7 @@ class NoteRepository: ObservableObject {
                 return note
             }
         } catch {
-            print("❌ Failed to load note \(id): \(error)")
+            logger.error("Failed to load note \(id): \(error)", category: "Service")
         }
 
         return nil
@@ -174,7 +174,7 @@ class NoteRepository: ObservableObject {
 
             return note
         } catch {
-            print("❌ Failed to create note: \(error)")
+            logger.error("Failed to create note: \(error)", category: "Service")
             return nil
         }
     }
@@ -198,7 +198,7 @@ class NoteRepository: ObservableObject {
                 self.noteCache[note.id] = updatedNote
             }
         } catch {
-            print("❌ Failed to update note: \(error)")
+            logger.error("Failed to update note: \(error)", category: "Service")
         }
     }
 
@@ -215,7 +215,7 @@ class NoteRepository: ObservableObject {
                 }
             }
         } catch {
-            print("❌ Failed to delete note: \(error)")
+            logger.error("Failed to delete note: \(error)", category: "Service")
         }
     }
 
@@ -234,7 +234,7 @@ class NoteRepository: ObservableObject {
                 }
             }
         } catch {
-            print("❌ Failed to delete notes: \(error)")
+            logger.error("Failed to delete notes: \(error)", category: "Service")
         }
     }
 
@@ -250,7 +250,7 @@ class NoteRepository: ObservableObject {
         do {
             return try await storage.search(query: query)
         } catch {
-            print("❌ Failed to search notes: \(error)")
+            logger.error("Failed to search notes: \(error)", category: "Service")
             return []
         }
     }
@@ -266,7 +266,7 @@ class NoteRepository: ObservableObject {
                 self.selectedNote = nil
             }
         } catch {
-            print("❌ Failed to clear all notes: \(error)")
+            logger.error("Failed to clear all notes: \(error)", category: "Service")
         }
     }
 }

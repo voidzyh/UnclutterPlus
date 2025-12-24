@@ -117,7 +117,7 @@ class NotesManager: ObservableObject {
             updateAllTags()
             updatePinnedNotes()
         } catch {
-            print("Failed to load notes: \(error)")
+            logger.info("Failed to load notes: \(error)", category: "NotesManager")
             self.error = .loadFailed(error.localizedDescription)
             notes = []
             filteredNotes = []
@@ -135,7 +135,7 @@ class NotesManager: ObservableObject {
             // 发送更新通知
             NotificationCenter.default.post(name: Notification.Name("NotesUpdated"), object: nil)
         } catch {
-            print("Failed to save notes: \(error)")
+            logger.info("Failed to save notes: \(error)", category: "NotesManager")
             self.error = .saveFailed(error.localizedDescription)
         }
     }

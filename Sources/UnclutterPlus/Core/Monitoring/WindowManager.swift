@@ -17,7 +17,7 @@ class KeyboardSupportPanel: NSPanel {
     
     override func becomeKey() {
         super.becomeKey()
-        print("Panel became key window")
+        logger.debug("Panel became key window", category: "WindowManager")
         // 确保窗口内容获得焦点
         if let contentView = self.contentView {
             self.makeFirstResponder(contentView)
@@ -26,7 +26,7 @@ class KeyboardSupportPanel: NSPanel {
     
     override func resignKey() {
         super.resignKey()
-        print("Panel resigned key window")
+        logger.debug("Panel resigned key window", category: "WindowManager")
         
         // 检查是否应该自动隐藏
         if let windowManager = (NSApp.delegate as? AppDelegate)?.windowManager {
@@ -47,18 +47,24 @@ enum AutoHideAction {
 
 class WindowManager: NSObject {
     static let shared = WindowManager()
-    
+
     private var window: NSPanel?
     private var mouseTracker: EdgeMouseTracker?
     private var autoHideTimer: Timer?
     private var isEditingNote: Bool = false
     private var isDraggingFile: Bool = false
     private var hasModalWindow: Bool = false
+
+    // MARK: - 公共访问器
+    var isWindowVisible: Bool {
+        return window?.isVisible ?? false
+    }
     
     override init() {
         super.init()
         setupWindow()
-        setupEdgeTracking()
+        // 禁用旧的边缘跟踪，使用新的菜单栏滚动跟踪
+        // setupEdgeTracking()
     }
     
     private func setupWindow() {
@@ -85,7 +91,7 @@ class WindowManager: NSObject {
         window?.title = "window.main.title".localized
         window?.acceptsMouseMovedEvents = true
         
-        print("Window created successfully")
+        logger.debug("Window created successfully", category: "WindowManager")
         
         // 设置窗口初始位置在屏幕顶部中央
         if let screen = NSScreen.main {
@@ -153,11 +159,11 @@ class WindowManager: NSObject {
     
     func showWindow() {
         guard let window = window else { 
-            print("Error: Window is nil")
+            logger.debug("Error: Window is nil", category: "WindowManager")
             return 
         }
         
-        print("Showing window - current visibility: \(window.isVisible)")
+        logger.debug("Showing window - current visibility: \(window.isVisible)", category: "WindowManager")
         
         if !window.isVisible {
             // 在显示前，先定位到鼠标当前所在的屏幕
@@ -180,15 +186,15 @@ class WindowManager: NSObject {
                     
                     if let hostingView = window.contentView as? NSHostingView<MainContentView> {
                         window.makeFirstResponder(hostingView)
-                        print("Floating window setup complete")
+                        logger.debug("Floating window setup complete", category: "WindowManager")
                     }
                 }
                 
-                print("Window is now key and active")
+                logger.debug("Window is now key and active", category: "WindowManager")
             }
-            print("Window should now be visible")
+            logger.debug("Window should now be visible", category: "WindowManager")
         } else {
-            print("Window is already visible, hiding it")
+            logger.debug("Window is already visible, hiding it", category: "WindowManager")
             hideWindow()
         }
     }
@@ -324,7 +330,7 @@ class WindowManager: NSObject {
         if hasScreenAbove {
             // 如果上方有屏幕，窗口从当前屏幕顶部向下一些显示，避免遮挡上方屏幕
             y = screenFrame.maxY - windowFrame.height - margin * 3
-            print("多屏布局：上方有屏幕，调整窗口位置避免遮挡")
+            logger.debug("多屏布局：上方有屏幕，调整窗口位置避免遮挡", category: "WindowManager")
         } else {
             // 标准位置：紧贴屏幕顶部
             y = screenFrame.maxY - windowFrame.height - margin
@@ -333,9 +339,9 @@ class WindowManager: NSObject {
         let newOrigin = NSPoint(x: x, y: y)
         window.setFrameOrigin(newOrigin)
         
-        print("窗口定位: \(newOrigin)")
-        print("屏幕信息: \(screenFrame)")
-        print("布局分析: 上方有屏幕=\(hasScreenAbove), 下方有屏幕=\(hasScreenBelow)")
+        logger.debug("窗口定位: \(newOrigin)", category: "WindowManager")
+        logger.debug("屏幕信息: \(screenFrame)", category: "WindowManager")
+        logger.debug("布局分析: 上方有屏幕=\(hasScreenAbove), 下方有屏幕=\(hasScreenBelow)", category: "WindowManager")
     }
     
     private func findScreenForPoint(_ point: CGPoint) -> NSScreen? {
@@ -404,10 +410,10 @@ class WindowManager: NSObject {
             if let window = self.window, !window.isKeyWindow {
                 // 检查是否有阻止自动隐藏的条件
                 if !self.shouldPreventAutoHide() {
-                    print("Auto-hiding window due to lost focus")
+                    logger.debug("Auto-hiding window due to lost focus", category: "WindowManager")
                     self.hideWindow()
                 } else {
-                    print("Preventing auto-hide due to active operations")
+                    logger.debug("Preventing auto-hide due to active operations", category: "WindowManager")
                 }
             }
         }
@@ -418,7 +424,7 @@ class WindowManager: NSObject {
         let shouldPrevent = isEditingNote || isDraggingFile || hasModalWindow
         
         if shouldPrevent {
-            print("Preventing auto-hide: editingNote=\(isEditingNote), draggingFile=\(isDraggingFile), hasModalWindow=\(hasModalWindow)")
+            logger.debug("Preventing auto-hide: editingNote=\(isEditingNote), draggingFile=\(isDraggingFile), hasModalWindow=\(hasModalWindow)", category: "WindowManager")
         }
         
         return shouldPrevent

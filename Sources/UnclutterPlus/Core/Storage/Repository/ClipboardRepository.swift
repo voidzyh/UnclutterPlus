@@ -74,7 +74,7 @@ final class ClipboardRepository: ObservableObject {
         // 使用Task确保数据加载完成后再继续
         Task {
             await loadIndexes()
-            print("✅ 剪贴板数据加载完成，共 \(self.clipboardIndexes.count) 项")
+            logger.info("剪贴板数据加载完成，共 \(self.clipboardIndexes.count) 项", category: "Storage")
         }
     }
 
@@ -98,7 +98,7 @@ final class ClipboardRepository: ObservableObject {
                 self.clipboardIndexes = indexes
             }
         } catch {
-            print("❌ Failed to load clipboard indexes: \(error)")
+            logger.error("加载剪贴板索引失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -116,7 +116,7 @@ final class ClipboardRepository: ObservableObject {
                 return item
             }
         } catch {
-            print("❌ Failed to load clipboard item \(id): \(error)")
+            logger.error("加载剪贴板项目失败 \(id.uuidString.prefix(8)): \(error.localizedDescription)", category: "Storage")
         }
 
         return nil
@@ -137,7 +137,7 @@ final class ClipboardRepository: ObservableObject {
                 self.itemCache[item.id] = item
             }
         } catch {
-            print("❌ Failed to add clipboard item: \(error)")
+            logger.error("添加剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -153,7 +153,7 @@ final class ClipboardRepository: ObservableObject {
                 self.itemCache.removeValue(forKey: item.id)
             }
         } catch {
-            print("❌ Failed to delete clipboard item: \(error)")
+            logger.error("删除剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -183,7 +183,7 @@ final class ClipboardRepository: ObservableObject {
                 }
             }
         } catch {
-            print("❌ Failed to toggle pin: \(error)")
+            logger.error("切换收藏状态失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -206,7 +206,7 @@ final class ClipboardRepository: ObservableObject {
                 }
             }
         } catch {
-            print("❌ Failed to update use count: \(error)")
+            logger.error("更新使用计数失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -220,7 +220,7 @@ final class ClipboardRepository: ObservableObject {
                 self.itemCache.removeAll()
             }
         } catch {
-            print("❌ Failed to clear all items: \(error)")
+            logger.error("清空所有项目失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -237,7 +237,7 @@ final class ClipboardRepository: ObservableObject {
                     self.itemCache.removeValue(forKey: index.id)
                 }
             } catch {
-                print("❌ Failed to delete unpinned item \(index.id): \(error)")
+                logger.error("删除未收藏项目失败 \(index.id.uuidString.prefix(8)): \(error.localizedDescription)", category: "Storage")
             }
         }
     }
@@ -247,7 +247,7 @@ final class ClipboardRepository: ObservableObject {
         do {
             return try await storage.search(query: query)
         } catch {
-            print("❌ Failed to search items: \(error)")
+            logger.error("搜索项目失败: \(error.localizedDescription)", category: "Storage")
             return []
         }
     }

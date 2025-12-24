@@ -3,7 +3,7 @@ import Foundation
 /// 笔记索引（轻量级元数据）
 public struct NoteIndex: Codable, Identifiable, StorageIndex {
     public typealias SortKey = Date
-    
+
     public let id: UUID
     public let title: String
     public let createdAt: Date
@@ -12,6 +12,11 @@ public struct NoteIndex: Codable, Identifiable, StorageIndex {
     public let wordCount: Int
     public let previewText: String  // 重命名避免冲突
     public let isFavorited: Bool    // 重命名避免冲突
+
+    // 性能优化：预计算小写版本，避免搜索时重复计算
+    public let titleLowercased: String
+    public let previewTextLowercased: String
+    public let tagsLowercased: [String]
 
     /// 从完整笔记创建索引
     init(from note: Note) {
@@ -23,6 +28,11 @@ public struct NoteIndex: Codable, Identifiable, StorageIndex {
         self.wordCount = note.cachedWordCount
         self.previewText = note.cachedPreview
         self.isFavorited = note.isFavorite
+
+        // 预计算小写版本
+        self.titleLowercased = note.title.lowercased()
+        self.previewTextLowercased = note.cachedPreview.lowercased()
+        self.tagsLowercased = note.tags.map { $0.lowercased() }
     }
 
     /// 直接初始化索引
@@ -36,16 +46,21 @@ public struct NoteIndex: Codable, Identifiable, StorageIndex {
         self.wordCount = wordCount
         self.previewText = previewText
         self.isFavorited = isFavorited
+
+        // 预计算小写版本
+        self.titleLowercased = title.lowercased()
+        self.previewTextLowercased = previewText.lowercased()
+        self.tagsLowercased = tags.map { $0.lowercased() }
     }
-    
+
     var sortKey: Date {
         modifiedAt
     }
-    
+
     var isFavorite: Bool {
         isFavorited
     }
-    
+
     var preview: String {
         previewText
     }

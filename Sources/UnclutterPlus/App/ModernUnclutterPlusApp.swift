@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppKit
 
 /// 现代化 UnclutterPlus 应用入口
 @main
@@ -7,13 +8,13 @@ struct ModernUnclutterPlusApp: App {
     @NSApplicationDelegateAdaptor(ModernAppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Settings {
-            ModernPreferencesView()
-                .frame(minWidth: 600, minHeight: 500)
+        WindowGroup {
+            MainContentView()
+                .frame(minWidth: 800, minHeight: 600)
         }
         .commands {
             CommandGroup(after: .help) {
-                Button("About Modern UnclutterPlus") {
+                Button("About UnclutterPlus") {
                     NSApplication.shared.orderFrontStandardAboutPanel(nil)
                 }
             }
@@ -46,8 +47,8 @@ struct ModernPreferencesView: View {
 /// 现代化应用委托
 final class ModernAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        print("✅ UnclutterPlus v2.0.0 启动完成")
-        print("📦 现代化架构: Swift 6.0 + SwiftUI 5.0")
-        print("🏗️ MVVM + Repository 模式")
+        logger.info("UnclutterPlus v2.0.0 启动完成", category: "Service")
+        logger.info("📦 现代化架构: Swift 6.0 + SwiftUI 5.0", category: "ModernUnclutterPlusApp")
+        logger.info("🏗️ MVVM + Repository 模式", category: "ModernUnclutterPlusApp")
     }
 }

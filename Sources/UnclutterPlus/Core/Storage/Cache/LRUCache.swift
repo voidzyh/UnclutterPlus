@@ -233,18 +233,18 @@ actor CacheManager {
     func getNote(id: UUID) async -> Note? {
         // L1: 检查完整对象缓存
         if let cached = await l1Cache.get(id) as? Note {
-            print("CacheHit: L1: Note \(id)")
+            logger.debug("缓存命中 L1: Note \(id.uuidString.prefix(8))", category: "Storage")
             return cached
         }
 
         // L2: 检查索引缓存
         if (await l2Cache.get(id) as? NoteIndex) != nil {
-            print("CacheHit: L2: NoteIndex \(id)")
+            logger.debug("缓存命中 L2: NoteIndex \(id.uuidString.prefix(8))", category: "Storage")
             // 这里需要从存储加载内容，但我们有索引信息
             return nil // 调用者需要加载完整内容
         }
 
-        print("CacheMiss: Note \(id)")
+        logger.debug("缓存未命中: Note \(id.uuidString.prefix(8))", category: "Storage")
         return nil
     }
 
@@ -272,10 +272,10 @@ actor CacheManager {
     /// 获取搜索结果
     func getSearchResults(query: String) async -> [NoteIndex]? {
         if let cached = await searchCache.get(query) as? [NoteIndex] {
-            print("CacheHit: Search: \(query)")
+            logger.debug("搜索缓存命中: \(query)", category: "Storage")
             return cached
         }
-        print("CacheMiss: Search: \(query)")
+        logger.debug("搜索缓存未命中: \(query)", category: "Storage")
         return nil
     }
 

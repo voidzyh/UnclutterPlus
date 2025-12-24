@@ -88,28 +88,41 @@ class ScreenshotManager: ObservableObject {
     }
     
     // MARK: - Save Screenshot
-    
-    func saveScreenshot(image: NSImage, source: ScreenshotSource, appName: String? = nil) -> ScreenshotItem? {
+
+    func saveScreenshot(image: NSImage, source: ScreenshotSource, appName: String? = nil) -> Result<ScreenshotItem, ScreenshotError> {
         // 生成文件名
         let timestamp = Int(Date().timeIntervalSince1970)
         let fileName = "screenshot_\(timestamp).png"
         let fileURL = screenshotsDirectory.appendingPathComponent(fileName)
-        
+
         // 保存图片
         guard let tiffData = image.tiffRepresentation,
               let bitmapImage = NSBitmapImageRep(data: tiffData),
               let pngData = bitmapImage.representation(using: .png, properties: [:]) else {
-            print("Failed to convert image to PNG")
-            return nil
+            let error = ScreenshotError.conversionFailed
+            Task {
+                await GlobalErrorHandler.shared.handle(
+                    error,
+                    context: "保存截图"
+                )
+            }
+            return .failure(error)
         }
-        
+
         do {
             try pngData.write(to: fileURL)
         } catch {
-            print("Failed to save screenshot: \(error)")
-            return nil
+            let saveError = ScreenshotError.saveFailed(underlying: error)
+            logger.error("保存截图失败: \(error.localizedDescription)", category: "ScreenshotManager")
+            Task {
+                await GlobalErrorHandler.shared.handle(
+                    saveError,
+                    context: "保存截图文件"
+                )
+            }
+            return .failure(saveError)
         }
-        
+
         // 创建截图项
         let item = ScreenshotItem(
             imageURL: fileURL,
@@ -117,18 +130,18 @@ class ScreenshotManager: ObservableObject {
             source: source,
             appName: appName
         )
-        
+
         screenshots.append(item)
         saveMetadata(for: item)
-        
+
         // 如果启用自动 OCR，触发 OCR
         if config.ocrAutoEnabled {
             Task {
                 await performOCR(for: item)
             }
         }
-        
-        return item
+
+        return .success(item)
     }
     
     private func generateTitle(for source: ScreenshotSource, appName: String?) -> String {
@@ -170,9 +183,9 @@ class ScreenshotManager: ObservableObject {
             
             // 按创建时间倒序排序
             screenshots.sort { $0.createdAt > $1.createdAt }
-            
+
         } catch {
-            print("Error loading existing screenshots: \(error)")
+            logger.error("加载现有截图失败: \(error.localizedDescription)", category: "ScreenshotManager")
         }
     }
     
@@ -291,7 +304,7 @@ class ScreenshotManager: ObservableObject {
             let metadataURL = metadataDirectory.appendingPathComponent("\(item.id.uuidString).json")
             try data.write(to: metadataURL)
         } catch {
-            print("Error saving metadata: \(error)")
+            logger.error("保存元数据失败: \(error.localizedDescription)", category: "ScreenshotManager")
         }
     }
     
@@ -315,7 +328,7 @@ class ScreenshotManager: ObservableObject {
                 appName: metadata.appName
             )
         } catch {
-            print("Error loading metadata: \(error)")
+            logger.error("加载元数据失败: \(error.localizedDescription)", category: "ScreenshotManager")
             return nil
         }
     }

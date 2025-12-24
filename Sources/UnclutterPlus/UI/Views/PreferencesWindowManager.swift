@@ -10,7 +10,7 @@ class PreferencesWindowManager {
     private init() {}
     
     func showPreferences() {
-        print("PreferencesWindowManager: showPreferences called")
+        logger.debug("PreferencesWindowManager: showPreferences called", category: "PreferencesWindowManager")
         
         DispatchQueue.main.async {
             // 如果窗口已经存在且显示中，直接激活它
@@ -18,7 +18,7 @@ class PreferencesWindowManager {
                let window = windowController.window {
                 if window.isVisible {
                     // 窗口已经显示，只需要激活它
-                    print("Preferences window already visible, activating it")
+                    logger.debug("Preferences window already visible, activating it", category: "PreferencesWindowManager")
                     NSApp.activate(ignoringOtherApps: true)
                     window.makeKeyAndOrderFront(nil)
                     return
@@ -27,7 +27,7 @@ class PreferencesWindowManager {
             
             // 创建新窗口或显示已存在的窗口
             if self.windowController == nil {
-                print("Creating new preferences window")
+                logger.debug("Creating new preferences window", category: "PreferencesWindowManager")
                 let hosting = NSHostingController(rootView: PreferencesView())
                 let window = NSWindow(contentViewController: hosting)
                 window.title = "preferences.title".localized
@@ -44,7 +44,7 @@ class PreferencesWindowManager {
                     object: window,
                     queue: .main
                 ) { _ in
-                    print("Preferences window closed")
+                    logger.debug("Preferences window closed", category: "PreferencesWindowManager")
                     WindowManager.shared.setModalWindow(false)
                     // 不要将 windowController 设为 nil，保持窗口实例以便重用
                 }
@@ -53,7 +53,7 @@ class PreferencesWindowManager {
             guard let windowController = self.windowController,
                   let window = windowController.window else { return }
             
-            print("Showing preferences window")
+            logger.debug("Showing preferences window", category: "PreferencesWindowManager")
             NSApp.activate(ignoringOtherApps: true)
             window.level = .floating
             window.makeKeyAndOrderFront(nil)

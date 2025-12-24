@@ -199,37 +199,43 @@ struct NoteEditorView: View {
     
     @ViewBuilder
     private var previewOnlyView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if content.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary)
-                        
-                        Text("开始编写你的笔记")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                        
-                        Text("切换到编辑模式或分屏模式开始编写")
-                            .font(.body)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if content.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 48))
+                                .foregroundColor(.secondary)
+
+                            Text("开始编写你的笔记")
+                                .font(.title2)
+                                .foregroundColor(.secondary)
+
+                            Text("切换到编辑模式或分屏模式开始编写")
+                                .font(.body)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding()
+                    } else {
+                        Markdown(content, baseURL: prefs.enableBaseURL ? URL(string: prefs.baseURLString) : nil)
+                            .markdownTheme(prefs.markdownTheme.toMarkdownUITheme())
+                            .markdownCodeSyntaxHighlighter(
+                                .splash(theme: prefs.codeHighlightTheme.toSplashTheme(fontSize: 14))
+                            )
+                            .id("markdown-content")
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding()
-                } else {
-                    Markdown(content, baseURL: prefs.enableBaseURL ? URL(string: prefs.baseURLString) : nil)
-                        .markdownTheme(prefs.markdownTheme.toMarkdownUITheme())
-                        .markdownCodeSyntaxHighlighter(
-                            .splash(theme: prefs.codeHighlightTheme.toSplashTheme(fontSize: 14))
-                        )
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
+            .background(.regularMaterial)
+            .onChange(of: selectedHeading) { _, heading in
+                scrollToHeading(heading, proxy: proxy)
+            }
         }
-        .background(.regularMaterial)
     }
     
     @ViewBuilder
@@ -274,30 +280,36 @@ struct NoteEditorView: View {
                 .padding(.vertical, 8)
                 .background(.regularMaterial)
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        if content.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "eye")
-                                    .font(.title)
-                                    .foregroundColor(.secondary)
-                                
-                                Text("预览将在这里显示")
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            if content.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "eye")
+                                        .font(.title)
+                                        .foregroundColor(.secondary)
+
+                                    Text("预览将在这里显示")
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(40)
+                            } else {
+                                Markdown(content, baseURL: prefs.enableBaseURL ? URL(string: prefs.baseURLString) : nil)
+                                    .markdownTheme(prefs.markdownTheme.toMarkdownUITheme())
+                                    .markdownCodeSyntaxHighlighter(
+                                        .splash(theme: prefs.codeHighlightTheme.toSplashTheme(fontSize: 13))
+                                    )
+                                    .id("markdown-content-split")
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(40)
-                        } else {
-                            Markdown(content, baseURL: prefs.enableBaseURL ? URL(string: prefs.baseURLString) : nil)
-                                .markdownTheme(prefs.markdownTheme.toMarkdownUITheme())
-                                .markdownCodeSyntaxHighlighter(
-                                    .splash(theme: prefs.codeHighlightTheme.toSplashTheme(fontSize: 13))
-                                )
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
+                    .onChange(of: selectedHeading) { _, heading in
+                        scrollToHeading(heading, proxy: proxy)
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -334,7 +346,7 @@ struct NoteEditorView: View {
                             isSelected: selectedHeading == heading
                         ) {
                             selectedHeading = heading
-                            // TODO: 实现跳转到对应标题
+                            // 滚动到对应标题（通过 onChange 监听 selectedHeading 实现）
                         }
                     }
                 }
@@ -369,14 +381,34 @@ struct NoteEditorView: View {
     private func saveNoteDebounced() {
         saveTimer?.invalidate()
         saveStatus = ""
-        
+
         // 使用设置中的自动保存间隔
         let interval = prefs.notesAutoSaveInterval
         saveTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
             self.saveNote()
         }
     }
-    
+
+    /// 滚动到指定标题
+    private func scrollToHeading(_ heading: String?, proxy: ScrollViewProxy) {
+        guard let heading = heading else { return }
+
+        // 根据编辑器模式选择合适的锚点 ID
+        let anchorID: String = editorMode == .both ? "markdown-content-split" : "markdown-content"
+
+        // 滚动到 Markdown 内容顶部
+        withAnimation {
+            proxy.scrollTo(anchorID, anchor: .top)
+        }
+
+        // 注意：由于 MarkdownUI 的限制，我们无法直接定位到具体的标题
+        // 这是一个简化实现，在实际应用中可以通过以下方式改进：
+        // 1. 使用自定义 Markdown 渲染器，为每个标题添加锚点
+        // 2. 计算标题在文档中的位置百分比
+        // 3. 使用原生文本视图配合自定义坐标计算
+        logger.info("滚动到标题: \(heading)", category: "UI")
+    }
+
     private func insertMarkdown(_ action: MarkdownAction) {
         switch action {
         case .bold:

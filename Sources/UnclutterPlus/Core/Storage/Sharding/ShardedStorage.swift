@@ -60,7 +60,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async(flags: .barrier) { [weak self] in
                 guard let self = self else {
-                    continuation.resume(throwing: StorageError.unknown(NSError()))
+                    continuation.resume(throwing: StorageError.writeFailed(underlying: NSError()))
                     return
                 }
 
@@ -82,7 +82,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
 
                     continuation.resume()
                 } catch {
-                    continuation.resume(throwing: StorageError.unknown(error))
+                    continuation.resume(throwing: StorageError.writeFailed(underlying: error))
                 }
             }
         }
@@ -93,10 +93,24 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         try await create(item)
     }
     
-    /// 批量保存
+    /// 批量保存（限制最大并发数为 10，优化内存使用）
     public func saveBatch(_ items: [Item]) async throws {
+        let maxConcurrency = 10
+        var activeTaskCount = 0
+
         await withTaskGroup(of: Error?.self) { group in
             for item in items {
+                // 限制并发数量
+                while activeTaskCount >= maxConcurrency {
+                    // 等待至少一个任务完成
+                    if let error = await group.next() {
+                        if let error = error {
+                            logger.error("批量保存单个失败: \(error.localizedDescription)", category: "Storage")
+                        }
+                        activeTaskCount -= 1
+                    }
+                }
+
                 group.addTask { [weak self] in
                     do {
                         try await self?.create(item)
@@ -105,9 +119,10 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
                         return error
                     }
                 }
+                activeTaskCount += 1
             }
 
-            // 收集错误
+            // 收集剩余任务的错误
             var errors: [Error] = []
             for await error in group {
                 if let error = error {
@@ -116,7 +131,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
             }
 
             if !errors.isEmpty {
-                print("❌ Batch save errors: \(errors)")
+                logger.error("批量保存错误: \(errors.count) 个失败", category: "Storage")
             }
         }
     }
@@ -176,14 +191,28 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         }
     }
 
-    /// 批量删除
+    /// 批量删除（限制最大并发数为 10，优化内存使用）
     public func deleteBatch(ids: [UUID]) async throws {
+        let maxConcurrency = 10
+        var activeTaskCount = 0
+
         await withTaskGroup(of: Void.self) { group in
             for id in ids {
+                // 限制并发数量
+                while activeTaskCount >= maxConcurrency {
+                    // 等待至少一个任务完成
+                    await group.next()
+                    activeTaskCount -= 1
+                }
+
                 group.addTask { [weak self] in
                     try? await self?.delete(id: id)
                 }
+                activeTaskCount += 1
             }
+
+            // 等待所有剩余任务完成
+            await group.waitForAll()
         }
     }
 
@@ -396,7 +425,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
             // 转换为 UUID 索引
             shardIndex = index.compactMapKeys { UUID(uuidString: $0) }
         } catch {
-            print("❌ Failed to load shard index: \(error)")
+            logger.error("加载分片索引失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -411,7 +440,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
             let data = try JSONEncoder().encode(stringIndex)
             try data.write(to: indexURL, options: .atomic)
         } catch {
-            print("❌ Failed to save shard index: \(error)")
+            logger.error("保存分片索引失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 }
@@ -541,13 +570,27 @@ class ModernNoteStorage: StorageProtocol {
     }
 
     func deleteBatch(ids: [UUID]) async throws {
-        // 并行删除
+        // 并行删除（限制最大并发数为 10，优化内存使用）
+        let maxConcurrency = 10
+        var activeTaskCount = 0
+
         await withTaskGroup(of: Void.self) { group in
             for id in ids {
+                // 限制并发数量
+                while activeTaskCount >= maxConcurrency {
+                    // 等待至少一个任务完成
+                    await group.next()
+                    activeTaskCount -= 1
+                }
+
                 group.addTask { [weak self] in
                     try? await self?.delete(id: id)
                 }
+                activeTaskCount += 1
             }
+
+            // 等待所有剩余任务完成
+            await group.waitForAll()
         }
     }
 

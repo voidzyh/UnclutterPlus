@@ -4,8 +4,6 @@ import Foundation
 class ApplicationServiceManager {
     static let shared = ApplicationServiceManager()
     
-    var showMenuBarIcon: Bool = true
-    
     private init() {}
     
     func initialize() async throws {
