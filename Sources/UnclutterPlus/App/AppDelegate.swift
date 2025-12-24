@@ -248,26 +248,48 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleMenuBarScroll(direction: MenuBarScrollTracker.ScrollDirection) {
         logger.info("菜单栏滚动触发：\(direction.description)", category: "UI")
 
-        // 实现直观的操作逻辑
-        switch direction {
-        case .up:
-            // 向上滚动：显示主窗口（符合"拉出"窗口的直觉）
-            logger.info("向上滚动 - 显示主窗口", category: "UI")
+        // 根据配置的滚动方向映射来决定操作
+        let mapping = ConfigurationManager.shared.scrollDirectionMapping
+        let shouldShowWindow: Bool
+
+        switch mapping {
+        case .upToShow:
+            // 向上显示，向下隐藏（默认）
+            shouldShowWindow = (direction == .up)
+
+        case .downToShow:
+            // 向下显示，向上隐藏
+            shouldShowWindow = (direction == .down)
+
+        case .natural:
+            // 自然模式：根据窗口位置判断
+            // 如果窗口在顶部，向上滚动=显示；如果窗口在底部，向下滚动=显示
+            if let windowFrame = windowManager?.window?.frame,
+               let screenFrame = NSScreen.main?.frame {
+                let windowIsNearTop = windowFrame.maxY > screenFrame.maxY * 0.8
+                shouldShowWindow = windowIsNearTop ? (direction == .up) : (direction == .down)
+            } else {
+                // 默认行为：向上显示
+                shouldShowWindow = (direction == .up)
+            }
+        }
+
+        // 执行显示或隐藏操作
+        if shouldShowWindow {
+            logger.info("滚动操作 - 显示主窗口", category: "UI")
             windowManager?.showWindow()
-
-        case .down:
-            // 向下滚动：隐藏主窗口（符合"收起"窗口的直觉）
-            logger.info("向下滚动 - 隐藏主窗口", category: "UI")
+        } else {
+            logger.info("滚动操作 - 隐藏主窗口", category: "UI")
             windowManager?.hideWindow()
-
-        case .unknown:
-            logger.info("未知滚动方向，忽略", category: "UI")
-            break
         }
     }
 
     private func handleMenuBarClick() {
         logger.info("菜单栏空白区域点击", category: "UI")
+
+        // 显示点击即时反馈（涟漪动画）
+        let mouseLocation = NSEvent.mouseLocation
+        ClickFeedbackManager.shared.showFeedback(at: mouseLocation)
 
         // 点击逻辑：基于窗口状态进行切换
         if let windowManager = windowManager {

@@ -4,9 +4,27 @@ import Cocoa
 struct MainContentView: View {
     @StateObject private var viewModel = MainContentViewModel()
     @ObservedObject private var localizationManager = LocalizationManager.shared
-    
+    @ObservedObject private var windowManager = WindowManager.shared
+
     var body: some View {
         VStack(spacing: 0) {
+            // 自动隐藏倒计时进度条（仅在即将隐藏时显示）
+            if windowManager.autoHideProgress > 0 {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color.clear)
+
+                        Rectangle()
+                            .fill(Color.orange.opacity(0.6))
+                            .frame(width: geometry.size.width * windowManager.autoHideProgress)
+                    }
+                    .frame(height: 2)
+                }
+                .frame(height: 2)
+                .transition(.opacity)
+            }
+
             // 标签页选择器区域
             ZStack {
                 // 居中的标签页按钮
@@ -142,30 +160,26 @@ struct TabButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: DesignSystem.Spacing.sm) {
+            HStack(spacing: DesignSystem.Spacing.md) {
                 Image(systemName: systemImage)
-                    .font(DesignSystem.Typography.body.weight(.medium))
+                    .font(.system(size: isSelected ? 16 : 14, weight: .semibold))
                     .scaleEffect(isPressed ? 0.92 : 1.0)
-                    .animation(DesignSystem.Animation.spring, value: isPressed)
 
                 Text(title)
-                    .font(DesignSystem.Typography.body.weight(.medium))
+                    .font(.system(size: isSelected ? 15 : 13, weight: .semibold))
             }
             .foregroundColor(textColor)
-            .padding(.horizontal, DesignSystem.Spacing.lg)
-            .padding(.vertical, DesignSystem.Spacing.sm)
+            .padding(.horizontal, isSelected ? 20 : 16)
+            .padding(.vertical, isSelected ? 10 : 8)
             .background(
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
                     .fill(backgroundColor)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                            .stroke(borderColor, lineWidth: 1)
-                    )
-                    .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowOffset)
+                    .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
             )
-            .scaleEffect(scaleEffect)
-            .animation(DesignSystem.Animation.spring, value: isHovered)
-            .animation(DesignSystem.Animation.fast, value: isPressed)
+            .scaleEffect(isPressed ? 0.95 : (isHovered ? 1.02 : 1.0))
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+            .animation(.easeOut(duration: 0.2), value: isSelected)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
@@ -174,72 +188,26 @@ struct TabButton: View {
         .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
     }
 
-    // MARK: - 计算属性：状态驱动的样式
+    // MARK: - 简化的样式计算
 
     private var textColor: Color {
-        if isSelected {
-            return .white
-        } else if isHovered {
-            return DesignSystem.Colors.primaryText
-        } else {
-            return DesignSystem.Colors.secondaryText
-        }
+        isSelected ? .white : DesignSystem.Colors.secondaryText.opacity(isHovered ? 0.8 : 0.6)
     }
 
     private var backgroundColor: Color {
         if isSelected {
             return DesignSystem.Colors.accent
-        } else if isHovered {
-            return DesignSystem.Colors.primaryText.opacity(0.1)
         } else {
-            return .clear
-        }
-    }
-
-    private var borderColor: Color {
-        if isHovered && !isSelected {
-            return DesignSystem.Colors.primaryText.opacity(0.3)
-        } else {
-            return .clear
+            return isHovered ? DesignSystem.Colors.primaryText.opacity(0.08) : .clear
         }
     }
 
     private var shadowColor: Color {
-        if isSelected {
-            return DesignSystem.Colors.accent.opacity(0.3)
-        } else if isHovered {
-            return Color.black.opacity(0.1)
-        } else {
-            return .clear
-        }
+        isSelected ? DesignSystem.Colors.accent.opacity(0.4) : .clear
     }
 
     private var shadowRadius: CGFloat {
-        if isSelected {
-            return 4
-        } else if isHovered {
-            return 2
-        } else {
-            return 0
-        }
-    }
-
-    private var shadowOffset: CGFloat {
-        if isSelected || isHovered {
-            return 1
-        } else {
-            return 0
-        }
-    }
-
-    private var scaleEffect: CGFloat {
-        if isPressed {
-            return 0.95
-        } else if isHovered {
-            return 1.03
-        } else {
-            return 1.0
-        }
+        isSelected ? 6 : 0
     }
 }
 
@@ -247,57 +215,35 @@ struct SettingsButton: View {
     let action: () -> Void
 
     @State private var isHovered = false
-    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "gearshape")
-                .font(DesignSystem.Typography.body.weight(.regular))
+                .font(.system(size: 14, weight: .regular))
                 .foregroundColor(textColor)
-                .frame(width: 28, height: 28)
+                .frame(width: 24, height: 24)
                 .background(
                     Circle()
                         .fill(backgroundColor)
-                        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 1)
                 )
-                .scaleEffect(scaleEffect)
-                .animation(DesignSystem.Animation.spring, value: isHovered)
-                .animation(DesignSystem.Animation.fast, value: isPressed)
+                .scaleEffect(isHovered ? 1.05 : 1.0)
+                .animation(.easeOut(duration: 0.15), value: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
         }
-        .pressEvents(onPress: { isPressed = true }, onRelease: { isPressed = false })
         .help("button.preferences".localized)
     }
 
-    // MARK: - 计算属性：状态驱动的样式
+    // MARK: - 简化的样式计算
 
     private var textColor: Color {
-        isHovered ? DesignSystem.Colors.primaryText : DesignSystem.Colors.secondaryText
+        DesignSystem.Colors.secondaryText.opacity(isHovered ? 0.7 : 0.5)
     }
 
     private var backgroundColor: Color {
-        isHovered ? DesignSystem.Colors.primaryText.opacity(0.1) : .clear
-    }
-
-    private var shadowColor: Color {
-        isHovered ? Color.black.opacity(0.1) : .clear
-    }
-
-    private var shadowRadius: CGFloat {
-        isHovered ? 2 : 0
-    }
-
-    private var scaleEffect: CGFloat {
-        if isPressed {
-            return 0.9
-        } else if isHovered {
-            return 1.1
-        } else {
-            return 1.0
-        }
+        isHovered ? DesignSystem.Colors.primaryText.opacity(0.05) : .clear
     }
 }
 

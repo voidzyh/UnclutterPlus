@@ -1,5 +1,6 @@
 import Cocoa
 import SwiftUI
+import Combine
 
 // 使用 NSPanel 以更好地支持浮动窗口的键盘输入
 class KeyboardSupportPanel: NSPanel {
@@ -45,15 +46,21 @@ enum AutoHideAction {
     case settingsOpened      // Settings opened
 }
 
-class WindowManager: NSObject {
+class WindowManager: NSObject, ObservableObject {
     static let shared = WindowManager()
 
-    private var window: NSPanel?
+    var window: NSPanel?  // 改为 internal 以便 AppDelegate 可以访问
     private var mouseTracker: EdgeMouseTracker?
     private var autoHideTimer: Timer?
     private var isEditingNote: Bool = false
     private var isDraggingFile: Bool = false
     private var hasModalWindow: Bool = false
+
+    // 自动隐藏倒计时进度（0.0 - 1.0）
+    @Published private(set) var autoHideProgress: Double = 0.0
+    private var autoHideProgressTimer: Timer?
+    private var autoHideStartTime: Date?
+    private let autoHideDuration: Double = 0.5  // 与 hideDelay 一致
 
     // MARK: - 公共访问器
     var isWindowVisible: Bool {
@@ -158,38 +165,41 @@ class WindowManager: NSObject {
     }
     
     func showWindow() {
-        guard let window = window else { 
+        guard let window = window else {
             logger.debug("Error: Window is nil", category: "WindowManager")
-            return 
+            return
         }
-        
+
         logger.debug("Showing window - current visibility: \(window.isVisible)", category: "WindowManager")
-        
+
+        // 停止自动隐藏进度
+        stopAutoHideProgress()
+
         if !window.isVisible {
             // 在显示前，先定位到鼠标当前所在的屏幕
             positionWindowOnCurrentScreen()
-            
+
             // 先让窗口显示，但不激活
             window.orderFront(nil)
-            
+
             // 执行动画，并在动画完成后激活窗口
             // 在 showWindow 方法的动画完成回调中
             animateWindowIn {
                 window.makeKey()
                 NSApp.activate(ignoringOtherApps: true)
-                
+
                 // floating窗口需要更多时间和特殊处理
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     // 强制激活应用程序和窗口
                     NSApp.activate(ignoringOtherApps: true)
                     window.makeKey()
-                    
+
                     if let hostingView = window.contentView as? NSHostingView<MainContentView> {
                         window.makeFirstResponder(hostingView)
                         logger.debug("Floating window setup complete", category: "WindowManager")
                     }
                 }
-                
+
                 logger.debug("Window is now key and active", category: "WindowManager")
             }
             logger.debug("Window should now be visible", category: "WindowManager")
@@ -397,18 +407,37 @@ class WindowManager: NSObject {
     
     func checkAutoHideOnLostFocus() {
         let config = ConfigurationManager.shared
-        
+
         // 检查是否启用了失去焦点时自动隐藏
-        guard config.hideOnLostFocus else { return }
-        
+        guard config.hideOnLostFocus else {
+            // 如果未启用，确保清除进度
+            autoHideProgress = 0.0
+            autoHideProgressTimer?.invalidate()
+            return
+        }
+
+        // 检查是否有阻止自动隐藏的条件
+        guard !shouldPreventAutoHide() else {
+            autoHideProgress = 0.0
+            autoHideProgressTimer?.invalidate()
+            return
+        }
+
         // 延迟检查，给用户一点时间，使用配置的延迟时间
         let delay = config.hideDelay
+
+        // 启动倒计时进度
+        startAutoHideProgress(duration: delay)
+
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self = self else { return }
-            
+
+            // 停止进度计时器
+            self.stopAutoHideProgress()
+
             // 检查窗口是否仍然不是 key window
             if let window = self.window, !window.isKeyWindow {
-                // 检查是否有阻止自动隐藏的条件
+                // 再次检查是否有阻止自动隐藏的条件
                 if !self.shouldPreventAutoHide() {
                     logger.debug("Auto-hiding window due to lost focus", category: "WindowManager")
                     self.hideWindow()
@@ -417,6 +446,30 @@ class WindowManager: NSObject {
                 }
             }
         }
+    }
+
+    /// 启动自动隐藏倒计时进度
+    private func startAutoHideProgress(duration: TimeInterval) {
+        autoHideStartTime = Date()
+        autoHideProgress = 0.0
+
+        // 每 0.05 秒更新一次进度（20fps）
+        autoHideProgressTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            guard let self = self, let startTime = self.autoHideStartTime else { return }
+
+            let elapsed = Date().timeIntervalSince(startTime)
+            let progress = min(elapsed / duration, 1.0)
+
+            self.autoHideProgress = progress
+        }
+    }
+
+    /// 停止自动隐藏倒计时进度
+    private func stopAutoHideProgress() {
+        autoHideProgressTimer?.invalidate()
+        autoHideProgressTimer = nil
+        autoHideProgress = 0.0
+        autoHideStartTime = nil
     }
     
     private func shouldPreventAutoHide() -> Bool {
@@ -457,5 +510,8 @@ class WindowManager: NSObject {
     func cancelAutoHide() {
         autoHideTimer?.invalidate()
         autoHideTimer = nil
+
+        // 同时停止倒计时进度
+        stopAutoHideProgress()
     }
 }

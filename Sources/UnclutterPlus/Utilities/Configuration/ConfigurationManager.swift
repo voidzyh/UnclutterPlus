@@ -1,9 +1,29 @@
 import Foundation
 import SwiftUI
 
+/// 滚动方向映射选项
+enum ScrollDirectionMapping: String, CaseIterable, Identifiable {
+    case upToShow           // 向上显示，向下隐藏（默认）
+    case downToShow         // 向下显示，向上隐藏
+    case natural            // 自然模式（根据窗口位置自动判断）
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .upToShow:
+            return "preferences.scroll_direction.up_to_show".localized  // "向上显示"
+        case .downToShow:
+            return "preferences.scroll_direction.down_to_show".localized  // "向下显示"
+        case .natural:
+            return "preferences.scroll_direction.natural".localized  // "自然模式"
+        }
+    }
+}
+
 class ConfigurationManager: ObservableObject {
     static let shared = ConfigurationManager()
-    
+
     // 功能开关
     @AppStorage("feature.files.enabled") var isFilesEnabled: Bool = true
     @AppStorage("feature.clipboard.enabled") var isClipboardEnabled: Bool = true
@@ -49,7 +69,10 @@ class ConfigurationManager: ObservableObject {
 
     // 菜单栏设置
     @AppStorage("ui.menuBarIcon.enabled") var isMenuBarIconEnabled: Bool = true
-    
+
+    // 滚动方向映射设置
+    @AppStorage("ui.scrollDirectionMapping") var scrollDirectionMapping: ScrollDirectionMapping = .upToShow
+
     private init() {}
     
     // 默认路径
@@ -234,10 +257,10 @@ class ConfigurationManager: ObservableObject {
     
     // 重置所有设置
     func resetToDefaults() {
-        isFilesEnabled = false
+        isFilesEnabled = true
         isClipboardEnabled = true
         isNotesEnabled = true
-        isScreenshotsEnabled = true
+        isScreenshotsEnabled = false
         
         useCustomFilesPath = false
         useCustomClipboardPath = false
@@ -250,8 +273,8 @@ class ConfigurationManager: ObservableObject {
         screenshotsCustomPath = ""
         
         // 重置标签页设置
-        tabsOrder = "screenshots,clipboard,notes"
-        defaultTab = "screenshots"
+        tabsOrder = "files,clipboard,notes"
+        defaultTab = "files"
         
         objectWillChange.send()
     }

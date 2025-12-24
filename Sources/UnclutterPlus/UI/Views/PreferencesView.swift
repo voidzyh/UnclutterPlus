@@ -118,6 +118,17 @@ struct PreferencesView: View {
                 Text("preferences.trackpad.help".localized)
                     .font(.footnote)
                     .foregroundColor(.secondary)
+
+                Divider()
+
+                Picker("preferences.scroll_direction.title".localized, selection: $config.scrollDirectionMapping) {
+                    ForEach(ScrollDirectionMapping.allCases) { mapping in
+                        Text(mapping.displayName).tag(mapping)
+                    }
+                }
+                Text("preferences.scroll_direction.help".localized)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
             }
             
             // 窗口行为设置
@@ -177,25 +188,27 @@ struct PreferencesView: View {
                         .foregroundColor(.secondary)
                         .monospacedDigit()
                 }
-                
+
                 Slider(value: $prefs.notesAutoSaveInterval, in: 0.5...10.0, step: 0.5)
-                
+
                 Text("preferences.notes.autosave_help".localized)
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
-            // Markdown 设置
+
+            // Markdown 设置（使用渐进式披露）
             Section("preferences.section.markdown".localized) {
-                Picker("preferences.markdown.theme".localized, selection: $prefs.markdownTheme) {
-                    ForEach(MarkdownThemeOption.allCases, id: \.self) { theme in
-                        Text(theme.displayName).tag(theme)
+                DisclosureGroup("preferences.markdown.advanced".localized, isExpanded: .constant(false)) {
+                    Picker("preferences.markdown.theme".localized, selection: $prefs.markdownTheme) {
+                        ForEach(MarkdownThemeOption.allCases, id: \.self) { theme in
+                            Text(theme.displayName).tag(theme)
+                        }
                     }
-                }
-                
-                Picker("preferences.markdown.code_highlight".localized, selection: $prefs.codeHighlightTheme) {
-                    ForEach(CodeHighlightThemeOption.allCases, id: \.self) { theme in
-                        Text(theme.displayName).tag(theme)
+
+                    Picker("preferences.markdown.code_highlight".localized, selection: $prefs.codeHighlightTheme) {
+                        ForEach(CodeHighlightThemeOption.allCases, id: \.self) { theme in
+                            Text(theme.displayName).tag(theme)
+                        }
                     }
                 }
             }

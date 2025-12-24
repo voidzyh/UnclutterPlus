@@ -37,6 +37,7 @@
 // MARK: - Markdown Settings
 "preferences.markdown.theme" = "Theme";
 "preferences.markdown.code_highlight" = "Code Highlight";
+"preferences.markdown.advanced" = "Advanced Settings";
 
 // MARK: - Notes Settings
 "preferences.notes.autosave_interval" = "Auto-save interval:";
@@ -47,6 +48,13 @@
 "preferences.mouse.natural" = "Natural (like trackpad)";
 "preferences.mouse.traditional" = "Traditional (legacy wheel)";
 "preferences.trackpad.help" = "Trackpad gestures always use Natural.";
+
+// MARK: - Scroll Direction Mapping Settings
+"preferences.scroll_direction.title" = "Menu Bar Scroll Direction";
+"preferences.scroll_direction.up_to_show" = "Up to show (pull out)";
+"preferences.scroll_direction.down_to_show" = "Down to show (pull down)";
+"preferences.scroll_direction.natural" = "Natural mode (auto-detect)";
+"preferences.scroll_direction.help" = "How the window appears when scrolling in the empty menu bar area. Up to show follows the \"pull out\" intuition, down to show follows the \"pull down\" intuition.";
 
 // MARK: - Appearance Settings
 "preferences.appearance.show_menubar" = "Show menu bar icon";

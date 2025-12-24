@@ -20,7 +20,7 @@ enum EditorMode: String, CaseIterable {
 struct NoteEditorView: View {
     let note: Note
     let onUpdate: (Note) -> Void
-    
+
     @State private var title: String
     @State private var content: String
     @State private var editorMode: EditorMode = .both
@@ -32,7 +32,8 @@ struct NoteEditorView: View {
     @FocusState private var isContentFocused: Bool
     @State private var saveTimer: Timer?
     @State private var selectedHeading: String? = nil
-    
+    @State private var scrollToRange: NSRange? = nil  // 新增：滚动到指定范围
+
     init(note: Note, onUpdate: @escaping (Note) -> Void) {
         self.note = note
         self.onUpdate = onUpdate
@@ -185,10 +186,12 @@ struct NoteEditorView: View {
         VStack(spacing: 0) {
             AppKitTextEditor(
                 text: $content,
-                font: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
-            ) { _ in
-                saveNoteDebounced()
-            }
+                font: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                onTextChange: { _ in
+                    saveNoteDebounced()
+                },
+                scrollToRange: scrollToRange  // 传递滚动范围
+            )
             .focused($isContentFocused)
             .onChange(of: isContentFocused) { oldValue, newValue in
                 WindowManager.shared.setEditingNote(newValue)
@@ -253,13 +256,15 @@ struct NoteEditorView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(.regularMaterial)
-                
+
                 AppKitTextEditor(
                     text: $content,
-                    font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-                ) { _ in
-                    saveNoteDebounced()
-                }
+                    font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
+                    onTextChange: { _ in
+                        saveNoteDebounced()
+                    },
+                    scrollToRange: scrollToRange  // 传递滚动范围
+                )
                 .focused($isContentFocused)
                 .padding()
             }
@@ -393,20 +398,29 @@ struct NoteEditorView: View {
     private func scrollToHeading(_ heading: String?, proxy: ScrollViewProxy) {
         guard let heading = heading else { return }
 
-        // 根据编辑器模式选择合适的锚点 ID
-        let anchorID: String = editorMode == .both ? "markdown-content-split" : "markdown-content"
+        // 尝试从笔记中获取标题位置
+        if let range = note.headingRange(for: heading) {
+            // 在编辑模式或分屏模式下，使用编辑器的滚动功能
+            if editorMode == .edit || editorMode == .both {
+                // 设置滚动范围，触发 AppKitTextEditor 的滚动
+                scrollToRange = range
 
-        // 滚动到 Markdown 内容顶部
-        withAnimation {
-            proxy.scrollTo(anchorID, anchor: .top)
+                // 滚动完成后清除范围，避免重复滚动
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    scrollToRange = nil
+                }
+            } else {
+                // 在预览模式下，由于 MarkdownUI 的限制，滚动到顶部
+                let anchorID = "markdown-content"
+                withAnimation {
+                    proxy.scrollTo(anchorID, anchor: .top)
+                }
+            }
+
+            logger.info("滚动到标题: \(heading)", category: "UI")
+        } else {
+            logger.warning("未找到标题位置: \(heading)", category: "UI")
         }
-
-        // 注意：由于 MarkdownUI 的限制，我们无法直接定位到具体的标题
-        // 这是一个简化实现，在实际应用中可以通过以下方式改进：
-        // 1. 使用自定义 Markdown 渲染器，为每个标题添加锚点
-        // 2. 计算标题在文档中的位置百分比
-        // 3. 使用原生文本视图配合自定义坐标计算
-        logger.info("滚动到标题: \(heading)", category: "UI")
     }
 
     private func insertMarkdown(_ action: MarkdownAction) {

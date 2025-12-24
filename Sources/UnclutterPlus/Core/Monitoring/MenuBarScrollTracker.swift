@@ -18,6 +18,10 @@ class MenuBarScrollTracker: ObservableObject {
     private let menuBarHeight: CGFloat = 24  // macOS 菜单栏高度
     private let detectionBuffer: CGFloat = 10  // 检测缓冲区
 
+    // 菜单栏区域配置（可动态调整）
+    private var leftMargin: CGFloat = 100     // 左侧应用图标区域（动态计算）
+    private var systemMenuArea: CGFloat = 200  // 右侧系统菜单区域（动态计算）
+
     // 状态管理
     private var eventMonitor: Any?
     private var lastTriggerTime: Date = .distantPast
@@ -41,7 +45,35 @@ class MenuBarScrollTracker: ObservableObject {
         }
     }
 
-    private init() {}
+    private init() {
+        calculateMenuBarAreas()
+    }
+
+    // 计算菜单栏区域
+    private func calculateMenuBarAreas() {
+        // 获取屏幕宽度
+        guard let screen = NSScreen.main else {
+            leftMargin = 100
+            systemMenuArea = 200
+            return
+        }
+
+        let screenWidth = screen.frame.width
+
+        // 计算运行中的应用数量作为左侧区域的基础
+        let runningApps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
+        let estimatedAppCount = min(runningApps.count, 10)  // 最多10个应用图标
+
+        // 每个应用图标大约 30-40px 宽，间距 5px
+        leftMargin = CGFloat(estimatedAppCount) * 45 + 20  // 添加额外缓冲
+
+        // 系统菜单区域大小与屏幕宽度成正比
+        // 小屏幕（< 1400px）：150px
+        // 大屏幕（>= 1400px）：200px
+        systemMenuArea = screenWidth >= 1400 ? 220 : 180
+
+        logger.debug("菜单栏区域计算完成 - 左边距: \(leftMargin)px, 系统菜单: \(systemMenuArea)px", category: "MenuBarScrollTracker")
+    }
 
     // MARK: - 公共方法
     func startTracking(onScroll: @escaping (ScrollDirection) -> Void, onClick: (() -> Void)? = nil) {
@@ -167,9 +199,7 @@ class MenuBarScrollTracker: ObservableObject {
 
     private func isInMenuBarEmptyArea(location: CGPoint, screenFrame: NSRect) -> Bool {
         // 菜单栏的空白区域检测：避开系统图标的右侧区域和左上角
-        let systemMenuArea: CGFloat = 200  // 右侧系统菜单区域（时间、WiFi等）
-        let leftMargin: CGFloat = 100     // 左侧应用图标区域
-
+        // 使用动态计算的边距值
         return location.y >= screenFrame.maxY - menuBarHeight &&
                location.x > leftMargin &&
                location.x < screenFrame.maxX - systemMenuArea
@@ -186,15 +216,17 @@ class MenuBarScrollTracker: ObservableObject {
         logger.debug("  菜单栏Y范围: \(frame.maxY - menuBarHeight - detectionBuffer) - \(frame.maxY)", category: "MenuBarScrollTracker")
         logger.debug("  空白区域X: \(leftMargin) - \(frame.maxX - systemMenuArea)", category: "MenuBarScrollTracker")
         logger.debug("  当前鼠标位置: \(NSEvent.mouseLocation)", category: "MenuBarScrollTracker")
+
+        // 重新计算并显示详细信息
+        calculateMenuBarAreas()
+    }
+
+    // 重新计算菜单栏区域（当应用状态变化时调用）
+    func recalculateMenuBarAreas() {
+        calculateMenuBarAreas()
     }
 
     deinit {
         stopTracking()
     }
-}
-
-// MARK: - 调试扩展
-extension MenuBarScrollTracker {
-    private var leftMargin: CGFloat { 100 }
-    private var systemMenuArea: CGFloat { 200 }
 }

@@ -37,6 +37,7 @@
 // MARK: - Markdown 设置
 "preferences.markdown.theme" = "主题";
 "preferences.markdown.code_highlight" = "代码高亮";
+"preferences.markdown.advanced" = "高级设置";
 
 // MARK: - 笔记设置
 "preferences.notes.autosave_interval" = "自动保存间隔：";
@@ -47,6 +48,13 @@
 "preferences.mouse.natural" = "自然（类似触控板）";
 "preferences.mouse.traditional" = "传统（传统滚轮）";
 "preferences.trackpad.help" = "触控板手势始终使用自然方向。";
+
+// MARK: - 滚动方向映射设置
+"preferences.scroll_direction.title" = "菜单栏滚动方向";
+"preferences.scroll_direction.up_to_show" = "向上显示（拉出）";
+"preferences.scroll_direction.down_to_show" = "向下显示（下拉）";
+"preferences.scroll_direction.natural" = "自然模式（自动判断）";
+"preferences.scroll_direction.help" = "在菜单栏空白区域滚动时窗口的显示方式。向上显示符合"拉出"直觉，向下显示符合"下拉"直觉。";
 
 // MARK: - 外观设置
 "preferences.appearance.show_menubar" = "显示菜单栏图标";

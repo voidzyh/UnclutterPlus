@@ -21,6 +21,7 @@ struct Note: Identifiable, Codable, Equatable, Storable {
     private(set) var cachedCharacterCount: Int = 0
     private(set) var cachedReadingTime: Int = 0
     private(set) var cachedHeadings: [String] = []
+    private(set) var cachedHeadingRanges: [String: NSRange] = [:]  // 标题位置映射
     
     init(
         id: UUID = UUID(),
@@ -72,23 +73,40 @@ struct Note: Identifiable, Codable, Equatable, Storable {
     private mutating func updateCache() {
         // 更新预览
         cachedPreview = String(content.prefix(200))
-        
+
         // 更新字数统计
         let words = content.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
         cachedWordCount = words.count
-        
+
         // 更新字符数统计
         cachedCharacterCount = content.count
-        
+
         // 更新阅读时间（假设每分钟200字）
         cachedReadingTime = max(1, cachedWordCount / 200)
-        
-        // 提取标题（简单的Markdown标题检测）
+
+        // 提取标题（简单的Markdown标题检测）并记录位置
         let lines = content.components(separatedBy: .newlines)
-        cachedHeadings = lines.filter { line in
-            line.hasPrefix("#") && !line.trimmingCharacters(in: .whitespaces).isEmpty
+        cachedHeadings = []
+        cachedHeadingRanges = [:]
+
+        var currentLocation = 0
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+            if trimmedLine.hasPrefix("#") && !trimmedLine.isEmpty {
+                cachedHeadings.append(trimmedLine)
+                // 记录标题在内容中的位置
+                let range = NSRange(location: currentLocation, length: line.count)
+                cachedHeadingRanges[trimmedLine] = range
+            }
+            // 更新位置（包括换行符）
+            currentLocation += line.count + 1
         }
+    }
+
+    // 获取标题的位置
+    func headingRange(for heading: String) -> NSRange? {
+        return cachedHeadingRanges[heading]
     }
     
     var preview: String {
