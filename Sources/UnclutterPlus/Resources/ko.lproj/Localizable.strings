@@ -283,3 +283,57 @@
 // MARK: - 경고 버튼
 "alert.ok" = "확인";
 "alert.reset" = "재설정";
+
+// MARK: - Clipboard Insights
+"clipboard.insights.title" = "Insights";
+"clipboard.insights.subtitle" = "Analyze frequent clipboard content and summarize into learning docs";
+"clipboard.insights.generate" = "Generate";
+"clipboard.insights.generate.help" = "Use AI to analyze, cluster and summarize frequent items";
+"clipboard.insights.completed" = "Done";
+"clipboard.insights.failed" = "Failed";
+"clipboard.insights.frequent" = "Frequent Items";
+"clipboard.insights.frequent.empty" = "No frequent items yet (items reaching the frequency threshold appear here)";
+"clipboard.insights.clusters" = "Topic Clusters";
+"clipboard.insights.items" = "items";
+"clipboard.insights.drafts" = "Learning Documents";
+
+// MARK: - Obsidian Export
+"clipboard.obsidian.export" = "Export to Obsidian";
+
+// MARK: - Common
+"common.dismiss" = "Dismiss";
+
+
+// MARK: - Notes AI
+"notes.ai.organize" = "AI Organize";
+"notes.ai.polish" = "Polish";
+"notes.ai.rewrite" = "Rewrite";
+"notes.ai.title_summary" = "Title & Summary";
+"notes.ai.auto_tag" = "Auto Tag";
+"notes.ai.export_obsidian" = "Send to Obsidian";
+"notes.ai.working" = "Working...";
+
+
+// MARK: - Integration Preferences
+"preferences.tab.integration" = "Integration";
+"preferences.ai.section" = "AI Service";
+"preferences.ai.type" = "Type";
+"preferences.ai.type.http" = "HTTP API";
+"preferences.ai.type.cli" = "Local CLI";
+"preferences.ai.endpoint" = "API Endpoint";
+"preferences.ai.api_key" = "API Key (stored in Keychain)";
+"preferences.ai.model" = "Model";
+"preferences.ai.cli_path" = "CLI Path (e.g. /usr/local/bin/ollama)";
+"preferences.ai.cli_model" = "CLI Model (e.g. llama3.2)";
+"preferences.ai.timeout" = "Timeout";
+"preferences.ai.configured" = "Configured";
+"preferences.ai.not_configured" = "Not fully configured";
+"preferences.obsidian.section" = "Obsidian";
+"preferences.obsidian.vault_path" = "Vault Path";
+"preferences.obsidian.vault_name" = "Vault Name (for obsidian:// URI)";
+"preferences.obsidian.vault_name.help" = "The vault name shown in Obsidian; if empty, URI launch will not work";
+"preferences.ocr.section" = "OCR";
+"preferences.ocr.deepseek_path" = "DeepSeek CLI Path";
+"preferences.ocr.deepseek_langs" = "Languages";
+"preferences.ocr.auto" = "Auto OCR after screenshot";
+"preferences.storage.reveal" = "Reveal in Finder";

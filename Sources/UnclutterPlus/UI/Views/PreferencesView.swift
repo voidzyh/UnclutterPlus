@@ -11,30 +11,34 @@ struct PreferencesView: View {
         case general
         case features
         case storage
+        case integration
         case advanced
-        
+
         var id: String { rawValue }
-        
+
         var titleKey: String {
             switch self {
             case .general: return "preferences.tab.general"
             case .features: return "preferences.tab.features"
             case .storage: return "preferences.tab.storage"
+            case .integration: return "preferences.tab.integration"
             case .advanced: return "preferences.tab.advanced"
             }
         }
-        
+
         var systemImage: String {
             switch self {
             case .general: return "gearshape"
             case .features: return "square.stack.3d.up"
             case .storage: return "externaldrive"
+            case .integration: return "sparkles"
             case .advanced: return "wrench.and.screwdriver"
             }
         }
     }
     
     @State private var selectedCategory: PreferenceCategory = .general
+    @State private var aiAPIKeyInput: String = ""
     
     var body: some View {
         HStack(spacing: 0) {
@@ -62,6 +66,8 @@ struct PreferencesView: View {
                         featuresSettingsTab
                     case .storage:
                         storageSettingsTab
+                    case .integration:
+                        integrationSettingsTab
                     case .advanced:
                         advancedSettingsTab
                     }
@@ -333,6 +339,86 @@ struct PreferencesView: View {
     }
     
     // MARK: - 高级设置标签页
+    private var integrationSettingsTab: some View {
+        Form {
+            // MARK: - AI 服务
+            Section("preferences.ai.section".localized) {
+                Picker("preferences.ai.type".localized, selection: $config.aiServiceType) {
+                    Text("preferences.ai.type.http".localized).tag("http")
+                    Text("preferences.ai.type.cli".localized).tag("cli")
+                }
+                .pickerStyle(.segmented)
+
+                if config.aiServiceType == "http" {
+                    TextField("preferences.ai.endpoint".localized, text: $config.aiEndpoint)
+                        .autocorrectionDisabled()
+
+                    SecureField("preferences.ai.api_key".localized, text: $aiAPIKeyInput)
+                        .autocorrectionDisabled()
+                        .onAppear { aiAPIKeyInput = config.aiAPIKey }
+                        .onChange(of: aiAPIKeyInput) { _, newValue in
+                            config.aiAPIKey = newValue
+                        }
+
+                    TextField("preferences.ai.model".localized, text: $config.aiModel)
+                } else {
+                    TextField("preferences.ai.cli_path".localized, text: $config.aiCliPath)
+                    TextField("preferences.ai.cli_model".localized, text: $config.aiCliModel)
+                }
+
+                HStack {
+                    Text("preferences.ai.timeout".localized)
+                    Spacer()
+                    Slider(value: $config.aiTimeout, in: 10...180, step: 5) {
+                        Text("preferences.ai.timeout".localized)
+                    }
+                    Text("\(Int(config.aiTimeout))s")
+                        .monospacedDigit()
+                        .foregroundColor(.secondary)
+                        .frame(width: 40, alignment: .trailing)
+                }
+
+                if AIServiceFactory.isConfigured {
+                    Label("preferences.ai.configured".localized, systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                } else {
+                    Label("preferences.ai.not_configured".localized, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            // MARK: - Obsidian
+            Section("preferences.obsidian.section".localized) {
+                TextField("preferences.obsidian.vault_path".localized, text: $config.obsidianVaultPath)
+                    .disabled(true)
+                HStack {
+                    Button("preferences.storage.choose_folder".localized) {
+                        selectFolder { url in
+                            config.obsidianVaultPath = url.path
+                        }
+                    }
+                    if !config.obsidianVaultPath.isEmpty {
+                        Button("preferences.storage.reveal".localized) {
+                            NSWorkspace.shared.open(URL(fileURLWithPath: config.obsidianVaultPath))
+                        }
+                    }
+                }
+
+                TextField("preferences.obsidian.vault_name".localized, text: $config.obsidianVaultName)
+                    .help("preferences.obsidian.vault_name.help".localized)
+            }
+
+            // MARK: - OCR（补全：此前定义但无 UI）
+            Section("preferences.ocr.section".localized) {
+                TextField("preferences.ocr.deepseek_path".localized, text: $config.deepseekBinaryPath)
+                TextField("preferences.ocr.deepseek_langs".localized, text: $config.deepseekLanguages)
+                Toggle("preferences.ocr.auto".localized, isOn: $config.ocrAutoEnabled)
+            }
+        }
+    }
+
     private var advancedSettingsTab: some View {
         Form {
             // 开发者选项
@@ -569,11 +655,12 @@ struct PreferencesView: View {
 // MARK: - Tab Order Editor Component
 struct TabOrderEditor: View {
     @Binding var order: String
-    @Binding var defaultTab: String
-    @Binding var isFilesEnabled: Bool
-    @Binding var isClipboardEnabled: Bool
-    @Binding var isNotesEnabled: Bool
-    @State private var tabItems: [TabItem] = []
+     @Binding var defaultTab: String
+     @Binding var isFilesEnabled: Bool
+     @Binding var isClipboardEnabled: Bool
+     @Binding var isNotesEnabled: Bool
+     @State private var tabItems: [TabItem] = []
+     @ObservedObject var localizationManager = LocalizationManager.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -589,14 +676,14 @@ struct TabOrderEditor: View {
             
             ForEach(tabItems.indices, id: \.self) { index in
                 HStack(spacing: 10) {
-                    // 序号徽章
+                        // 序号徽章
                     Text("\(index + 1)")
                         .font(.caption2)
                         .fontWeight(.semibold)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(Color.secondary.opacity(0.12), in: Capsule())
-                        .accessibilityLabel("preferences.tabs.order.index \(index + 1)")
+                        .accessibilityLabel("\("preferences.tabs.order.index".localized) \(index + 1)")
                     
                     // 图标 + 标题
                     HStack(spacing: 6) {
@@ -644,14 +731,20 @@ struct TabOrderEditor: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
-                )
-            }
-            
-            HStack(spacing: 8) {
-                Button("preferences.tabs.order.reset".localized) { resetToDefaultOrder() }
+                 .overlay(
+                     RoundedRectangle(cornerRadius: 8)
+                         .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                 )
+             }
+             .onAppear {
+                 loadTabItems()
+             }
+             .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
+                 loadTabItems()
+             }
+
+             HStack(spacing: 8) {
+                 Button("preferences.tabs.order.reset".localized) { resetToDefaultOrder() }
                     .font(.caption)
                     .buttonStyle(.borderless)
                     .foregroundColor(.accentColor)

@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import AppKit
 
 /// 现代化剪贴板视图模型 - 支持流畅动画和智能过滤
 @MainActor
@@ -28,38 +29,40 @@ final class ModernClipboardViewModel: ObservableObject {
     @Published var error: ClipboardError?
     
     // MARK: - 私有属性
-    
-    private let clipboardManager = ClipboardManager.shared
+
+    /// 数据源：走持久化的 ClipboardRepository（而非旧的空 stub ClipboardManager）。
+    /// ClipboardMonitor 采集的新内容会写入此 repository，从而驱动 UI 实时更新。
+    private let repository = AppStorageManager.shared.clipboardRepository
     private var cancellables = Set<AnyCancellable>()
     private let debouncedSearch = PassthroughSubject<String, Never>()
-    
+
     // 搜索防抖
     private let searchDebounceInterval: TimeInterval = 0.3
-    
+
     // 性能优化
     private var searchTask: Task<Void, Never>?
     private var filterTask: Task<Void, Never>?
-    
+
     // MARK: - 初始化
-    
+
     init() {
         setupBindings()
         setupDebouncedSearch()
         loadInitialData()
     }
-    
+
     // MARK: - 私有方法
-    
+
     private func setupBindings() {
-        clipboardManager.itemsPublisher
+        // 订阅 repository 变化（ClipboardMonitor 写入新项 / 更新 useCount 时触发）
+        repository.objectWillChange
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] items in
-                self?.clipboardItems = items
-                self?.applyFilters()
+            .sink { [weak self] _ in
+                self?.loadInitialData()
             }
             .store(in: &cancellables)
     }
-    
+
     private func setupDebouncedSearch() {
         debouncedSearch
             .debounce(for: .seconds(searchDebounceInterval), scheduler: RunLoop.main)
@@ -68,20 +71,22 @@ final class ModernClipboardViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     func loadInitialData() async {
         isLoading = true
         defer { isLoading = false }
-        
-        do {
-            let items = try await clipboardManager.getAllItems()
-            clipboardItems = items
-            applyFilters()
-        } catch {
-            self.error = .loadFailed(error.localizedDescription)
+
+        // 从 repository 的索引加载完整项目
+        var items: [ClipboardItem] = []
+        for index in repository.clipboardIndexes {
+            if let item = await repository.getItem(id: index.id) {
+                items.append(item)
+            }
         }
+        clipboardItems = items
+        applyFilters()
     }
-    
+
     private func loadInitialData() {
         Task {
             await loadInitialData()
@@ -134,52 +139,45 @@ final class ModernClipboardViewModel: ObservableObject {
     // MARK: - 公共方法
     
     func copyToClipboard(_ item: ClipboardItem) async {
-        do {
-            try await clipboardManager.copyToClipboard(item)
-            await incrementUseCount(for: item)
-        } catch {
-            self.error = .copyFailed(error.localizedDescription)
+        // 写入系统剪贴板
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        switch item.content {
+        case .text(let text):
+            pasteboard.setString(text, forType: .string)
+        case .image(let data):
+            if let image = NSImage(data: data), let tiff = image.tiffRepresentation {
+                pasteboard.setData(tiff, forType: .tiff)
+            }
+        case .file(let url):
+            pasteboard.writeObjects([url as NSURL])
         }
+        // 注意：ClipboardMonitor 会监听到 changeCount 变化并自行 +1 useCount，
+        // 这里不重复增加计数。
     }
-    
+
     func deleteItem(_ item: ClipboardItem) async {
-        do {
-            try await clipboardManager.deleteItem(item)
-        } catch {
-            self.error = .deleteFailed(error.localizedDescription)
-        }
+        await repository.deleteItem(item)
     }
-    
+
     func clearAll() async {
-        do {
-            try await clipboardManager.clearAll()
-        } catch {
-            self.error = .clearFailed(error.localizedDescription)
-        }
+        await repository.clearAll()
     }
-    
+
     func refresh() async {
         await loadInitialData()
     }
-    
+
     func pinItem(_ item: ClipboardItem) async {
-        do {
-            try await clipboardManager.togglePin(item)
-        } catch {
-            self.error = .pinFailed(error.localizedDescription)
-        }
+        await repository.togglePin(item)
     }
-    
+
     func incrementUseCount(for item: ClipboardItem) async {
-        await clipboardManager.incrementUseCount(for: item)
+        await repository.incrementUseCount(item)
     }
-    
+
     func updateItem(_ updatedItem: ClipboardItem) async {
-        do {
-            try await clipboardManager.updateItem(updatedItem)
-        } catch {
-            self.error = .updateFailed(error.localizedDescription)
-        }
+        await repository.updateItem(updatedItem)
     }
     
     // MARK: - 过滤和排序

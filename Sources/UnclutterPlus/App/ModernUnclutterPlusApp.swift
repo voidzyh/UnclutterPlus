@@ -9,8 +9,7 @@ struct ModernUnclutterPlusApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainContentView()
-                .frame(minWidth: 800, minHeight: 600)
+            UnifiedMainLayout()
         }
         .commands {
             CommandGroup(after: .help) {
@@ -50,5 +49,12 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
         logger.info("UnclutterPlus v2.0.0 启动完成", category: "Service")
         logger.info("📦 现代化架构: Swift 6.0 + SwiftUI 5.0", category: "ModernUnclutterPlusApp")
         logger.info("🏗️ MVVM + Repository 模式", category: "ModernUnclutterPlusApp")
+
+        // 启动剪贴板监听（智能洞察数据源）
+        if ConfigurationManager.shared.clipboardMonitorEnabled {
+            Task { @MainActor in
+                ClipboardMonitor.shared.start()
+            }
+        }
     }
 }

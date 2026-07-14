@@ -9,168 +9,71 @@ struct ModernClipboardView: View {
     // 状态管理
     @State private var selectedItem: UUID?
     @State private var searchText: String = ""
-    @State private var isSearching = false
     @State private var showFilters = false
-    @State private var scrollOffset: CGFloat = 0
+    @State private var showInsights = false
     
     // 动画状态
-    @State private var itemsOpacity: Double = 1.0
-    @State private var headerBlur: CGFloat = 0
+    @State private var isHovered = false
     
     var body: some View {
         VStack(spacing: 0) {
-            // 顶部工具栏 - 带有动态模糊效果
-            modernHeader
-                .background(
-                    Rectangle()
-                        .fill(Color(NSColor.controlBackgroundColor).opacity(0.8))
-                        .opacity(scrollOffset > 10 ? 1 : 0)
-                )
-                .overlay(alignment: .bottom) {
-                    if scrollOffset > 10 {
-                        Divider()
-                            .background(Color.accentColor.opacity(0.1))
-                    }
-                }
-            
-            // 内容区域
-            contentArea
-                .coordinateSpace(name: "scrollView")
-        }
-        .onAppear {
-            Task {
-                await viewModel.loadInitialData()
+            // 智能洞察面板（覆盖在顶部）
+            if showInsights {
+                InsightsView()
+                    .background(ModernDesignSystem.shared.color(.bgSurface))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(10)
             }
-        }
-    }
-    
-    // MARK: - 现代化头部
-    
-    private var modernHeader: some View {
-        VStack(spacing: 12) {
-            // 搜索栏和工具
-            HStack(spacing: 12) {
-                // 现代化搜索栏
-                modernSearchBar
-                
-                // 过滤按钮
-                filterButton
-                
-                // 清除按钮
-                clearButton
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            
+
             // 过滤器面板
             if showFilters {
                 filterPanel
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .top).combined(with: .opacity),
-                        removal: .move(edge: .top).combined(with: .opacity)
-                    ))
+                    .background(ModernDesignSystem.shared.color(.bgSurface))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(9)
             }
+
+            // 内容区域
+            contentArea
+                .zIndex(1)
         }
-        .padding(.bottom, 12)
-    }
-    
-    // MARK: - 现代化搜索栏
-    
-    private var modernSearchBar: some View {
-        HStack(spacing: 8) {
-            // 搜索图标 - 带动画效果
-            Image(systemName: "magnifyingglass")
-                .font(.body.weight(.medium))
-                .foregroundColor(.secondary)
-            
-            // 搜索输入
-            TextField("Search clipboard...", text: $searchText)
-                .font(.body)
-                .textFieldStyle(.plain)
-                .onSubmit {
-                    viewModel.searchText = searchText
-                }
-                .onChange(of: searchText) { oldValue, newValue in
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.searchText = newValue
-                    }
-                }
-            
-            // 清除按钮
-            if !searchText.isEmpty {
+        .background(ModernDesignSystem.shared.color(.bgCanvas))
+        .onAppear {
+            Task { await viewModel.loadInitialData() }
+        }
+        // 使用原生 Searchable
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Search history...")
+        .onChange(of: searchText) { _, newValue in
+             viewModel.searchText = newValue
+        }
+        // 使用原生 Toolbar
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        searchText = ""
-                        viewModel.searchText = ""
+                    withAnimation(ModernDesignSystem.Motion.snap) {
+                        showInsights.toggle()
                     }
                 }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.body)
-                        .foregroundColor(.secondary)
+                    Label("Insights", systemImage: "sparkles" + (showInsights ? ".fill" : ""))
                 }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.accentColor.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .overlay(alignment: .trailing) {
-            if viewModel.isSearching {
-                ProgressView()
-                    .scaleEffect(0.8)
-                    .padding(.trailing, 12)
-            }
-        }
-    }
-    
-    // MARK: - 过滤按钮
-    
-    private var filterButton: some View {
-        Button(action: {
-            withAnimation(.spring()) {
-                showFilters.toggle()
-            }
-        }) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundColor(showFilters ? .accentColor : .primary)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .background(
-            Group {
-                if showFilters {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.accentColor.opacity(0.1))
-                        .matchedGeometryEffect(id: "filterBackground", in: clipboardNamespace)
+                .help("clipboard.insights.title".localized)
+
+                Button(action: {
+                    withAnimation(ModernDesignSystem.Motion.snap) {
+                        showFilters.toggle()
+                    }
+                }) {
+                    Label("Filter", systemImage: "line.3.horizontal.decrease.circle" + (showFilters ? ".fill" : ""))
                 }
+                .help("Show/Hide Filters")
+
+                Button(action: { Task { await viewModel.clearAll() } }) {
+                    Label("Clear All", systemImage: "trash")
+                }
+                .disabled(viewModel.clipboardItems.isEmpty)
+                .help("Clear All History")
             }
-        )
-    }
-    
-    // MARK: - 清除按钮
-    
-    private var clearButton: some View {
-        Button(role: .destructive) {
-            Task {
-                await viewModel.clearAll()
-            }
-        } label: {
-            Image(systemName: "trash")
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .disabled(viewModel.clipboardItems.isEmpty)
     }
     
     // MARK: - 过滤器面板
@@ -178,48 +81,48 @@ struct ModernClipboardView: View {
     private var filterPanel: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                // 内容类型过滤
                 ForEach(ClipboardContentType.allCases, id: \.self) { type in
-                    FilterChip(
-                        title: type.title,
+                    ModernStatChip(
                         icon: type.icon,
-                        isSelected: viewModel.selectedContentType == type,
-                        color: type.color
-                    ) {
-                        viewModel.selectedContentType = type
+                        label: type.title,
+                        value: "", // No count needed here
+                        color: viewModel.selectedContentType == type ? type.color : .secondary
+                    )
+                    .onTapGesture {
+                        withAnimation(ModernDesignSystem.Motion.snap) {
+                            viewModel.selectedContentType = type
+                        }
                     }
+                    .opacity(viewModel.selectedContentType == type ? 1 : 0.6)
                 }
                 
-                // 日期范围过滤
+                Divider().frame(height: 20)
+                
                 ForEach(DateRange.allCases, id: \.self) { range in
-                    FilterChip(
-                        title: range.title,
-                        icon: range.icon,
-                        isSelected: viewModel.selectedDateRange == range,
-                        color: .orange
-                    ) {
-                        viewModel.selectedDateRange = range
-                    }
-                }
-                
-                // 排序选项
-                ForEach(SortOption.allCases, id: \.self) { option in
-                    FilterChip(
-                        title: option.title,
-                        icon: option.icon,
-                        isSelected: viewModel.sortOption == option,
-                        color: .green
-                    ) {
-                        viewModel.sortOption = option
-                    }
+                    Text(range.title)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(viewModel.selectedDateRange == range ? Color.orange.opacity(0.2) : Color.clear)
+                        )
+                        .foregroundColor(viewModel.selectedDateRange == range ? .orange : .secondary)
+                        .onTapGesture {
+                            withAnimation(ModernDesignSystem.Motion.snap) {
+                                viewModel.selectedDateRange = range
+                            }
+                        }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, ModernDesignSystem.Spacing.lg)
+            .padding(.vertical, ModernDesignSystem.Spacing.sm)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .overlay(
+            Rectangle()
+                .fill(Color.black.opacity(0.05))
+                .frame(height: 1),
+            alignment: .bottom
         )
     }
     
@@ -228,297 +131,178 @@ struct ModernClipboardView: View {
     private var contentArea: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 16) {
-                    // 统计信息
-                    if !viewModel.clipboardItems.isEmpty {
+                VStack(spacing: ModernDesignSystem.Spacing.lg) {
+                    if !viewModel.statistics.isEmpty {
                         statisticsView
-                            .padding(.horizontal, 16)
-                            .padding(.top, 12)
                     }
                     
-                    // 剪贴板项目列表
-                    clipboardItemsList
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
-                }
-                .background(GeometryReader { geometry in
-                    Color.clear
-                        .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scrollView")).minY)
-                })
-            }
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                scrollOffset = -value
-            }
-            .onChange(of: viewModel.clipboardItems.count) { oldValue, newValue in
-                if newValue > oldValue {
-                    // 新项目添加时滚动到顶部
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        proxy.scrollTo("top", anchor: .top)
+                    if viewModel.filteredItems.isEmpty {
+                        emptyStateView
+                    } else {
+                        clipboardItemsList
                     }
                 }
+                .padding(ModernDesignSystem.Spacing.lg)
+            }
+            .onChange(of: viewModel.clipboardItems.count) { _, newValue in
+                 // Scroll to top on new item logic if needed
             }
         }
     }
-    
-    // MARK: - 统计视图
     
     private var statisticsView: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             ForEach(viewModel.statistics) { stat in
-                StatisticCard(title: stat.title, value: stat.value, icon: stat.icon, color: stat.color)
+                ModernStatChip(icon: stat.icon, label: stat.title, value: stat.value, color: stat.color)
             }
         }
     }
-    
-    // MARK: - 剪贴板项目列表
     
     private var clipboardItemsList: some View {
         LazyVStack(spacing: 8) {
-            // 顶部锚点
-            Color.clear
-                .frame(height: 1)
-                .id("top")
-            
-            // 项目列表
             ForEach(viewModel.filteredItems) { item in
-                ClipboardItemView(
+                ClipboardItemRow(
                     item: item,
                     isSelected: selectedItem == item.id,
-                    namespace: clipboardNamespace
-                ) {
-                    selectItem(item)
-                } onCopy: {
-                    copyItem(item)
-                } onDelete: {
-                    deleteItem(item)
-                }
-                .id(item.id)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
-                .animation(.easeInOut(duration: 0.3), value: viewModel.filteredItems.count)
-            }
-            
-            // 空状态
-            if viewModel.filteredItems.isEmpty {
-                emptyResultsView
+                    onSelect: { selectedItem = item.id },
+                    onCopy: { Task { await viewModel.copyToClipboard(item) } },
+                    onDelete: { Task { await viewModel.deleteItem(item) } }
+                )
             }
         }
     }
     
     // MARK: - 空状态视图
     
-    private var emptyResultsView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "clipboard")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-                .symbolRenderingMode(.hierarchical)
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 48))
+                .foregroundColor(ModernDesignSystem.shared.color(.textTertiary))
             
-            VStack(spacing: 8) {
-                Text("No clipboard items")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Text("Copy something to get started")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .multilineTextAlignment(.center)
+            Text("No clipboard history")
+                .font(.title3)
+                .foregroundColor(ModernDesignSystem.shared.color(.textPrimary))
+            
+            Text("Copy items to see them here")
+                .font(.body)
+                .foregroundColor(ModernDesignSystem.shared.color(.textSecondary))
         }
         .frame(maxWidth: .infinity, minHeight: 300)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
-        )
-        .padding(.top, 32)
-    }
-    
-    // MARK: - 事件处理
-    
-    private func selectItem(_ item: ClipboardItem) {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            selectedItem = item.id
-        }
-    }
-    
-    private func copyItem(_ item: ClipboardItem) {
-        Task {
-            await viewModel.copyToClipboard(item)
-        }
-    }
-    
-    private func deleteItem(_ item: ClipboardItem) {
-        Task {
-            await viewModel.deleteItem(item)
-        }
     }
 }
 
-// MARK: - 偏好键
+// MARK: - 子组件
 
-// MARK: - 过滤芯片组件
-
-struct FilterChip: View {
-    let title: String
-    let icon: String
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.caption)
-                
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                Capsule()
-                    .fill(isSelected ? color : Color.secondary.opacity(0.2))
-            )
-            .foregroundColor(isSelected ? .white : .primary)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-
-
-// MARK: - 剪贴板项目视图
-
-struct ClipboardItemView: View {
+struct ClipboardItemRow: View {
     let item: ClipboardItem
     let isSelected: Bool
-    let namespace: Namespace.ID
     let onSelect: () -> Void
     let onCopy: () -> Void
     let onDelete: () -> Void
     
+    @State private var isHovered = false
+    
     var body: some View {
         HStack(spacing: 12) {
-            // 内容图标
+            // Icon
             contentIcon
+                .font(.system(size: 16))
+                .frame(width: 36, height: 36)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
             
-            // 内容预览
-            contentPreview
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                contentPreview
+                
+                HStack {
+                    Text(timeString)
+                        .font(.caption2)
+                        .foregroundColor(ModernDesignSystem.shared.color(.textTertiary))
+                    
+                    if item.isPinned {
+                        Image(systemName: "pin.fill")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    }
+                }
+            }
             
             Spacer()
             
-            // 操作按钮
-            actionButtons
+            // Actions
+            if isHovered || isSelected {
+                HStack(spacing: 4) {
+                    IconButton(icon: "doc.on.doc", action: onCopy)
+                    IconButton(icon: "trash", color: .red, action: onDelete)
+                }
+                .transition(.opacity)
+            }
         }
         .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
-                )
-        )
-        .onTapGesture {
-            onSelect()
-        }
-        .contextMenu {
-            Button("Copy") {
-                onCopy()
-            }
-            
-            Button("Delete") {
-                onDelete()
-            }
+        .cardStyle(hover: isHovered)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+        .onHover { isHovered = $0 }
+    }
+    
+    @MainActor
+    private var contentIcon: some View {
+        switch item.content {
+        case .text:
+            return AnyView(Image(systemName: "text.alignleft").foregroundColor(.blue))
+        case .image:
+            return AnyView(Image(systemName: "photo").foregroundColor(.orange))
+        case .file:
+            return AnyView(Image(systemName: "doc").foregroundColor(.green))
         }
     }
     
-    private var contentIcon: some View {
+    @MainActor
+    private var contentPreview: some View {
         Group {
             switch item.content {
-            case .text:
-                Image(systemName: "text.alignleft")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-            case .image:
-                Image(systemName: "photo")
-                    .font(.title2)
-                    .foregroundColor(.orange)
-            case .file:
-                Image(systemName: "doc")
-                    .font(.title2)
-                    .foregroundColor(.green)
-            }
-        }
-        .frame(width: 24, height: 24)
-    }
-    
-    private var contentPreview: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            switch item.content {
             case .text(let text):
-                Text(text.prefix(100))
+                Text(text.replacingOccurrences(of: "\n", with: " "))
                     .font(.body)
-                    .lineLimit(2)
-                    .foregroundColor(.primary)
+                    .foregroundColor(ModernDesignSystem.shared.color(.textPrimary))
+                    .lineLimit(1)
             case .image:
                 Text("Image")
                     .font(.body)
-                    .foregroundColor(.primary)
+                    .foregroundColor(ModernDesignSystem.shared.color(.textPrimary))
+                    .italic()
             case .file(let url):
                 Text(url.lastPathComponent)
                     .font(.body)
-                    .foregroundColor(.primary)
-            }
-            
-            HStack {
-                Text(formattedDate(item.timestamp))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                if item.isPinned {
-                    Image(systemName: "pin.fill")
-                        .font(.caption)
-                        .foregroundColor(.yellow)
-                }
+                    .foregroundColor(ModernDesignSystem.shared.color(.textPrimary))
             }
         }
     }
     
-    private var actionButtons: some View {
-        HStack(spacing: 8) {
-            Button(action: onCopy) {
-                Image(systemName: "doc.on.doc")
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-    
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+    private var timeString: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: item.timestamp, relativeTo: Date())
     }
 }
 
-// MARK: - 预览
-
-struct ModernClipboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        ModernClipboardView()
-            .frame(width: 600, height: 800)
+struct IconButton: View {
+    let icon: String
+    var color: Color = .secondary
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(color)
+                .frame(width: 28, height: 28)
+                .background(Color.black.opacity(0.05))
+                .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .hoverScaleEffect()
     }
 }

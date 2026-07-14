@@ -31,6 +31,11 @@ final class ModernNotesViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isSaving = false
     @Published var error: NotesError?
+
+    // AI 整理状态
+    @Published var isAIOrganizing = false
+    @Published var aiOrganizeError: String?
+    @Published var lastAIAction: String?
     
     // 多选模式
     @Published var isMultiSelectMode = false
@@ -196,6 +201,152 @@ final class ModernNotesViewModel: ObservableObject {
     
     func toggleFavorite(_ note: Note) {
         notesManager.toggleFavorite(note)
+    }
+
+    // MARK: - AI 整理
+
+    /// AI 润色/重写当前笔记正文。
+    func aiOrganize(action: OrganizeAction) {
+        guard let note = selectedNote else { return }
+        runAI(actionLabel: label(for: action)) { service in
+            let result = try await service.organize(
+                content: note.content,
+                instruction: OrganizeInstruction(action: action)
+            )
+            return result
+        } apply: { result in
+            self.updateSelectedNote(content: result.content)
+        }
+    }
+
+    /// AI 生成标题与摘要（摘要插入正文顶部）。
+    func aiGenerateTitleAndSummary() {
+        guard let note = selectedNote else { return }
+        runAI(actionLabel: "titleAndSummary") { service in
+            try await service.organize(
+                content: note.content,
+                instruction: OrganizeInstruction(action: .titleAndSummary)
+            )
+        } apply: { result in
+            var newContent = note.content
+            if let summary = result.summary {
+                // 在正文顶部插入摘要区块
+                newContent = "> \(summary)\n\n" + newContent
+            }
+            self.updateSelectedNote(
+                title: result.title,
+                content: newContent,
+                tags: result.tags.isEmpty ? nil : result.tags
+            )
+        }
+    }
+
+    /// AI 自动打标签。
+    func aiAutoTag() {
+        guard let note = selectedNote else { return }
+        runAI(actionLabel: "autoTag") { service in
+            try await service.organize(
+                content: note.content,
+                instruction: OrganizeInstruction(
+                    action: .autoTag,
+                    context: "已有标签：" + note.tags.joined(separator: "、")
+                )
+            )
+        } apply: { result in
+            // 合并已有标签与 AI 建议标签（去重）
+            let merged = Array(Set(note.tags + result.tags)).sorted()
+            self.updateSelectedNote(tags: merged)
+        }
+    }
+
+    /// 批量 AI 整理多条笔记（润色正文）。
+    func aiBatchOrganize(notes: [Note]) {
+        guard !notes.isEmpty, AIServiceFactory.isConfigured else {
+            aiOrganizeError = AIServiceFactory.isConfigured ? nil : "AI 服务未配置"
+            return
+        }
+        guard let service = AIServiceFactory.makeService() else {
+            aiOrganizeError = "无法创建 AI 服务"
+            return
+        }
+        isAIOrganizing = true
+        aiOrganizeError = nil
+        Task { [weak self] in
+            guard let self else { return }
+            defer { self.isAIOrganizing = false }
+            for note in notes {
+                if Task.isCancelled { break }
+                do {
+                    let result = try await service.organize(
+                        content: note.content,
+                        instruction: OrganizeInstruction(action: .polish)
+                    )
+                    var updated = note
+                    updated.content = result.content
+                    updated.updatedAt = Date()
+                    self.notesManager.updateNote(updated)
+                } catch {
+                    logger.error("批量整理笔记「\(note.title)」失败：\(error.localizedDescription)", category: "NotesAI")
+                }
+            }
+            self.lastAIAction = "batchOrganize"
+        }
+    }
+
+    /// 导出当前笔记到 Obsidian。
+    func exportToObsidian(_ note: Note) {
+        do {
+            let result = try ObsidianExporter.exportNote(
+                title: note.title,
+                content: note.content,
+                tags: note.tags,
+                openInObsidian: true
+            )
+            logger.info("笔记已导出到 Obsidian：\(result.fileURL.path)", category: "NotesAI")
+            lastAIAction = "exported"
+        } catch {
+            aiOrganizeError = error.localizedDescription
+        }
+    }
+
+    // MARK: - AI 辅助
+
+    /// 统一的 AI 调用包装：配置检查 + 状态管理 + 结果应用。
+    private func runAI(
+        actionLabel: String,
+        perform: @escaping (AIService) async throws -> OrganizeResult,
+        apply: @escaping (OrganizeResult) -> Void
+    ) {
+        guard AIServiceFactory.isConfigured else {
+            aiOrganizeError = "AI 服务未配置，请在偏好设置中配置"
+            return
+        }
+        guard let service = AIServiceFactory.makeService() else {
+            aiOrganizeError = "无法创建 AI 服务"
+            return
+        }
+        isAIOrganizing = true
+        aiOrganizeError = nil
+        Task { [weak self] in
+            guard let self else { return }
+            defer { self.isAIOrganizing = false }
+            do {
+                let result = try await perform(service)
+                self.lastAIAction = actionLabel
+                apply(result)
+            } catch {
+                self.aiOrganizeError = error.localizedDescription
+            }
+        }
+    }
+
+    private func label(for action: OrganizeAction) -> String {
+        switch action {
+        case .polish: return "polish"
+        case .rewrite: return "rewrite"
+        case .titleAndSummary: return "titleAndSummary"
+        case .autoTag: return "autoTag"
+        }
     }
     
     func refresh() async {

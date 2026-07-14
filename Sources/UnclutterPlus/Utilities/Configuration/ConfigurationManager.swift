@@ -53,6 +53,11 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("clipboard.sortBy") var clipboardSortBy: String = "time" // "time", "useCount"
     // 启动默认筛选器：type/date/source/sort (启动时默认展开类型筛选)
     @AppStorage("clipboard.defaultFilter") var clipboardDefaultFilter: String = "type"
+    // 剪贴板监听设置（智能洞察数据源）
+    @AppStorage("clipboard.monitor.enabled") var clipboardMonitorEnabled: Bool = true
+    @AppStorage("clipboard.monitor.interval") var clipboardMonitorInterval: Double = 0.5 // 轮询间隔（秒）
+    // 频率阈值：粘贴次数达到该值的片段视为"高频"
+    @AppStorage("clipboard.insights.frequencyThreshold") var insightsFrequencyThreshold: Int = 3
 
     // 截图管理设置
     // 全局快捷键（存储为字符串，如 "command-shift-1"），空字符串代表未设置
@@ -62,6 +67,28 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("ocr.deepseek.path") var deepseekBinaryPath: String = "" // 例如 /usr/local/bin/deepseek-ocr
     @AppStorage("ocr.deepseek.langs") var deepseekLanguages: String = "zh,en" // 逗号分隔
     @AppStorage("ocr.auto") var ocrAutoEnabled: Bool = true
+
+    // AI 服务设置（智能整理 / 聚类总结）
+    // 实现类型："http" (OpenAI 兼容 API) 或 "cli" (本地命令行如 ollama)
+    @AppStorage("ai.service.type") var aiServiceType: String = "http"
+    @AppStorage("ai.service.endpoint") var aiEndpoint: String = "" // 如 https://api.openai.com/v1/chat/completions
+    @AppStorage("ai.service.model") var aiModel: String = "gpt-4o-mini"
+    // CLI 模式下的可执行文件路径（如 /usr/local/bin/ollama）
+    @AppStorage("ai.service.cliPath") var aiCliPath: String = ""
+    @AppStorage("ai.service.cliModel") var aiCliModel: String = "" // 如 llama3.2
+    // 请求超时（秒）
+    @AppStorage("ai.service.timeout") var aiTimeout: Double = 60
+
+    // Obsidian 集成设置
+    @AppStorage("obsidian.vault.path") var obsidianVaultPath: String = ""
+    @AppStorage("obsidian.vault.name") var obsidianVaultName: String = "" // 用于构造 obsidian:// URI
+
+    /// AI API Key —— 存储在 Keychain（非明文 UserDefaults）。
+    /// getter/setter 作为 @AppStorage 的安全替代。
+    var aiAPIKey: String {
+        get { KeychainWrapper.get(forAccount: "ai.apikey") ?? "" }
+        set { KeychainWrapper.set(newValue, forAccount: "ai.apikey") }
+    }
     
     // 标签页顺序和默认设置
     @AppStorage("tabs.order") var tabsOrder: String = "files,clipboard,notes" // 默认顺序：文件、粘贴板、笔记
@@ -73,7 +100,35 @@ class ConfigurationManager: ObservableObject {
     // 滚动方向映射设置
     @AppStorage("ui.scrollDirectionMapping") var scrollDirectionMapping: ScrollDirectionMapping = .upToShow
 
-    private init() {}
+    private init() {
+        // 延迟初始化检查，确保 @AppStorage 已加载完成
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+
+            let defaults = UserDefaults.standard
+
+            // 检查所有功能是否都未启用（使用UserDefaults直接读取）
+            let filesEnabled = defaults.bool(forKey: "feature.files.enabled")
+            let clipboardEnabled = defaults.bool(forKey: "feature.clipboard.enabled")
+            let notesEnabled = defaults.bool(forKey: "feature.notes.enabled")
+
+            if !filesEnabled && !clipboardEnabled && !notesEnabled {
+                self.isFilesEnabled = true
+                self.isClipboardEnabled = true
+                self.isNotesEnabled = true
+
+                // 确保默认标签页有效
+                if self.defaultTab.isEmpty {
+                    self.defaultTab = "files"
+                }
+
+                // 确保排序有效
+                if self.tabsOrder.isEmpty {
+                    self.tabsOrder = "files,clipboard,notes"
+                }
+            }
+        }
+    }
     
     // 默认路径
     private var defaultBasePath: URL {

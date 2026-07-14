@@ -39,6 +39,15 @@
 "preferences.markdown.code_highlight" = "代码高亮";
 "preferences.markdown.advanced" = "高级设置";
 
+
+// MARK: - 设置标签页顺序
+"preferences.tabs.order.title" = "标签页顺序";
+"preferences.tabs.order.description" = "拖动调整标签页顺序和启用状态";
+"preferences.tabs.order.help" = "拖动以重新排序";
+"preferences.tabs.order.reset" = "重置";
+"preferences.tabs.default.make_default" = "设为默认标签页";
+"preferences.tabs.order.index" = "序号";
+
 // MARK: - 笔记设置
 "preferences.notes.autosave_interval" = "自动保存间隔：";
 "preferences.notes.autosave_help" = "输入时自动保存笔记前的等待时间。";
@@ -285,3 +294,54 @@
 // MARK: - 警告框按钮
 "alert.ok" = "确定";
 "alert.reset" = "重置";
+// MARK: - 剪贴板智能洞察
+"clipboard.insights.title" = "智能洞察";
+"clipboard.insights.subtitle" = "分析高频剪贴板内容，AI 总结成学习文档";
+"clipboard.insights.generate" = "生成洞察";
+"clipboard.insights.generate.help" = "用 AI 分析高频项并聚类总结";
+"clipboard.insights.completed" = "完成";
+"clipboard.insights.failed" = "失败";
+"clipboard.insights.frequent" = "高频项";
+"clipboard.insights.frequent.empty" = "暂无高频项（频率达到阈值的片段会显示在此）";
+"clipboard.insights.clusters" = "主题分组";
+"clipboard.insights.items" = "项";
+"clipboard.insights.drafts" = "学习文档";
+
+// MARK: - Obsidian 导出
+"clipboard.obsidian.export" = "导出到 Obsidian";
+
+// MARK: - 通用
+"common.dismiss" = "关闭";
+
+// MARK: - 笔记 AI 整理
+"notes.ai.organize" = "AI 整理";
+"notes.ai.polish" = "润色正文";
+"notes.ai.rewrite" = "重写";
+"notes.ai.title_summary" = "生成标题与摘要";
+"notes.ai.auto_tag" = "自动打标签";
+"notes.ai.export_obsidian" = "发送到 Obsidian";
+"notes.ai.working" = "处理中...";
+
+// MARK: - 集成（AI / Obsidian / OCR）偏好设置
+"preferences.tab.integration" = "集成";
+"preferences.ai.section" = "AI 服务";
+"preferences.ai.type" = "实现类型";
+"preferences.ai.type.http" = "HTTP API";
+"preferences.ai.type.cli" = "本地 CLI";
+"preferences.ai.endpoint" = "API 端点";
+"preferences.ai.api_key" = "API Key（存于 Keychain）";
+"preferences.ai.model" = "模型";
+"preferences.ai.cli_path" = "CLI 路径（如 /usr/local/bin/ollama）";
+"preferences.ai.cli_model" = "CLI 模型（如 llama3.2）";
+"preferences.ai.timeout" = "超时";
+"preferences.ai.configured" = "已配置";
+"preferences.ai.not_configured" = "未完成配置";
+"preferences.obsidian.section" = "Obsidian";
+"preferences.obsidian.vault_path" = "仓库路径";
+"preferences.obsidian.vault_name" = "仓库名称（用于 obsidian:// URI）";
+"preferences.obsidian.vault_name.help" = "Obsidian 中显示的 vault 名称，留空则无法用 URI 直接打开";
+"preferences.ocr.section" = "OCR";
+"preferences.ocr.deepseek_path" = "DeepSeek CLI 路径";
+"preferences.ocr.deepseek_langs" = "识别语言";
+"preferences.ocr.auto" = "截图后自动 OCR";
+"preferences.storage.reveal" = "在 Finder 中显示";

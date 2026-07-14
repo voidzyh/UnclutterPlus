@@ -18,7 +18,7 @@ final class ClipboardRepository: ObservableObject {
 
     // MARK: - Private Properties
 
-    private let storage: ClipboardStorageAdapter
+    private let storage: any UnifiedStorageProtocol<ClipboardItem, ClipboardIndex>
     private let config = StorageConfiguration.default
     private var cancellables = Set<AnyCancellable>()
 
@@ -61,14 +61,15 @@ final class ClipboardRepository: ObservableObject {
 
     // MARK: - Initialization
 
-    init() {
-        // 创建剪贴板存储适配器
-        let shardedStorage = ShardedStorage<ClipboardItem>(
-            baseURL: config.baseURL.appendingPathComponent("Clipboard"),
-            strategy: .byMonth // 按月分片，适合时间序列数据
-        )
-        self.storage = ClipboardStorageAdapter(shardedStorage: shardedStorage)
-
+    /// 初始化剪贴板仓库
+    /// - Parameter storage: 可选的存储实现（用于测试），默认为生产环境存储
+    init(storage: (any UnifiedStorageProtocol<ClipboardItem, ClipboardIndex>)? = nil) {
+        if let storage = storage {
+            self.storage = storage
+        } else {
+            self.storage = StorageFactory.createClipboardStorage()
+        }
+        
         setupBindings()
 
         // 使用Task确保数据加载完成后再继续
@@ -93,7 +94,7 @@ final class ClipboardRepository: ObservableObject {
     /// 加载所有剪贴板索引
     func loadIndexes() async {
         do {
-            let indexes = try await storage.getAllIndexes()
+            let indexes = try await storage.getAllIndexes(limit: nil, offset: nil)
             await MainActor.run {
                 self.clipboardIndexes = indexes
             }
@@ -126,7 +127,7 @@ final class ClipboardRepository: ObservableObject {
     func addItem(_ item: ClipboardItem) async {
         do {
             // 保存到存储
-            try await storage.create(item)
+            try await storage.create([item])
 
             // 创建索引
             let index = ClipboardIndex(from: item)
@@ -145,7 +146,7 @@ final class ClipboardRepository: ObservableObject {
     func deleteItem(_ item: ClipboardItem) async {
         do {
             // 从存储删除
-            try await storage.delete(id: item.id)
+            try await storage.delete(ids: [item.id])
 
             // 更新内存
             await MainActor.run {
@@ -159,8 +160,18 @@ final class ClipboardRepository: ObservableObject {
 
     /// 批量删除项目
     func deleteItems(_ items: [ClipboardItem]) async {
-        for item in items {
-            await deleteItem(item)
+        let ids = items.map { $0.id }
+        do {
+            try await storage.delete(ids: ids)
+            
+            await MainActor.run {
+                for item in items {
+                    self.clipboardIndexes.removeAll { $0.id == item.id }
+                    self.itemCache.removeValue(forKey: item.id)
+                }
+            }
+        } catch {
+            logger.error("批量删除剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
@@ -171,7 +182,7 @@ final class ClipboardRepository: ObservableObject {
 
         do {
             // 更新存储
-            try await storage.update(updatedItem)
+            try await storage.update([updatedItem])
 
             // 更新索引
             if let index = clipboardIndexes.firstIndex(where: { $0.id == item.id }) {
@@ -187,6 +198,21 @@ final class ClipboardRepository: ObservableObject {
         }
     }
 
+    /// 更新剪贴板项目（通用）
+    func updateItem(_ updatedItem: ClipboardItem) async {
+        do {
+            try await storage.update([updatedItem])
+            itemCache[updatedItem.id] = updatedItem
+            if let index = clipboardIndexes.firstIndex(where: { $0.id == updatedItem.id }) {
+                await MainActor.run {
+                    self.clipboardIndexes[index] = ClipboardIndex(from: updatedItem)
+                }
+            }
+        } catch {
+            logger.error("更新剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
+        }
+    }
+
     /// 增加使用计数
     func incrementUseCount(_ item: ClipboardItem) async {
         var updatedItem = item
@@ -194,7 +220,7 @@ final class ClipboardRepository: ObservableObject {
 
         do {
             // 更新存储
-            try await storage.update(updatedItem)
+            try await storage.update([updatedItem])
 
             // 更新缓存
             itemCache[item.id] = updatedItem
@@ -227,25 +253,26 @@ final class ClipboardRepository: ObservableObject {
     /// 清空非收藏项目
     func clearUnpinned() async {
         let unpinnedItems = clipboardIndexes.filter { !$0.isPinned }
+        let ids = unpinnedItems.map { $0.id }
 
-        for index in unpinnedItems {
-            do {
-                try await storage.delete(id: index.id)
+        do {
+            try await storage.delete(ids: ids)
 
-                await MainActor.run {
+            await MainActor.run {
+                for index in unpinnedItems {
                     self.clipboardIndexes.removeAll { $0.id == index.id }
                     self.itemCache.removeValue(forKey: index.id)
                 }
-            } catch {
-                logger.error("删除未收藏项目失败 \(index.id.uuidString.prefix(8)): \(error.localizedDescription)", category: "Storage")
             }
+        } catch {
+            logger.error("清理未收藏项目失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
     /// 搜索剪贴板项目
     func searchItems(query: String) async -> [ClipboardIndex] {
         do {
-            return try await storage.search(query: query)
+            return try await storage.search(query: query, limit: nil)
         } catch {
             logger.error("搜索项目失败: \(error.localizedDescription)", category: "Storage")
             return []
