@@ -115,9 +115,7 @@ struct AppKitTextEditor: NSViewRepresentable {
             return
         }
 
-        guard let clipView = scrollView.contentView as? NSClipView else {
-            return
-        }
+        let clipView = scrollView.contentView
 
         let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
         let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)

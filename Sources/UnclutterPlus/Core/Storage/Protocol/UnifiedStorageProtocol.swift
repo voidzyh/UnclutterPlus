@@ -4,48 +4,48 @@ import Combine
 // MARK: - 统一存储协议
 
 /// 统一存储协议 - 消除存储系统复杂性
-protocol UnifiedStorageProtocol: AnyObject {
+protocol UnifiedStorageProtocol<Item, Index>: AnyObject {
     associatedtype Item: Storable & Identifiable
     associatedtype Index: StorageIndex
     
     // MARK: - 核心操作
     
     /// 创建项目（支持批量）
-    func create(_ items: [Item]) async -> Result<Void, StorageOperationError>
+    func create(_ items: [Item]) async throws
     
     /// 读取单个项目（带缓存）
-    func read(id: UUID) async -> Result<Item?, StorageOperationError>
+    func read(id: UUID) async throws -> Item?
     
     /// 批量读取项目
-    func readBatch(ids: [UUID]) async -> Result<[Item], StorageOperationError>
+    func readBatch(ids: [UUID]) async throws -> [Item]
     
     /// 更新项目
-    func update(_ items: [Item]) async -> Result<Void, StorageOperationError>
+    func update(_ items: [Item]) async throws
     
     /// 删除项目
-    func delete(ids: [UUID]) async -> Result<Void, StorageOperationError>
+    func delete(ids: [UUID]) async throws
     
     // MARK: - 查询操作
     
     /// 搜索项目（全文搜索）
-    func search(query: String, limit: Int?) async -> Result<[Index], StorageOperationError>
+    func search(query: String, limit: Int?) async throws -> [Index]
     
     /// 获取所有索引（分页支持）
-    func getAllIndexes(limit: Int?, offset: Int?) async -> Result<[Index], StorageOperationError>
+    func getAllIndexes(limit: Int?, offset: Int?) async throws -> [Index]
     
     /// 按条件过滤
-    func filter(by predicate: @escaping (Index) -> Bool, limit: Int?) async -> Result<[Index], StorageOperationError>
+    func filter(by predicate: @escaping (Index) -> Bool, limit: Int?) async throws -> [Index]
     
     // MARK: - 统计和管理
     
     /// 获取项目总数
-    func count() async -> Result<Int, StorageOperationError>
+    func count() async throws -> Int
     
     /// 清空所有数据
-    func clear() async -> Result<Void, StorageOperationError>
+    func clear() async throws
     
     /// 获取存储统计信息
-    func getStatistics() async -> Result<StorageStatistics, StorageOperationError>
+    func getStatistics() async throws -> StorageStatistics
 }
 
 // MARK: - 可存储协议
@@ -194,6 +194,24 @@ struct StorageStatistics: Sendable, Codable {
     }
 }
 
+// MARK: - 存储配置
+
+/// 存储配置
+struct StorageConfiguration {
+    let baseURL: URL
+    let cacheSizeLimit: Int
+    
+    static var `default`: StorageConfiguration {
+        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("UnclutterPlus")
+
+        return StorageConfiguration(
+            baseURL: baseURL,
+            cacheSizeLimit: 100
+        )
+    }
+}
+
 // MARK: - 存储配置扩展
 
 extension StorageConfiguration {
@@ -222,152 +240,86 @@ extension UnifiedStorageProtocol {
     
     // MARK: - 默认实现（便于兼容性）
     
-    func create(_ items: [Item]) async -> Result<Void, StorageOperationError> {
-        return await withTaskGroup(of: Result<Void, StorageOperationError>.self) { group in
+    func create(_ items: [Item]) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
             for item in items {
                 group.addTask {
-                    return await self.create([item])
+                    try await self.create([item])
                 }
             }
-            
-            var results: [Result<Void, StorageOperationError>] = []
-            for await result in group {
-                results.append(result)
-            }
-            
-            // 如果所有操作都成功，返回成功；否则返回第一个错误
-            let successCount = results.filter { result in
-                if case .success = result { return true }
-                return false
-            }.count
-            
-            if successCount == results.count {
-                return .success(())
-            } else if let firstError = results.compactMap({ result in
-                if case .failure(let error) = result { return error }
-                return nil
-            }).first {
-                return .failure(firstError)
-            } else {
-                return .failure(.unknown(underlying: NSError(domain: "UnifiedStorage", code: -1)))
-            }
+            try await group.waitForAll()
         }
     }
     
-    func readBatch(ids: [UUID]) async -> Result<[Item], StorageOperationError> {
-        return await withTaskGroup(of: (UUID, Result<Item?, StorageOperationError>).self) { group in
+    func readBatch(ids: [UUID]) async throws -> [Item] {
+        try await withThrowingTaskGroup(of: Item?.self) { group in
             for id in ids {
                 group.addTask {
-                    let result = await self.read(id: id)
-                    return (id, result)
+                    try await self.read(id: id)
                 }
             }
             
-            var items: [UUID: Item] = [:]
-            var errors: [StorageOperationError] = []
-            
-            for await (id, result) in group {
-                switch result {
-                case .success(let item):
-                    if let item = item {
-                        items[id] = item
-                    }
-                case .failure(let error):
-                    errors.append(error)
+            var items: [Item] = []
+            for try await item in group {
+                if let item = item {
+                    items.append(item)
                 }
             }
-            
-            if errors.isEmpty {
-                let orderedItems = ids.compactMap { items[$0] }
-                return .success(orderedItems)
-            } else {
-                return .failure(errors.first ?? .unknown(underlying: NSError(domain: "UnifiedStorage", code: -2)))
-            }
+            return items
         }
     }
     
-    func update(_ items: [Item]) async -> Result<Void, StorageOperationError> {
-        return await create(items) // 复用默认实现
+    func update(_ items: [Item]) async throws {
+        try await create(items) // 复用默认实现
     }
     
-    func delete(ids: [UUID]) async -> Result<Void, StorageOperationError> {
-        return await withTaskGroup(of: Result<Void, StorageOperationError>.self) { group in
+    func delete(ids: [UUID]) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
             for id in ids {
                 group.addTask {
-                    return await self.delete(ids: [id])
+                    try await self.delete(ids: [id])
                 }
             }
-            
-            var errors: [StorageOperationError] = []
-            for await result in group {
-                if case .failure(let error) = result {
-                    errors.append(error)
-                }
-            }
-            
-            if errors.isEmpty {
-                return .success(())
-            } else {
-                return .failure(errors.first ?? .unknown(underlying: NSError(domain: "UnifiedStorage", code: -3)))
-            }
+            try await group.waitForAll()
         }
     }
     
-    func getAllIndexes(limit: Int? = nil, offset: Int? = nil) async -> Result<[Index], StorageOperationError> {
-        let result = await search(query: "", limit: nil)
-        switch result {
-        case .success(var indexes):
-            // 应用分页
-            if let offset = offset {
-                indexes = Array(indexes.dropFirst(offset))
-            }
-            if let limit = limit {
-                indexes = Array(indexes.prefix(limit))
-            }
-            return .success(indexes)
-        case .failure(let error):
-            return .failure(error)
+    func getAllIndexes(limit: Int? = nil, offset: Int? = nil) async throws -> [Index] {
+        let indexes = try await search(query: "", limit: nil)
+        var result = indexes
+        
+        // 应用分页
+        if let offset = offset {
+            result = Array(result.dropFirst(offset))
         }
+        if let limit = limit {
+            result = Array(result.prefix(limit))
+        }
+        return result
     }
     
-    func count() async -> Result<Int, StorageOperationError> {
-        let result = await getAllIndexes()
-        switch result {
-        case .success(let indexes):
-            return .success(indexes.count)
-        case .failure(let error):
-            return .failure(error)
-        }
+    func count() async throws -> Int {
+        let indexes = try await getAllIndexes(limit: nil, offset: nil)
+        return indexes.count
     }
     
-    func filter(by predicate: @escaping (Index) -> Bool, limit: Int? = nil) async -> Result<[Index], StorageOperationError> {
-        let result = await getAllIndexes()
-        switch result {
-        case .success(var indexes):
-            indexes = indexes.filter(predicate)
-            if let limit = limit {
-                indexes = Array(indexes.prefix(limit))
-            }
-            return .success(indexes)
-        case .failure(let error):
-            return .failure(error)
+    func filter(by predicate: @escaping (Index) -> Bool, limit: Int? = nil) async throws -> [Index] {
+        var indexes = try await getAllIndexes(limit: nil, offset: nil)
+        indexes = indexes.filter(predicate)
+        if let limit = limit {
+            indexes = Array(indexes.prefix(limit))
         }
+        return indexes
     }
     
-    func getStatistics() async -> Result<StorageStatistics, StorageOperationError> {
-        let countResult = await count()
-        switch countResult {
-        case .success(let count):
-            let stats = StorageStatistics(
-                totalItems: count,
-                totalSize: 0, // 子类需要重写以提供实际大小
-                cacheSize: 0, // 子类需要重写以提供实际缓存大小
-                lastModified: Date(),
-                storageType: .hybrid // 默认类型
-            )
-            return .success(stats)
-        case .failure(let error):
-            return .failure(error)
-        }
+    func getStatistics() async throws -> StorageStatistics {
+        let count = try await self.count()
+        return StorageStatistics(
+            totalItems: count,
+            totalSize: 0, // 子类需要重写以提供实际大小
+            cacheSize: 0, // 子类需要重写以提供实际缓存大小
+            lastModified: Date(),
+            storageType: .hybrid // 默认类型
+        )
     }
 }

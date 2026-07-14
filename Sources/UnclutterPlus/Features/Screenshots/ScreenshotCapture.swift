@@ -30,7 +30,7 @@ class ScreenshotCapture: ObservableObject {
     func startCapture(mode: ScreenshotMode) {
         guard !isCapturing else { return }
         
-        // 检查屏幕录制权限
+        // Check for screen recording permission
         if !hasScreenRecordingPermission() {
             requestScreenRecordingPermission()
             return
@@ -52,7 +52,7 @@ class ScreenshotCapture: ObservableObject {
     // MARK: - Region Capture
     
     private func setupOverlay() {
-        // 创建全屏透明窗口
+        // Create full screen transparent window
         let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
         
         overlayWindow = NSWindow(
@@ -67,7 +67,7 @@ class ScreenshotCapture: ObservableObject {
         overlayWindow?.isOpaque = false
         overlayWindow?.ignoresMouseEvents = false
         
-        // 创建 SwiftUI 视图
+        // Create SwiftUI view
         let overlayView = ScreenshotOverlayView(
             mode: currentMode,
             onMouseDown: handleMouseDown,
@@ -95,7 +95,7 @@ class ScreenshotCapture: ObservableObject {
         
         overlayWindow?.makeKeyAndOrderFront(nil)
         
-        // 加载窗口列表（用于窗口模式）
+        // Load window list (for window mode)
         if currentMode == .window {
             loadWindows()
         }
@@ -144,11 +144,11 @@ class ScreenshotCapture: ObservableObject {
             return
         }
         
-        // 获取主显示器信息
+        // Get main display info
         let displayID = CGMainDisplayID()
         let screenFrame = CGDisplayBounds(displayID)
         
-        // 转换坐标系统（macOS使用左下角为原点）
+        // Convert coordinate system (macOS uses bottom-left origin)
         let screenHeight = screenFrame.height
         let cgRect = CGRect(
             x: rect.origin.x,
@@ -157,59 +157,60 @@ class ScreenshotCapture: ObservableObject {
             height: rect.height
         )
         
-        // 使用 ScreenCaptureKit API (macOS 12.3+) 替代废弃的 CGWindowListCreateImage
+        // Use ScreenCaptureKit API
         if #available(macOS 12.3, *) {
             Task {
                 await captureRegionWithSC(rect: cgRect)
             }
         } else {
-            Task {
-                await captureRegionWithCoreGraphics(rect: cgRect)
-            }
+            // Not supported below macOS 12.3
+            logger.error("System version too low for ScreenCaptureKit", category: "Screenshot")
+            cancelCapture()
         }
     }
     
-    // MARK: - 使用 ScreenCaptureKit 进行区域截图
+    // MARK: - Use ScreenCaptureKit for region capture
     
     private func captureRegionWithScreenCaptureKit(rect: CGRect) async {
         await captureRegionWithSC(rect: rect)
     }
     
+    private func captureRegionWithSC(rect: CGRect) async {
+        // Use SCStream for all supported macOS versions (12.3+)
+        // This avoids API compatibility issues with SCScreenshotManager (macOS 14+)
+        if #available(macOS 12.3, *) {
+            do {
+                let availableContent = try await SCShareableContent.current
+                
+                guard let display = availableContent.displays.first else {
+                    throw NSError(domain: "ScreenshotCapture", code: 1, userInfo: [NSLocalizedDescriptionKey: "No displays found"])
+                }
+                
+                let filter = SCContentFilter(display: display, excludingWindows: [])
+                
+                let configuration = SCStreamConfiguration()
+                configuration.sourceRect = rect
+                configuration.width = Int(rect.width)
+                configuration.height = Int(rect.height)
+                configuration.scalesToFit = false
+                configuration.capturesAudio = false
+                
+                let capturedImage = try await captureSingleFrame(filter: filter, configuration: configuration)
+                
+                guard let finalImage = capturedImage else {
+                    throw NSError(domain: "ScreenshotCapture", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to capture image"])
+                }
 
-    
-    // MARK: - 使用 Core Graphics 的兼容版本（带警告抑制）
-
-    private func captureRegionWithCoreGraphics(rect: CGRect) async {
-        // 注意：CGWindowListCreateImage 在 macOS 14.0+ 中已被废弃
-        // 但在完整的 ScreenCaptureKit 实现之前，暂时保留此方法
-        // 使用版本检查抑制废弃警告
-        if #available(macOS 14.0, *) {
-            // 新版本应该使用 ScreenCaptureKit，暂时返回
-            logger.warning("ScreenCaptureKit 尚未实现，区域截图功能暂不可用", category: "Screenshot")
-            cancelCapture()
-            return
-        }
-
-        guard let fullImage = CGWindowListCreateImage(
-            .null,
-            .optionOnScreenBelowWindow,
-            kCGNullWindowID,
-            .bestResolution
-        ) else {
-            cancelCapture()
-            return
-        }
-
-        // 裁剪到指定区域
-        guard let croppedImage = fullImage.cropping(to: rect) else {
-            cancelCapture()
-            return
-        }
-
-        await MainActor.run {
-            let image = NSImage(cgImage: croppedImage, size: NSSize(width: rect.width, height: rect.height))
-            cleanup()
-            onCaptureComplete?(image, .region, nil)
+                await MainActor.run {
+                    let image = NSImage(cgImage: finalImage, size: NSSize(width: rect.width, height: rect.height))
+                    self.cleanup()
+                    self.onCaptureComplete?(image, .region, nil)
+                }
+                
+            } catch {
+                logger.info("ScreenCaptureKit region capture failed: \(error)", category: "ScreenshotCapture")
+                cancelCapture()
+            }
         }
     }
     
@@ -218,7 +219,7 @@ class ScreenshotCapture: ObservableObject {
     private func loadWindows() {
         windows = []
         
-        // 获取所有窗口
+        // Get all windows
         let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         
         for windowInfo in windowList {
@@ -232,7 +233,7 @@ class ScreenshotCapture: ObservableObject {
                 continue
             }
             
-            // 过滤掉系统窗口和一些不需要的窗口
+            // Filter out system windows
             if ownerName == "WindowServer" || ownerName == "Dock" {
                 continue
             }
@@ -250,7 +251,7 @@ class ScreenshotCapture: ObservableObject {
     }
     
     private func captureWindow(at point: NSPoint) {
-        // 找到点击位置下的窗口
+        // Find window under cursor
         guard let windowInfo = windows.first(where: { $0.rect.contains(point) }) else {
             cancelCapture()
             return
@@ -258,80 +259,33 @@ class ScreenshotCapture: ObservableObject {
         
         selectedWindowID = windowInfo.id
         
-        // 使用 ScreenCaptureKit API (macOS 12.3+) 替代废弃的 CGWindowListCreateImage
+        // Use ScreenCaptureKit API
         if #available(macOS 12.3, *) {
             Task {
                 await captureWindowWithSC(windowID: windowInfo.id)
             }
         } else {
-            Task {
-                await captureWindowWithCoreGraphics(windowID: windowInfo.id)
-            }
+            logger.error("System version too low for ScreenCaptureKit", category: "Screenshot")
+            cancelCapture()
         }
     }
     
-    // MARK: - 使用 ScreenCaptureKit 进行窗口截图
+    // MARK: - Use ScreenCaptureKit for window capture
     
     private func captureWindowWithScreenCaptureKit(windowID: CGWindowID) async {
         await captureWindowWithSC(windowID: windowID)
     }
     
-
-    
-    // MARK: - ScreenCaptureKit Implementation Methods (as requested)
-    
-    private func captureRegionWithSC(rect: CGRect) async {
-        // Use SCShareableContent to get displays
-        // Use SCStream for screenshot capture on macOS 12.3+
-        if #available(macOS 12.3, *) {
-            do {
-                // Get shareable content
-                let availableContent = try await SCShareableContent.current
-                
-                guard let display = availableContent.displays.first else {
-                    throw NSError(domain: "ScreenshotCapture", code: 1, userInfo: [NSLocalizedDescriptionKey: "No displays found"])
-                }
-                
-                let filter = SCContentFilter(display: display, excludingWindows: [])
-                
-                let configuration = SCStreamConfiguration()
-                configuration.sourceRect = rect
-                configuration.width = Int(rect.width)
-                configuration.height = Int(rect.height)
-                configuration.scalesToFit = false
-                configuration.capturesAudio = false
-                
-                // Use SCStream to capture screenshot for macOS 12.3-13.x
-                let capturedImage = try await captureSingleFrame(filter: filter, configuration: configuration)
-                
-                guard let finalImage = capturedImage else {
-                    throw NSError(domain: "ScreenshotCapture", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to capture image"])
-                }
-
-                await MainActor.run {
-                    let image = NSImage(cgImage: finalImage, size: NSSize(width: rect.width, height: rect.height))
-                    self.cleanup()
-                    self.onCaptureComplete?(image, .region, nil)
-                }
-                
-            } catch {
-                logger.info("ScreenCaptureKit region capture failed: \(error)", category: "ScreenshotCapture")
-                await captureRegionWithCoreGraphics(rect: rect)
-            }
-        } else {
-            await captureRegionWithCoreGraphics(rect: rect)
-        }
-    }
-    
     private func captureWindowWithSC(windowID: CGWindowID) async {
-        // Use SCShareableContent
-        // Use SCStream for screenshot capture on macOS 12.3+
+        // Use SCStream for all supported macOS versions (12.3+)
+        // This avoids API compatibility issues with SCScreenshotManager (macOS 14+)
         if #available(macOS 12.3, *) {
             do {
                 let availableContent = try await SCShareableContent.current
                 
                 guard let window = availableContent.windows.first(where: { $0.windowID == windowID }) else {
-                    await captureWindowWithCoreGraphics(windowID: windowID)
+                    logger.error("Window not found", category: "ScreenshotCapture")
+                    cancelCapture()
                     return
                 }
                 
@@ -344,7 +298,6 @@ class ScreenshotCapture: ObservableObject {
                 configuration.scalesToFit = false
                 configuration.capturesAudio = false
                 
-                // Use SCStream to capture screenshot for macOS 12.3-13.x
                 let capturedImage = try await captureSingleFrame(filter: filter, configuration: configuration)
                 
                 guard let finalImage = capturedImage else {
@@ -359,10 +312,8 @@ class ScreenshotCapture: ObservableObject {
                 
             } catch {
                 logger.info("ScreenCaptureKit window capture failed: \(error)", category: "ScreenshotCapture")
-                await captureWindowWithCoreGraphics(windowID: windowID)
+                cancelCapture()
             }
-        } else {
-            await captureWindowWithCoreGraphics(windowID: windowID)
         }
     }
     
@@ -381,34 +332,6 @@ class ScreenshotCapture: ObservableObject {
                     continuation.resume(throwing: NSError(domain: "ScreenshotCapture", code: 3, userInfo: [NSLocalizedDescriptionKey: "No image captured"]))
                 }
             }
-        }
-    }
-
-    private func captureWindowWithCoreGraphics(windowID: CGWindowID) async {
-        // 注意：CGWindowListCreateImage 在 macOS 14.0+ 中已被废弃
-        // 但在完整的 ScreenCaptureKit 实现之前，暂时保留此方法
-        // 使用版本检查抑制废弃警告
-        if #available(macOS 14.0, *) {
-            // 新版本应该使用 ScreenCaptureKit，暂时返回
-            logger.warning("ScreenCaptureKit 尚未实现，窗口截图功能暂不可用", category: "Screenshot")
-            cancelCapture()
-            return
-        }
-
-        guard let cgImage = CGWindowListCreateImage(
-            .null,
-            .optionIncludingWindow,
-            windowID,
-            .bestResolution
-        ) else {
-            cancelCapture()
-            return
-        }
-
-        await MainActor.run {
-            let image = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-            cleanup()
-            onCaptureComplete?(image, .window, windowID)
         }
     }
     
@@ -450,8 +373,8 @@ class ScreenshotCapture: ObservableObject {
     // MARK: - Permissions
     
     private func hasScreenRecordingPermission() -> Bool {
-        // 检查 ScreenCaptureKit 权限，但不在此方法中抛出异步异常
-        // 实际权限检查在 API 调用时进行
+        // Check ScreenCaptureKit permission
+        // Actual permission check happens during API call
         return true
     }
     
@@ -680,14 +603,14 @@ struct ScreenshotOverlayView: View {
                 // 提示文字
                 VStack {
                     Image(systemName: "rectangle.dashed")
-                        .font(.system(size: 48))
-                        .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 48))
+                    .foregroundColor(.white.opacity(0.8))
                     Text("拖拽选择区域")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
                     Text("按 ESC 取消")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
                 }
             }
         }

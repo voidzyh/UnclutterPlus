@@ -155,11 +155,11 @@ final class TestExecutionManager: ObservableObject {
     private func testStorageCRUD() async -> TestResult {
         let startTime = Date()
         do {
-            let storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
+            let storage = UnifiedNoteStorage(configuration: StorageConfiguration.default)
 
             // Create
             let note = Note(title: "CRUD Test", content: "Test content")
-            try await storage.create(note)
+            try await storage.create([note])
 
             // Read
             let loaded = try await storage.read(id: note.id)
@@ -170,10 +170,10 @@ final class TestExecutionManager: ObservableObject {
             // Update
             var updated = note
             updated.content = "Updated content"
-            try await storage.update(updated)
+            try await storage.update([updated])
 
             // Delete
-            try await storage.delete(id: note.id)
+            try await storage.delete(ids: [note.id])
             let deleted = try await storage.read(id: note.id)
             guard deleted == nil else { throw StorageError.corrupted("Delete failed") }
 
@@ -202,13 +202,11 @@ final class TestExecutionManager: ObservableObject {
     private func testStorageBatchOperations() async -> TestResult {
         let startTime = Date()
         do {
-            let storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
+            let storage = UnifiedNoteStorage(configuration: StorageConfiguration.default)
 
             // Create batch
             let notes = (0..<10).map { i in Note(title: "Batch Note \(i)", content: "Content \(i)") }
-            for note in notes {
-                try await storage.create(note)
-            }
+            try await storage.create(notes)
 
             // Read batch
             let ids = notes.map { $0.id }
@@ -216,7 +214,7 @@ final class TestExecutionManager: ObservableObject {
             guard loaded.count == 10 else { throw StorageError.corrupted("Batch read failed") }
 
             // Delete batch
-            try await storage.deleteBatch(ids: ids)
+            try await storage.delete(ids: ids)
 
             return TestResult(
                 testName: "Storage Batch Operations",
@@ -243,7 +241,7 @@ final class TestExecutionManager: ObservableObject {
     private func testStorageErrorHandling() async -> TestResult {
         let startTime = Date()
         do {
-            let storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
+            let storage = UnifiedNoteStorage(configuration: StorageConfiguration.default)
 
             // Test not found error
             let randomID = UUID()
@@ -252,10 +250,8 @@ final class TestExecutionManager: ObservableObject {
                 throw ValidationError.invalidData("Should return nil for non-existent ID")
             }
 
-            // Test validation error
-            let invalidNote = Note(title: "", content: "Test")
-            // 如果有验证，应该抛出错误
-
+            // Test validation error (no validation in storage layer for now, skipping invalid note creation)
+            
             return TestResult(
                 testName: "Storage Error Handling",
                 suiteName: "Storage",
@@ -281,14 +277,14 @@ final class TestExecutionManager: ObservableObject {
     private func testStorageConcurrentAccess() async -> TestResult {
         let startTime = Date()
         do {
-            let storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
+            let storage = UnifiedNoteStorage(configuration: StorageConfiguration.default)
 
             // 并发创建多个笔记
             await withTaskGroup(of: Void.self) { group in
                 for i in 0..<5 {
                     group.addTask {
                         let note = Note(title: "Concurrent Note \(i)", content: "Content \(i)")
-                        try? await storage.create(note)
+                        try? await storage.create([note])
                     }
                 }
             }
@@ -529,7 +525,7 @@ final class TestExecutionManager: ObservableObject {
         let startTime = Date()
         do {
             // 测试错误从存储层传播到服务层
-            let storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
+            let storage = UnifiedNoteStorage(configuration: StorageConfiguration.default)
 
             // 尝试读取不存在的笔记
             let randomID = UUID()
@@ -746,25 +742,20 @@ final class TestExecutionManager: ObservableObject {
 
             // 测试创建笔记
             let testNote = Note(title: "Test Storage Note", content: "Storage test content")
-            let createResult = await storage.create([testNote])
+            try await storage.create([testNote])
 
-            if case .success = createResult {
-                results.append(TestResult(
-                    testName: "testUnifiedStorageCreate",
-                    suiteName: "Storage",
-                    status: .passed,
-                    duration: 0.1,
-                    memoryUsage: nil,
-                    error: nil,
-                    timestamp: Date()
-                ))
-            } else {
-                throw NSError(domain: "Test", code: -1)
-            }
+            results.append(TestResult(
+                testName: "testUnifiedStorageCreate",
+                suiteName: "Storage",
+                status: .passed,
+                duration: 0.1,
+                memoryUsage: nil,
+                error: nil,
+                timestamp: Date()
+            ))
 
             // 测试读取笔记
-            let readResult = await storage.read(id: testNote.id)
-            if case .success(let note) = readResult, note != nil {
+            if let note = try await storage.read(id: testNote.id) {
                 results.append(TestResult(
                     testName: "testUnifiedStorageRead",
                     suiteName: "Storage",
@@ -789,7 +780,7 @@ final class TestExecutionManager: ObservableObject {
                 timestamp: Date()
             ))
         }
-
+        
         return results
     }
 }

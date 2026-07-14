@@ -75,7 +75,7 @@ class WindowManager: NSObject, ObservableObject {
     }
     
     private func setupWindow() {
-        let contentView = MainContentView()
+        let contentView = ModernMainContentView()
         
         window = KeyboardSupportPanel(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 300),
@@ -194,7 +194,7 @@ class WindowManager: NSObject, ObservableObject {
                     NSApp.activate(ignoringOtherApps: true)
                     window.makeKey()
 
-                    if let hostingView = window.contentView as? NSHostingView<MainContentView> {
+                    if let hostingView = window.contentView as? NSHostingView<ModernMainContentView> {
                         window.makeFirstResponder(hostingView)
                         logger.debug("Floating window setup complete", category: "WindowManager")
                     }

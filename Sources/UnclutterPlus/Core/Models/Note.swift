@@ -1,7 +1,7 @@
 import Foundation
 
 /// 笔记模型
-struct Note: Identifiable, Codable, Equatable, Storable {
+struct Note: Identifiable, Codable, Equatable, Storable, Hashable {
     let id: UUID
     var title: String
     var content: String
@@ -21,7 +21,37 @@ struct Note: Identifiable, Codable, Equatable, Storable {
     private(set) var cachedCharacterCount: Int = 0
     private(set) var cachedReadingTime: Int = 0
     private(set) var cachedHeadings: [String] = []
+    
+    // NSRange 不是 Hashable/Codable，我们需要手动处理或忽略
+    // 为了简单起见，我们在 Hashable/Equatable 中忽略它，或者使用自定义实现
+    // 由于 Equatable 是自动合成的，且包含 cachedHeadingRanges，这可能导致问题
+    // 但如果它是 [String: NSRange]，Swift 的自动合成可能无法处理 NSRange
+    // 这里我们将 cachedHeadingRanges 移出自动合成范围，或者标记为非 Codable/Hashable
+    // 最好的方法是手动实现 Hashable
+    
     private(set) var cachedHeadingRanges: [String: NSRange] = [:]  // 标题位置映射
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(title)
+        hasher.combine(content)
+        hasher.combine(tags)
+        hasher.combine(isPinned)
+        hasher.combine(isFavorite)
+        hasher.combine(updatedAt)
+        // 忽略缓存属性以避免 NSRange 问题
+    }
+    
+    static func == (lhs: Note, rhs: Note) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.title == rhs.title &&
+               lhs.content == rhs.content &&
+               lhs.tags == rhs.tags &&
+               lhs.isPinned == rhs.isPinned &&
+               lhs.isFavorite == rhs.isFavorite &&
+               lhs.updatedAt == rhs.updatedAt &&
+               lhs.attachments == rhs.attachments
+    }
     
     init(
         id: UUID = UUID(),
@@ -131,9 +161,9 @@ struct Note: Identifiable, Codable, Equatable, Storable {
 }
 
 /// 笔记附件
-struct NoteAttachment: Identifiable, Codable, Equatable {
+struct NoteAttachment: Identifiable, Codable, Equatable, Hashable {
     let id: UUID
-    let type: AttachmentType
+    var type: AttachmentType
     let fileName: String
     let fileSize: Int64
     let createdAt: Date

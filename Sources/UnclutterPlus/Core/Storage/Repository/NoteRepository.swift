@@ -23,7 +23,7 @@ class NoteRepository: ObservableObject {
 
     // MARK: - Private Properties
 
-    private let storage: ModernNoteStorage
+    private let storage: any UnifiedStorageProtocol<Note, NoteIndex>
     private let config = StorageConfiguration.default
     private var cancellables = Set<AnyCancellable>()
 
@@ -81,33 +81,8 @@ class NoteRepository: ObservableObject {
     // MARK: - Initialization
 
     init() {
-        // 使用 StorageFactory 创建现代化存储
-        // We need to cast it to ModernNoteStorage
-        if let modernStorage = StorageFactory.createModernNoteStorage() as? ModernNoteStorage {
-            self.storage = modernStorage
-        } else {
-            // Fallback - create directly
-            do {
-                self.storage = try ModernNoteStorage(configuration: StorageConfiguration.default)
-            } catch {
-                // 使用默认存储配置，如果失败则创建一个空存储
-                logger.error("初始化存储失败: \(error.localizedDescription)，使用后备存储", category: "Storage")
-                // 创建一个简单的内存存储作为后备
-                do {
-                    self.storage = try ModernNoteStorage(configuration: StorageConfiguration(
-                        baseURL: FileManager.default.temporaryDirectory.appendingPathComponent("fallback_notes"),
-                        cacheSizeLimit: 100 * 1024 * 1024 // 100MB
-                    ))
-                } catch {
-                    logger.error("初始化后备存储失败: \(error.localizedDescription)，使用内存存储", category: "Storage")
-                    // 最后的手段：使用一个简单的内存存储
-                    self.storage = try! ModernNoteStorage(configuration: StorageConfiguration(
-                        baseURL: FileManager.default.temporaryDirectory.appendingPathComponent("memory_notes"),
-                        cacheSizeLimit: 50 * 1024 * 1024 // 50MB
-                    ))
-                }
-            }
-        }
+        self.storage = StorageFactory.createModernNoteStorage()
+        
         setupBindings()
 
         Task {
@@ -130,7 +105,7 @@ class NoteRepository: ObservableObject {
     /// 加载所有笔记索引
     func loadIndexes() async {
         do {
-            let indexes = try await storage.getAllIndexes()
+            let indexes = try await storage.getAllIndexes(limit: nil, offset: nil)
             await MainActor.run {
                 self.noteIndexes = indexes
             }
@@ -164,7 +139,7 @@ class NoteRepository: ObservableObject {
         let note = Note(title: title, content: content, tags: Array(tags))
 
         do {
-            try await storage.create(note)
+            try await storage.create([note])
             let index = NoteIndex(from: note)
 
             await MainActor.run {
@@ -186,7 +161,7 @@ class NoteRepository: ObservableObject {
         // 更新缓存值会在保存时自动处理
 
         do {
-            try await storage.update(updatedNote)
+            try await storage.update([updatedNote])
             let newIndex = NoteIndex(from: updatedNote)
 
             await MainActor.run {
@@ -205,7 +180,7 @@ class NoteRepository: ObservableObject {
     /// 删除笔记
     func deleteNote(_ note: Note) async {
         do {
-            try await storage.delete(id: note.id)
+            try await storage.delete(ids: [note.id])
 
             await MainActor.run {
                 self.noteIndexes.removeAll { $0.id == note.id }
@@ -224,7 +199,7 @@ class NoteRepository: ObservableObject {
         let ids = notes.map { $0.id }
 
         do {
-            try await storage.deleteBatch(ids: ids)
+            try await storage.delete(ids: ids)
 
             await MainActor.run {
                 self.noteIndexes.removeAll { ids.contains($0.id) }
@@ -248,7 +223,7 @@ class NoteRepository: ObservableObject {
     /// 搜索笔记
     func searchNotes(query: String) async -> [NoteIndex] {
         do {
-            return try await storage.search(query: query)
+            return try await storage.search(query: query, limit: nil)
         } catch {
             logger.error("Failed to search notes: \(error)", category: "Service")
             return []
@@ -267,109 +242,6 @@ class NoteRepository: ObservableObject {
             }
         } catch {
             logger.error("Failed to clear all notes: \(error)", category: "Service")
-        }
-    }
-}
-
-// MARK: - Temporary Storage Implementation
-
-/// 临时存储实现（用于测试，后续会被真实实现替换）
-private class TemporaryNoteStorage: StorageProtocol {
-    typealias Item = Note
-    typealias Index = NoteIndex
-
-    private var notes: [UUID: Note] = [:]
-    private let queue = DispatchQueue(label: "temp.storage", attributes: .concurrent)
-
-    init(configuration: StorageConfiguration) {}
-
-    func create(_ item: Note) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async(flags: .barrier) {
-                self.notes[item.id] = item
-                continuation.resume()
-            }
-        }
-    }
-
-    func read(id: UUID) async throws -> Note? {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                continuation.resume(returning: self.notes[id])
-            }
-        }
-    }
-
-    func readBatch(ids: [UUID]) async throws -> [Note] {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                let items = ids.compactMap { self.notes[$0] }
-                continuation.resume(returning: items)
-            }
-        }
-    }
-
-    func update(_ item: Note) async throws {
-        try await create(item)
-    }
-
-    func delete(id: UUID) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async(flags: .barrier) {
-                self.notes.removeValue(forKey: id)
-                continuation.resume()
-            }
-        }
-    }
-
-    func deleteBatch(ids: [UUID]) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async(flags: .barrier) {
-                ids.forEach { self.notes.removeValue(forKey: $0) }
-                continuation.resume()
-            }
-        }
-    }
-
-    func search(query: String) async throws -> [NoteIndex] {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                let filtered = self.notes.values.filter { note in
-                    note.title.localizedCaseInsensitiveContains(query) ||
-                    note.content.localizedCaseInsensitiveContains(query)
-                }
-                let indexes = filtered.map { NoteIndex(from: $0) }
-                continuation.resume(returning: indexes)
-            }
-        }
-    }
-
-    func list(limit: Int, offset: Int) async throws -> [NoteIndex] {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                let allNotes = self.notes.values.sorted { $0.updatedAt > $1.updatedAt }
-                let page = Array(allNotes.dropFirst(offset).prefix(limit))
-                let indexes = page.map { NoteIndex(from: $0) }
-                continuation.resume(returning: indexes)
-            }
-        }
-    }
-
-    func getAllIndexes() async throws -> [NoteIndex] {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                let indexes = self.notes.values.map { NoteIndex(from: $0) }
-                continuation.resume(returning: indexes)
-            }
-        }
-    }
-
-    func clear() async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async(flags: .barrier) {
-                self.notes.removeAll()
-                continuation.resume()
-            }
         }
     }
 }

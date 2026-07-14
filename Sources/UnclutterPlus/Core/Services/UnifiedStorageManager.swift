@@ -146,13 +146,13 @@ final class UnifiedStorageManager: ObservableObject {
     
     // MARK: - Private Methods
     
-    private func getModernStorage() async -> (any StorageProtocol)? {
+    private func getModernStorage() async -> (any UnifiedStorageProtocol<Note, NoteIndex>)? {
         // 这里应该返回实际的现代化存储实例
         // 为了简化示例，返回nil
         return nil
     }
     
-    private func compressDatabase(_ storage: any StorageProtocol) async {
+    private func compressDatabase(_ storage: any UnifiedStorageProtocol<Note, NoteIndex>) async {
         // 实现数据库压缩逻辑
         logger.info("Database compression completed", category: "Storage")
     }

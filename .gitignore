@@ -13,6 +13,10 @@ Packages/
 Package.pins
 Package.resolved
 *.xcodeproj
+.swiftpm/
+
+# Build / release artifacts
+release/
 
 # macOS
 .DS_Store
@@ -46,6 +50,7 @@ app.log
 # IDE
 .vscode/
 .idea/
+.zcode/
 
 # Claude assistant files
 CLAUDE.md

@@ -9,6 +9,7 @@ final class NotesServiceTests: XCTestCase {
     // MARK: - Test Properties
     
     var notesService: NotesService!
+    var mockStorage: MockNoteStorage!
     var testNote: Note!
     var cancellables: Set<AnyCancellable>!
     
@@ -18,8 +19,11 @@ final class NotesServiceTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
 
-        // 创建测试用的笔记服务
-        notesService = NotesService()
+        // 创建 Mock 存储
+        mockStorage = MockNoteStorage()
+        
+        // 使用 Mock 存储创建笔记服务
+        notesService = NotesService(storage: mockStorage)
         cancellables = Set<AnyCancellable>()
 
         // 创建测试笔记
@@ -33,6 +37,7 @@ final class NotesServiceTests: XCTestCase {
     
     override func tearDown() {
         notesService = nil
+        mockStorage = nil
         testNote = nil
         cancellables = nil
         super.tearDown()
@@ -185,15 +190,26 @@ final class NotesServiceTests: XCTestCase {
         await notesService.createNote(title: "A Note", content: "Content A")
         await notesService.createNote(title: "B Note", content: "Content B")
         await notesService.createNote(title: "C Note", content: "Content C")
+        
+        // 等待 Combine 管道处理
+        try? await Task.sleep(nanoseconds: 500_000_000)
 
-        // When - 直接获取所有笔记（测试环境简化）
-        let allNotes = await notesService.getAllNotes()
+        // When - 设置按标题升序排序
+        await MainActor.run {
+            notesService.sortOption = .title
+            notesService.isAscending = true
+        }
+        
+        // 等待排序生效（因为有防抖动）
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        
+        let sortedNotes = await MainActor.run { notesService.filteredNotes }
 
         // Then
-        XCTAssertEqual(allNotes.count, 3, "应该有3个笔记")
-        XCTAssertEqual(allNotes[0].title, "A Note", "第一个笔记应该是A")
-        XCTAssertEqual(allNotes[1].title, "B Note", "第二个笔记应该是B")
-        XCTAssertEqual(allNotes[2].title, "C Note", "第三个笔记应该是C")
+        XCTAssertEqual(sortedNotes.count, 3, "应该有3个笔记")
+        XCTAssertEqual(sortedNotes[0].title, "A Note", "第一个笔记应该是A")
+        XCTAssertEqual(sortedNotes[1].title, "B Note", "第二个笔记应该是B")
+        XCTAssertEqual(sortedNotes[2].title, "C Note", "第三个笔记应该是C")
     }
     
     /// 测试统计信息
@@ -246,24 +262,24 @@ final class NotesServiceTests: XCTestCase {
         XCTAssertFalse(result, "创建空标题笔记应该失败")
     }
     
-    /// 测试数据持久化
+    /// 测试数据持久化模拟（验证 Service 重启后能从存储读取）
     func testDataPersistence() async throws {
         // Given
-        _ = await notesService.createNote(title: "Persistent Note", content: "This should persist")
-
-        let noteId = await MainActor.run {
-            notesService.noteIndexes.first!.id
-        }
-
-        // When - 重新创建服务实例（模拟重启）
+        let note = Note(title: "Persistent Note", content: "This should persist")
+        // 直接写入 Mock 存储，模拟之前已保存的数据
+        try await mockStorage.create([note])
+        
+        // When - 创建新的服务实例，使用相同的 Mock 存储（模拟数据已存在于磁盘）
         let newService = await MainActor.run {
-            NotesService()
+            NotesService(storage: mockStorage)
         }
-        _ = await newService.loadNoteIndexes()
+        // 等待索引加载
+        await newService.loadNoteIndexes()
 
         // Then
-        let persistedNote = await newService.getNote(id: noteId)
-        XCTAssertNotNil(persistedNote, "笔记应该持久化保存")
+        let persistedNote = await newService.getNote(id: note.id)
+        XCTAssertNotNil(persistedNote, "笔记应该从存储中加载")
+        XCTAssertEqual(persistedNote?.title, "Persistent Note")
     }
     
     // MARK: - Performance Tests
@@ -381,6 +397,11 @@ final class NotesServiceTests: XCTestCase {
         _ = await notesService.createNote(title: "Note 1", content: "Short content", tags: ["tag1"])
         _ = await notesService.createNote(title: "Note 2", content: String(repeating: "Word ", count: 10), tags: ["tag1", "tag2"])
         _ = await notesService.createNote(title: "Note 3", content: String(repeating: "Content ", count: 20))
+        
+        // 设置一个收藏笔记
+        if let firstNote = await notesService.getAllNotes().first {
+            _ = await notesService.toggleFavorite(firstNote)
+        }
 
         // When
         let stats = await notesService.getStatistics()

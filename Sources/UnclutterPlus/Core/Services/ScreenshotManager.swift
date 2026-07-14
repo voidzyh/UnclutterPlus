@@ -7,7 +7,7 @@ enum ScreenshotSource: Codable {
     case window(windowID: CGWindowID?)
 }
 
-struct ScreenshotItem: Identifiable, Codable {
+struct ScreenshotItem: Identifiable, Codable, Storable {
     let id: UUID
     let imageURL: URL
     var title: String
@@ -18,6 +18,9 @@ struct ScreenshotItem: Identifiable, Codable {
     var tags: Set<String>
     let source: ScreenshotSource
     let appName: String?
+    
+    // Storable Conformance
+    var modifiedAt: Date { createdAt }
     
     init(
         id: UUID = UUID(),

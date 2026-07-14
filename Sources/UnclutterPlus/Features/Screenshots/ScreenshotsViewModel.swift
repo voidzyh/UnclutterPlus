@@ -5,6 +5,10 @@ import SwiftUI
 /// ScreenshotsView 的视图模型
 /// 职责: 管理截图视图的状态、搜索过滤和视图模式
 final class ScreenshotsViewModel: ObservableObject {
+    enum ViewMode {
+        case grid, list
+    }
+
     // MARK: - Published Properties
 
     /// 搜索文本

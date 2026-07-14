@@ -27,6 +27,10 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
     // 分片索引（记录每个 ID 对应的分片位置）
     private var shardIndex: [UUID: String] = [:]
     private let indexURL: URL
+    
+    // 索引保存防抖动
+    private var saveIndexWorkItem: DispatchWorkItem?
+    private let saveIndexDelay: TimeInterval = 0.5
 
     // MARK: - Initialization
 
@@ -58,29 +62,28 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         let shardPath = getShardPath(for: item)
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.async(flags: .barrier) { [weak self] in
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: StorageError.writeFailed(underlying: NSError()))
                     return
                 }
 
                 do {
-                    // 确保分片目录存在
                     let directory = shardPath.deletingLastPathComponent()
                     try self.fileManager.createDirectory(
                         at: directory,
                         withIntermediateDirectories: true
                     )
 
-                    // 编码并保存
                     let data = try self.encoder.encode(item)
                     try data.write(to: shardPath, options: .atomic)
 
-                    // 更新分片索引
-                    self.shardIndex[item.id] = shardPath.lastPathComponent
-                    self.saveShardIndex()
-
-                    continuation.resume()
+                    self.queue.async(flags: .barrier) {
+                        let relativePath = shardPath.path.replacingOccurrences(of: self.baseURL.path, with: "")
+                        self.shardIndex[item.id] = relativePath
+                        self.saveShardIndex()
+                        continuation.resume()
+                    }
                 } catch {
                     continuation.resume(throwing: StorageError.writeFailed(underlying: error))
                 }
@@ -172,7 +175,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
     /// 删除项目
     public func delete(id: UUID) async throws {
         guard let shardName = shardIndex[id] else {
-            return
+            throw StorageError.notFound(id)
         }
 
         let shardPath = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
@@ -195,24 +198,42 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
     public func deleteBatch(ids: [UUID]) async throws {
         let maxConcurrency = 10
         var activeTaskCount = 0
+        var errors: [Error] = []
 
-        await withTaskGroup(of: Void.self) { group in
+        await withTaskGroup(of: Result<Void, Error>.self) { group in
             for id in ids {
                 // 限制并发数量
                 while activeTaskCount >= maxConcurrency {
                     // 等待至少一个任务完成
-                    await group.next()
+                    if let result = await group.next() {
+                        if case .failure(let error) = result {
+                            errors.append(error)
+                        }
+                    }
                     activeTaskCount -= 1
                 }
 
                 group.addTask { [weak self] in
-                    try? await self?.delete(id: id)
+                    do {
+                        try await self?.delete(id: id)
+                        return .success(())
+                    } catch {
+                        return .failure(error)
+                    }
                 }
                 activeTaskCount += 1
             }
 
             // 等待所有剩余任务完成
-            await group.waitForAll()
+            for await result in group {
+                if case .failure(let error) = result {
+                    errors.append(error)
+                }
+            }
+        }
+
+        if let firstError = errors.first {
+            throw firstError
         }
     }
 
@@ -354,17 +375,12 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         return shardDir.appendingPathComponent("\(item.id.uuidString).json")
     }
 
-    /// 获取分片目录
-    private func getShardDirectory(for shardName: String) -> URL {
-        // 从文件名推断目录
-        if shardName.contains("/") {
-            let components = shardName.split(separator: "/")
-            if components.count == 2 {
-                return baseURL.appendingPathComponent(String(components[0]))
-            }
+    private func getShardDirectory(for relativePath: String) -> URL {
+        let pathComponents = relativePath.split(separator: "/", omittingEmptySubsequences: true)
+        if pathComponents.count >= 2 {
+            let directoryPath = pathComponents.dropLast().joined(separator: "/")
+            return baseURL.appendingPathComponent(directoryPath)
         }
-
-        // 默认在根目录
         return baseURL
     }
 
@@ -429,8 +445,23 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         }
     }
 
-    /// 保存分片索引
+    /// 保存分片索引（防抖动）
     private func saveShardIndex() {
+        // 取消之前的待处理保存
+        saveIndexWorkItem?.cancel()
+        
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.performSaveShardIndex()
+        }
+        
+        saveIndexWorkItem = workItem
+        // 延迟保存，合并短时间内的多次更新
+        queue.asyncAfter(deadline: .now() + saveIndexDelay, execute: workItem)
+    }
+    
+    /// 执行保存分片索引
+    private func performSaveShardIndex() {
         do {
             // 转换为字符串索引
             let stringIndex = shardIndex.reduce(into: [String: String]()) { result, pair in
@@ -457,179 +488,5 @@ private extension Dictionary {
             }
         }
         return result
-    }
-}
-
-// MARK: - Complete Storage Implementation
-
-/// 完整的笔记存储实现（结合索引、缓存、分片）
-class ModernNoteStorage: StorageProtocol {
-    typealias Item = Note
-    typealias Index = NoteIndex
-
-    private let indexDB: IndexDatabase
-    private let cacheManager: CacheManager
-    private let shardedStorage: ShardedStorage<Note>
-    private let configuration: StorageConfiguration
-
-    init(configuration: StorageConfiguration) throws {
-        self.configuration = configuration
-
-        // 初始化索引数据库
-        self.indexDB = try IndexDatabase(path: configuration.baseURL)
-
-        // 初始化缓存管理器
-        self.cacheManager = CacheManager(l1Size: 10, l2Size: 100, searchSize: 50)
-
-        // 初始化分片存储
-        self.shardedStorage = ShardedStorage(
-            baseURL: configuration.baseURL.appendingPathComponent("Notes"),
-            strategy: .individual // 每个笔记一个文件
-        )
-    }
-
-    func create(_ item: Note) async throws {
-        // 1. 保存到分片存储
-        try await shardedStorage.create(item)
-
-        // 2. 更新索引
-        let index = NoteIndex(from: item)
-        try await indexDB.upsertNoteIndex(index)
-
-        // 3. 更新缓存
-        await cacheManager.cacheNote(item)
-    }
-
-    func read(id: UUID) async throws -> Note? {
-        // 1. 检查缓存
-        if let cached = await cacheManager.getNote(id: id) {
-            return cached
-        }
-
-        // 2. 从分片存储读取
-        if let note = try await shardedStorage.read(id: id) {
-            // 3. 更新缓存
-            await cacheManager.cacheNote(note)
-            return note
-        }
-
-        return nil
-    }
-
-    func readBatch(ids: [UUID]) async throws -> [Note] {
-        var results: [Note] = []
-        var missingIds: [UUID] = []
-
-        // 1. 从缓存获取
-        for id in ids {
-            if let cached = await cacheManager.getNote(id: id) {
-                results.append(cached)
-            } else {
-                missingIds.append(id)
-            }
-        }
-
-        // 2. 批量从存储加载
-        if !missingIds.isEmpty {
-            let loaded = try await shardedStorage.readBatch(ids: missingIds)
-            results.append(contentsOf: loaded)
-
-            // 3. 更新缓存
-            for note in loaded {
-                await cacheManager.cacheNote(note)
-            }
-        }
-
-        return results
-    }
-
-    func update(_ item: Note) async throws {
-        // 1. 更新分片存储
-        try await shardedStorage.create(item)
-
-        // 2. 更新索引
-        let index = NoteIndex(from: item)
-        try await indexDB.upsertNoteIndex(index)
-
-        // 3. 更新缓存
-        await cacheManager.cacheNote(item)
-
-        // 4. 清除搜索缓存
-        await cacheManager.clearSearchCache()
-    }
-
-    func delete(id: UUID) async throws {
-        // 1. 从分片存储删除
-        try await shardedStorage.delete(id: id)
-
-        // 2. 从索引删除
-        try await indexDB.deleteNoteIndex(id: id)
-
-        // 3. 清除缓存
-        await cacheManager.clearAll()
-    }
-
-    func deleteBatch(ids: [UUID]) async throws {
-        // 并行删除（限制最大并发数为 10，优化内存使用）
-        let maxConcurrency = 10
-        var activeTaskCount = 0
-
-        await withTaskGroup(of: Void.self) { group in
-            for id in ids {
-                // 限制并发数量
-                while activeTaskCount >= maxConcurrency {
-                    // 等待至少一个任务完成
-                    await group.next()
-                    activeTaskCount -= 1
-                }
-
-                group.addTask { [weak self] in
-                    try? await self?.delete(id: id)
-                }
-                activeTaskCount += 1
-            }
-
-            // 等待所有剩余任务完成
-            await group.waitForAll()
-        }
-    }
-
-    func search(query: String) async throws -> [NoteIndex] {
-        // 1. 检查缓存
-        if let cached = await cacheManager.getSearchResults(query: query) {
-            return cached
-        }
-
-        // 2. 执行搜索
-        let results = try await indexDB.searchNotes(query: query)
-
-        // 3. 缓存结果
-        await cacheManager.cacheSearchResults(query: query, results: results)
-
-        return results
-    }
-
-    func list(limit: Int, offset: Int) async throws -> [NoteIndex] {
-        // 从索引获取分页数据
-        let allIndexes = try await indexDB.getAllNoteIndexes()
-        let page = Array(allIndexes.dropFirst(offset).prefix(limit))
-        return page
-    }
-
-    public func getAllIndexes() async throws -> [NoteIndex] {
-        let indexes = try await indexDB.getAllNoteIndexes()
-        await cacheManager.cacheNoteIndexes(indexes)
-        return indexes
-    }
-
-    func clear() async throws {
-        // 1. 清空分片存储
-        try await shardedStorage.clear()
-
-        // 2. 清空索引
-        try await indexDB.clearNoteIndexes()
-
-        // 3. 清空缓存
-        await cacheManager.clearAll()
     }
 }

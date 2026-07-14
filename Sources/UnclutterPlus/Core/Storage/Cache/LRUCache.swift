@@ -10,7 +10,7 @@ actor LRUCache<Key: Hashable, Value> {
         var prev: Node?
         var next: Node?
         var accessCount: Int = 0
-        var lastAccessTime: Date = Date()
+        var lastAccessTimestamp: Int = 0
 
         init(key: Key, value: Value) {
             self.key = key
@@ -25,6 +25,8 @@ actor LRUCache<Key: Hashable, Value> {
     private var tail: Node?
     private let maxSize: Int
     private var currentSize: Int = 0
+
+    private var accessTimestamp: Int = 0
 
     // 统计信息
     private var hitCount: Int = 0
@@ -48,7 +50,8 @@ actor LRUCache<Key: Hashable, Value> {
 
         hitCount += 1
         node.accessCount += 1
-        node.lastAccessTime = Date()
+        accessTimestamp += 1
+        node.lastAccessTimestamp = accessTimestamp
 
         // 移动到头部（最近使用）
         moveToHead(node)
@@ -59,19 +62,17 @@ actor LRUCache<Key: Hashable, Value> {
     /// 设置缓存项
     func set(_ key: Key, _ value: Value) {
         if let existing = cache[key] {
-            // 更新现有节点
             existing.value = value
             existing.accessCount += 1
-            existing.lastAccessTime = Date()
+            accessTimestamp += 1
+            existing.lastAccessTimestamp = accessTimestamp
             moveToHead(existing)
         } else {
-            // 创建新节点
             let node = Node(key: key, value: value)
             cache[key] = node
             addToHead(node)
             currentSize += 1
 
-            // 超过大小限制，移除最少使用的项
             if currentSize > maxSize {
                 evictLRU()
             }
@@ -357,7 +358,7 @@ struct MultiLevelCacheStatistics {
 // MARK: - Cache-Aware Storage Wrapper
 
 /// 带缓存的存储包装器
-class CachedStorage<Storage: StorageProtocol>: StorageProtocol {
+class CachedStorage<Storage: UnifiedStorageProtocol>: UnifiedStorageProtocol {
     typealias Item = Storage.Item
     typealias Index = Storage.Index
 
@@ -369,12 +370,14 @@ class CachedStorage<Storage: StorageProtocol>: StorageProtocol {
         self.cacheManager = cacheManager
     }
 
-    func create(_ item: Item) async throws {
-        try await storage.create(item)
+    func create(_ items: [Item]) async throws {
+        try await storage.create(items)
 
         // 缓存新创建的项目
-        if let note = item as? Note {
-            await cacheManager.cacheNote(note)
+        for item in items {
+            if let note = item as? Note {
+                await cacheManager.cacheNote(note)
+            }
         }
     }
 
@@ -424,40 +427,35 @@ class CachedStorage<Storage: StorageProtocol>: StorageProtocol {
         return results
     }
 
-    func update(_ item: Item) async throws {
-        try await storage.update(item)
+    func update(_ items: [Item]) async throws {
+        try await storage.update(items)
 
         // 更新缓存
-        if let note = item as? Note {
-            await cacheManager.cacheNote(note)
+        for item in items {
+            if let note = item as? Note {
+                await cacheManager.cacheNote(note)
+            }
         }
 
         // 清除搜索缓存（因为内容已更改）
         await cacheManager.clearSearchCache()
     }
 
-    func delete(id: UUID) async throws {
-        try await storage.delete(id: id)
+    func delete(ids: [UUID]) async throws {
+        try await storage.delete(ids: ids)
 
         // 从缓存中移除
         await cacheManager.clearAll() // 简单处理：清空所有缓存
     }
 
-    func deleteBatch(ids: [UUID]) async throws {
-        try await storage.deleteBatch(ids: ids)
-
-        // 清空缓存
-        await cacheManager.clearAll()
-    }
-
-    func search(query: String) async throws -> [Index] {
+    func search(query: String, limit: Int?) async throws -> [Index] {
         // 先查缓存
         if let cached = await cacheManager.getSearchResults(query: query) as? [Index] {
             return cached
         }
 
         // 执行搜索
-        let results = try await storage.search(query: query)
+        let results = try await storage.search(query: query, limit: limit)
 
         // 缓存结果
         if let noteIndexes = results as? [NoteIndex] {
@@ -467,12 +465,8 @@ class CachedStorage<Storage: StorageProtocol>: StorageProtocol {
         return results
     }
 
-    func list(limit: Int, offset: Int) async throws -> [Index] {
-        return try await storage.list(limit: limit, offset: offset)
-    }
-
-    func getAllIndexes() async throws -> [Index] {
-        let indexes = try await storage.getAllIndexes()
+    func getAllIndexes(limit: Int?, offset: Int?) async throws -> [Index] {
+        let indexes = try await storage.getAllIndexes(limit: limit, offset: offset)
 
         // 缓存索引
         if let noteIndexes = indexes as? [NoteIndex] {
@@ -481,9 +475,22 @@ class CachedStorage<Storage: StorageProtocol>: StorageProtocol {
 
         return indexes
     }
+    
+    func filter(by predicate: @escaping (Index) -> Bool, limit: Int?) async throws -> [Index] {
+        let indexes = try await storage.filter(by: predicate, limit: limit)
+        return indexes
+    }
+    
+    func count() async throws -> Int {
+        try await storage.count()
+    }
 
     func clear() async throws {
         try await storage.clear()
         await cacheManager.clearAll()
+    }
+    
+    func getStatistics() async throws -> StorageStatistics {
+        try await storage.getStatistics()
     }
 }

@@ -66,13 +66,17 @@ enum ClipboardContent: Codable, Equatable {
 }
 
 /// 剪贴板项目模型
-struct ClipboardItem: Codable, Identifiable, Equatable {
+struct ClipboardItem: Codable, Identifiable, Equatable, Storable {
     let id: UUID
     let content: ClipboardContent
     let timestamp: Date
     var isPinned: Bool
     var useCount: Int
 
+    // Storable Conformance
+    var createdAt: Date { timestamp }
+    var modifiedAt: Date { timestamp } // 暂时映射到 timestamp
+    
     // 源应用信息
     let sourceAppBundleID: String?
     let sourceAppName: String?

@@ -67,14 +67,21 @@ public struct NoteIndex: Codable, Identifiable, StorageIndex {
 }
 
 /// 剪贴板索引
-struct ClipboardIndex: Codable, Identifiable {
+struct ClipboardIndex: Codable, Identifiable, StorageIndex {
+    typealias SortKey = Date
+    
     let id: UUID
     let type: ClipboardContentType
     let timestamp: Date
     let sourceApp: String?
     let useCount: Int
     let isPinned: Bool
-    let preview: String
+    let previewText: String
+    
+    // StorageIndex Conformance
+    var sortKey: Date { timestamp }
+    var isFavorite: Bool { isPinned } // Use pin as favorite
+    var preview: String { previewText }
 
     enum ClipboardContentType: String, Codable {
         case text
@@ -94,28 +101,44 @@ struct ClipboardIndex: Codable, Identifiable {
         switch item.content {
         case .text(let text):
             self.type = .text
-            self.preview = String(text.prefix(100))
+            self.previewText = String(text.prefix(100))
         case .image:
             self.type = .image
-            self.preview = "图片"
+            self.previewText = "图片"
         case .file(let url):
             self.type = .file
-            self.preview = url.lastPathComponent
+            self.previewText = url.lastPathComponent
         }
     }
 }
 
 /// 截图索引
-struct ScreenshotIndex: Codable, Identifiable {
+struct ScreenshotIndex: Codable, Identifiable, StorageIndex {
+    typealias SortKey = Date
+    
     let id: UUID
     let timestamp: Date
     let type: ScreenshotType
     let hasAnnotation: Bool
     let thumbnailData: Data?
+    let isFavorite: Bool
+    let preview: String
 
     enum ScreenshotType: String, Codable {
         case region
         case window
         case screen
+    }
+    
+    var sortKey: Date { timestamp }
+    
+    init(id: UUID, timestamp: Date, type: ScreenshotType, hasAnnotation: Bool, thumbnailData: Data?, isFavorite: Bool, preview: String) {
+        self.id = id
+        self.timestamp = timestamp
+        self.type = type
+        self.hasAnnotation = hasAnnotation
+        self.thumbnailData = thumbnailData
+        self.isFavorite = isFavorite
+        self.preview = preview
     }
 }
