@@ -62,8 +62,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupStatusBar() {
-        // 只在需要显示时创建状态栏项目
-        if ConfigurationManager.shared.isMenuBarIconEnabled {
+        let defaults = UserDefaults.standard
+        let isMenuBarEnabled = defaults.object(forKey: "ShowMenuBarIcon") == nil ?
+            true : defaults.bool(forKey: "ShowMenuBarIcon")
+
+        logger.info("菜单栏图标状态: \(isMenuBarEnabled ? "启用" : "禁用")", category: "AppDelegate")
+
+        if isMenuBarEnabled {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         } else {
             statusItem = nil
@@ -71,12 +76,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if let button = statusItem?.button {
-            // 使用应用图标或者更合适的系统图标
             if let appIcon = NSImage(named: NSImage.Name("AppIcon")) {
                 button.image = appIcon
                 button.image?.size = NSSize(width: 16, height: 16)
             } else {
-                // 使用更合适的系统图标
                 button.image = NSImage(systemSymbolName: "note.text", accessibilityDescription: "UnclutterPlus")
                 button.image?.size = NSSize(width: 16, height: 16)
             }
