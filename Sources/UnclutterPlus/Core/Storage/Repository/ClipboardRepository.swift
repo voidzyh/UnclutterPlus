@@ -25,6 +25,9 @@ final class ClipboardRepository: ObservableObject {
     // 缓存完整剪贴板内容（避免重复加载）
     private var itemCache: [UUID: ClipboardItem] = [:]
 
+    /// 初始索引加载任务（变更操作需等待其完成，避免竞态覆盖）
+    private var initialLoadTask: Task<Void, Never>?
+
     // MARK: - Computed Properties
 
     /// 过滤后的剪贴板项目
@@ -73,10 +76,15 @@ final class ClipboardRepository: ObservableObject {
         setupBindings()
 
         // 使用Task确保数据加载完成后再继续
-        Task {
+        initialLoadTask = Task {
             await loadIndexes()
             logger.info("剪贴板数据加载完成，共 \(self.clipboardIndexes.count) 项", category: "Storage")
         }
+    }
+
+    /// 等待初始索引加载完成（变更操作前调用，避免与初始加载竞态）
+    private func awaitInitialLoad() async {
+        await initialLoadTask?.value
     }
 
     private func setupBindings() {
@@ -125,6 +133,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 添加新的剪贴板项目
     func addItem(_ item: ClipboardItem) async {
+        await awaitInitialLoad()
         do {
             // 保存到存储
             try await storage.create([item])
@@ -144,6 +153,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 删除剪贴板项目
     func deleteItem(_ item: ClipboardItem) async {
+        await awaitInitialLoad()
         do {
             // 从存储删除
             try await storage.delete(ids: [item.id])
@@ -160,6 +170,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 批量删除项目
     func deleteItems(_ items: [ClipboardItem]) async {
+        await awaitInitialLoad()
         let ids = items.map { $0.id }
         do {
             try await storage.delete(ids: ids)
@@ -177,6 +188,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 切换收藏状态
     func togglePin(_ item: ClipboardItem) async {
+        await awaitInitialLoad()
         var updatedItem = item
         updatedItem.isPinned.toggle()
 
@@ -200,6 +212,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 更新剪贴板项目（通用）
     func updateItem(_ updatedItem: ClipboardItem) async {
+        await awaitInitialLoad()
         do {
             try await storage.update([updatedItem])
             itemCache[updatedItem.id] = updatedItem
@@ -215,6 +228,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 增加使用计数
     func incrementUseCount(_ item: ClipboardItem) async {
+        await awaitInitialLoad()
         var updatedItem = item
         updatedItem.useCount += 1
 
@@ -238,6 +252,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 清空所有剪贴板项目
     func clearAll() async {
+        await awaitInitialLoad()
         do {
             try await storage.clear()
 
@@ -252,6 +267,7 @@ final class ClipboardRepository: ObservableObject {
 
     /// 清空非收藏项目
     func clearUnpinned() async {
+        await awaitInitialLoad()
         let unpinnedItems = clipboardIndexes.filter { !$0.isPinned }
         let ids = unpinnedItems.map { $0.id }
 

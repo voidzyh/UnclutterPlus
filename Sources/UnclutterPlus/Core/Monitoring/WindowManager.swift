@@ -49,7 +49,6 @@ class WindowManager: NSObject, ObservableObject {
     static let shared = WindowManager()
 
     var window: NSPanel?  // 改为 internal 以便 AppDelegate 可以访问
-    private var mouseTracker: EdgeMouseTracker?
     private var autoHideTimer: Timer?
     private var isEditingNote: Bool = false
     private var isDraggingFile: Bool = false
@@ -69,8 +68,6 @@ class WindowManager: NSObject, ObservableObject {
     override init() {
         super.init()
         setupWindow()
-        // 禁用旧的边缘跟踪，使用新的菜单栏滚动跟踪
-        // setupEdgeTracking()
     }
     
     private func setupWindow() {
@@ -130,36 +127,6 @@ class WindowManager: NSObject, ObservableObject {
                 self?.setEditingNote(false)
                 self?.checkAutoHideOnLostFocus()
             }
-        }
-    }
-    
-    private func setupEdgeTracking() {
-        mouseTracker = EdgeMouseTracker(
-            onEdgeTriggered: { [weak self] direction in
-                self?.handleEdgeTrigger(direction: direction)
-            },
-            scrollDirection: .both,           // 支持双向滚轮触发
-            gestureType: .twoFingerDown      // 只支持双指下滑
-        )
-    }
-    
-    private func handleEdgeTrigger(direction: EdgeMouseTracker.ScrollDirection) {
-        guard let window = window else { return }
-        
-        switch direction {
-        case .up:
-            // 向上滚动隐藏窗口
-            if window.isVisible {
-                hideWindow()
-            }
-        case .down:
-            // 向下滚动显示窗口
-            if !window.isVisible {
-                showWindow()
-            }
-        case .both:
-            // 双向触发时切换显示状态
-            showWindow()
         }
     }
     
