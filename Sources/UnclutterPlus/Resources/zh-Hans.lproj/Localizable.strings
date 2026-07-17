@@ -63,7 +63,7 @@
 "preferences.scroll_direction.up_to_show" = "向上显示（拉出）";
 "preferences.scroll_direction.down_to_show" = "向下显示（下拉）";
 "preferences.scroll_direction.natural" = "自然模式（自动判断）";
-"preferences.scroll_direction.help" = "在菜单栏空白区域滚动时窗口的显示方式。向上显示符合"拉出"直觉，向下显示符合"下拉"直觉。";
+"preferences.scroll_direction.help" = "在菜单栏空白区域滚动时窗口的显示方式。向上显示符合“拉出”直觉，向下显示符合“下拉”直觉。";
 
 // MARK: - 外观设置
 "preferences.appearance.show_menubar" = "显示菜单栏图标";
