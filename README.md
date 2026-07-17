@@ -109,14 +109,14 @@ File System (Persistent storage with integrity checks)
 git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 
-# Build optimized version
-./optimized_build.sh
+# Build (debug)
+swift build
 
-# Or simple build
-./build_simple.sh
+# Build release app bundle
+./scripts/build.sh
 
 # Run tests
-./run_tests.sh
+swift test
 ```
 
 ### Performance Metrics
@@ -148,14 +148,8 @@ cd UnclutterPlus
 # Run all tests
 swift test --enable-code-coverage
 
-# Performance benchmarks
-./run_tests.sh --performance
-
-# Memory profiling
-./run_tests.sh --memory
-
-# Architecture validation
-./verify_optimization.sh
+# Run a specific test suite
+swift test --filter NotesServiceTests
 ```
 
 ### Changelog
@@ -182,11 +176,11 @@ swift test --enable-code-coverage
 - 🌍 8-language internationalization support
 
 #### Previous Versions
-See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+See [RELEASE_NOTES_2.0.0.md](RELEASE_NOTES_2.0.0.md) for the latest release notes.
 
 ### Contributing
 
-We welcome contributions! Please see [DEVELOPMENT.md](DEVELOPMENT.md) for development guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](docs/developer/CONTRIBUTING.md) for development guidelines.
 
 #### Architecture Principles
 1. **Modern Swift**: Use latest Swift features and patterns
@@ -312,14 +306,14 @@ Repository 层 (Note/Clipboard/Screenshot Repositories)
 git clone https://github.com/voidzyh/UnclutterPlus.git
 cd UnclutterPlus
 
-# 构建优化版本
-./optimized_build.sh
+# 构建（调试版）
+swift build
 
-# 或简单构建
-./build_simple.sh
+# 构建发布版应用包
+./scripts/build.sh
 
 # 运行测试
-./run_tests.sh
+swift test
 ```
 
 ### 性能指标
@@ -351,14 +345,8 @@ cd UnclutterPlus
 # 运行所有测试
 swift test --enable-code-coverage
 
-# 性能基准测试
-./run_tests.sh --performance
-
-# 内存分析
-./run_tests.sh --memory
-
-# 架构验证
-./verify_optimization.sh
+# 运行指定测试套件
+swift test --filter NotesServiceTests
 ```
 
 ### 更新日志
@@ -385,11 +373,11 @@ swift test --enable-code-coverage
 - 🌍 8种语言国际化支持
 
 #### 历史版本
-查看 [CHANGELOG.md](CHANGELOG.md) 获取完整版本历史。
+查看 [RELEASE_NOTES_2.0.0.md](RELEASE_NOTES_2.0.0.md) 获取最新发布说明。
 
 ### 贡献
 
-欢迎贡献！请查看 [DEVELOPMENT.md](DEVELOPMENT.md) 了解开发指南。
+欢迎贡献！请查看 [CONTRIBUTING.md](docs/developer/CONTRIBUTING.md) 了解开发指南。
 
 #### 架构原则
 1. **现代 Swift**：使用最新的 Swift 特性和模式
