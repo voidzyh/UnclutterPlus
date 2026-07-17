@@ -603,8 +603,10 @@ struct PreferencesView: View {
     }
     
     private func clearAllNotes() {
-        // 实现清除所有笔记的逻辑
-        NotesManager.shared.deleteAllNotes()
+        Task { @MainActor in
+            let notes = await AppStorageManager.shared.notesService.getAllNotes()
+            _ = await AppStorageManager.shared.notesService.deleteNotes(notes)
+        }
     }
     
     // MARK: - Helper Methods for Tab Management

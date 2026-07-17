@@ -58,6 +58,7 @@ final class NotesService: ObservableObject {
     private let storage: any UnifiedStorageProtocol<Note, NoteIndex>
     private var cancellables = Set<AnyCancellable>()
     private var saveWorkItem: DispatchWorkItem?
+    private var selectedNoteLoadGeneration = 0
 
     // LRU 缓存完整笔记内容（限制最多 100 个，优化内存使用）
     private let noteCache: LRUCache<UUID, Note>
@@ -164,10 +165,11 @@ final class NotesService: ObservableObject {
         $selectedNote
             .filter { $0 != nil }
             .sink { [weak self] note in
+                guard let self, let noteId = note?.id else { return }
+                selectedNoteLoadGeneration += 1
+                let generation = selectedNoteLoadGeneration
                 Task {
-                    if let noteId = note?.id {
-                        await self?.loadFullNoteContent(for: noteId)
-                    }
+                    await self.loadFullNoteContent(for: noteId, generation: generation)
                 }
             }
             .store(in: &cancellables)
@@ -248,10 +250,21 @@ final class NotesService: ObservableObject {
 
     /// 加载完整笔记内容
     func loadFullNoteContent(for id: UUID) async {
+        selectedNoteLoadGeneration += 1
+        let generation = selectedNoteLoadGeneration
+        await loadFullNoteContent(for: id, generation: generation)
+    }
+
+    private func loadFullNoteContent(for id: UUID, generation: Int) async {
         // 检查缓存（LRU）
         if let cached = await noteCache.get(id) {
-            selectedNote = cached
-            editingContent = cached.content
+            guard generation == selectedNoteLoadGeneration, selectedNote?.id == id else { return }
+            if selectedNote != cached {
+                selectedNote = cached
+            }
+            if editingContent != cached.content {
+                editingContent = cached.content
+            }
             return
         }
 
@@ -259,8 +272,13 @@ final class NotesService: ObservableObject {
         do {
             if let note = try await storage.read(id: id) {
                 await noteCache.set(id, note)
-                selectedNote = note
-                editingContent = note.content
+                guard generation == selectedNoteLoadGeneration, selectedNote?.id == id else { return }
+                if selectedNote != note {
+                    selectedNote = note
+                }
+                if editingContent != note.content {
+                    editingContent = note.content
+                }
             } else {
                 GlobalErrorHandler.shared.handle(
                     StorageError.notFound(id),
@@ -323,11 +341,10 @@ final class NotesService: ObservableObject {
 
         // 更新内容
         if let newContent = content {
-            updatedNote.content = newContent
+            updatedNote.update(content: newContent)
+        } else {
+            updatedNote.updatedAt = Date()
         }
-
-        // 更新时间戳
-        updatedNote.updatedAt = Date()
 
         do {
             try await storage.update([updatedNote])
@@ -443,12 +460,42 @@ final class NotesService: ObservableObject {
     func searchNotes(query: String) async -> [NoteIndex] {
         // 1. 优先使用内存中的索引进行快速搜索（如果 noteIndexes 已加载）
         if !noteIndexes.isEmpty {
-            let lowercasedQuery = query.lowercased()
-            return noteIndexes.filter { index in
-                index.titleLowercased.contains(lowercasedQuery) ||
-                index.previewTextLowercased.contains(lowercasedQuery) ||
-                index.tagsLowercased.contains { $0.contains(lowercasedQuery) }
+            if query.isEmpty {
+                return noteIndexes
             }
+
+            let lowercasedQuery = query.lowercased()
+            var matchedIDs = Set<UUID>()
+            var contentCandidateIDs: [UUID] = []
+
+            for index in noteIndexes {
+                let isMetadataHit = index.titleLowercased.contains(lowercasedQuery) ||
+                    index.previewTextLowercased.contains(lowercasedQuery) ||
+                    index.tagsLowercased.contains(where: { $0.contains(lowercasedQuery) })
+
+                if isMetadataHit {
+                    matchedIDs.insert(index.id)
+                } else {
+                    contentCandidateIDs.append(index.id)
+                }
+            }
+
+            if !contentCandidateIDs.isEmpty {
+                do {
+                    let notes = try await storage.readBatch(ids: contentCandidateIDs)
+                    for note in notes where note.content.localizedCaseInsensitiveContains(query) {
+                        matchedIDs.insert(note.id)
+                    }
+                } catch {
+                    GlobalErrorHandler.shared.handle(
+                        error,
+                        context: "搜索笔记正文",
+                        showAlert: false
+                    )
+                }
+            }
+
+            return noteIndexes.filter { matchedIDs.contains($0.id) }
         }
         
         // 2. 如果内存为空（极少情况），回退到存储层搜索

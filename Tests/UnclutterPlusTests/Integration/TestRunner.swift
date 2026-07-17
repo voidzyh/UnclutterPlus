@@ -81,8 +81,6 @@ struct IntegrationTestRunner: View {
                 await runCacheTests()
             case .errorHandling:
                 await runErrorHandlingTests()
-            case .asyncTasks:
-                await runAsyncTasks()
             case .security:
                 await runSecurityTests()
             case .performance:
@@ -129,10 +127,6 @@ struct IntegrationTestRunner: View {
 
     private func runErrorHandlingTests() async {
         _ = await testManager.runErrorHandlingIntegrationTests()
-    }
-
-    private func runAsyncTasks() async {
-        _ = await testManager.runAsyncTasksIntegrationTests()
     }
 
     private func runSecurityTests() async {
@@ -205,7 +199,6 @@ enum TestType: String, CaseIterable, Identifiable {
     case storage = "storage"
     case cache = "cache"
     case errorHandling = "error_handling"
-    case asyncTasks = "async_tasks"
     case security = "security"
     case performance = "performance"
     case memory = "memory"
@@ -219,7 +212,6 @@ enum TestType: String, CaseIterable, Identifiable {
         case .storage: return "存储系统"
         case .cache: return "缓存系统"
         case .errorHandling: return "错误处理"
-        case .asyncTasks: return "异步任务"
         case .security: return "安全管理"
         case .performance: return "性能测试"
         case .memory: return "内存管理"

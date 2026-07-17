@@ -21,28 +21,6 @@ struct ModernUnclutterPlusApp: App {
     }
 }
 
-/// 现代化偏好设置视图
-struct ModernPreferencesView: View {
-    var body: some View {
-        VStack {
-            Text("UnclutterPlus v2.0.0")
-                .font(.title)
-                .padding()
-
-            Text("现代化 macOS 生产力应用")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            Spacer()
-
-            Text("© 2025 UnclutterPlus")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-    }
-}
-
 /// 现代化应用委托
 final class ModernAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {

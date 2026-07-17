@@ -30,111 +30,9 @@ class StorageFactory {
         // 这里需要适配器包装，因为 ShardedStorage 不直接实现 UnifiedStorageProtocol
         return ClipboardStorageAdapter(shardedStorage: shardedStorage)
     }
-
-    /// 创建截图存储
-    static func createScreenshotStorage() -> any UnifiedStorageProtocol<ScreenshotItem, ScreenshotIndex> {
-        let config = StorageConfiguration.default
-        let baseURL = config.baseURL.appendingPathComponent("Screenshots")
-
-        // 使用按月分片策略
-        return ScreenshotStorageAdapter(baseURL: baseURL)
-    }
 }
 
 // MARK: - Storage Adapters
-
-/// 临时存储实现（用于降级）
-class TemporaryStorage: UnifiedStorageProtocol {
-    typealias Item = Note
-    typealias Index = NoteIndex
-
-    private var notes: [UUID: Note] = [:]
-
-    init(configuration: StorageConfiguration) {
-        logger.warning("使用临时内存存储", category: "Storage")
-    }
-
-    func create(_ items: [Note]) async throws {
-        for item in items {
-            notes[item.id] = item
-        }
-    }
-
-    func read(id: UUID) async throws -> Note? {
-        return notes[id]
-    }
-
-    func readBatch(ids: [UUID]) async throws -> [Note] {
-        return ids.compactMap { notes[$0] }
-    }
-
-    func update(_ items: [Note]) async throws {
-        for item in items {
-            notes[item.id] = item
-        }
-    }
-
-    func delete(ids: [UUID]) async throws {
-        ids.forEach { notes.removeValue(forKey: $0) }
-    }
-
-    func search(query: String, limit: Int?) async throws -> [NoteIndex] {
-        let filtered = notes.values.filter { note in
-            note.title.localizedCaseInsensitiveContains(query) ||
-            note.content.localizedCaseInsensitiveContains(query)
-        }
-        let indexes = filtered.map { NoteIndex(from: $0) }
-        
-        if let limit = limit {
-            return Array(indexes.prefix(limit))
-        }
-        return indexes
-    }
-
-    func getAllIndexes(limit: Int?, offset: Int?) async throws -> [NoteIndex] {
-        var allNotes = Array(notes.values)
-            .sorted { (note1: Note, note2: Note) -> Bool in
-                note1.updatedAt > note2.updatedAt
-            }
-        
-        if let offset = offset {
-            allNotes = Array(allNotes.dropFirst(offset))
-        }
-        if let limit = limit {
-            allNotes = Array(allNotes.prefix(limit))
-        }
-        
-        return allNotes.map { NoteIndex(from: $0) }
-    }
-    
-    func filter(by predicate: @escaping (NoteIndex) -> Bool, limit: Int?) async throws -> [NoteIndex] {
-        var indexes = try await getAllIndexes(limit: nil, offset: nil)
-        indexes = indexes.filter(predicate)
-        
-        if let limit = limit {
-            return Array(indexes.prefix(limit))
-        }
-        return indexes
-    }
-    
-    func count() async throws -> Int {
-        return notes.count
-    }
-
-    func clear() async throws {
-        notes.removeAll()
-    }
-    
-    func getStatistics() async throws -> StorageStatistics {
-        return StorageStatistics(
-            totalItems: notes.count,
-            totalSize: 0,
-            cacheSize: notes.count,
-            lastModified: Date(),
-            storageType: .simple
-        )
-    }
-}
 
 /// 剪贴板存储适配器
 class ClipboardStorageAdapter: UnifiedStorageProtocol {
@@ -272,39 +170,6 @@ class ClipboardStorageAdapter: UnifiedStorageProtocol {
     }
 }
 
-/// 截图存储适配器
-class ScreenshotStorageAdapter: UnifiedStorageProtocol {
-    typealias Item = ScreenshotItem
-    typealias Index = ScreenshotIndex
-
-    private let baseURL: URL
-
-    init(baseURL: URL) {
-        self.baseURL = baseURL
-    }
-
-    // 简单的占位实现
-    func create(_ items: [ScreenshotItem]) async throws {}
-    func read(id: UUID) async throws -> ScreenshotItem? { nil }
-    func readBatch(ids: [UUID]) async throws -> [ScreenshotItem] { [] }
-    func update(_ items: [ScreenshotItem]) async throws {}
-    func delete(ids: [UUID]) async throws {}
-    func search(query: String, limit: Int?) async throws -> [ScreenshotIndex] { [] }
-    func getAllIndexes(limit: Int?, offset: Int?) async throws -> [ScreenshotIndex] { [] }
-    func filter(by predicate: @escaping (ScreenshotIndex) -> Bool, limit: Int?) async throws -> [ScreenshotIndex] { [] }
-    func count() async throws -> Int { 0 }
-    func clear() async throws {}
-    func getStatistics() async throws -> StorageStatistics {
-        return StorageStatistics(
-            totalItems: 0,
-            totalSize: 0,
-            cacheSize: 0,
-            lastModified: Date(),
-            storageType: .simple
-        )
-    }
-}
-
 // MARK: - Application Integration
 
 /// 应用级存储管理器（单例）
@@ -312,16 +177,15 @@ class ScreenshotStorageAdapter: UnifiedStorageProtocol {
 class AppStorageManager {
     static let shared = AppStorageManager()
 
-    let noteRepository: NoteRepository
     let noteStorage: any UnifiedStorageProtocol<Note, NoteIndex>
+    let notesService: NotesService
     let clipboardRepository: ClipboardRepository
 
     private init() {
         // 创建存储
         self.noteStorage = StorageFactory.createModernNoteStorage()
 
-        // 创建 Repository（已包含存储逻辑）
-        self.noteRepository = NoteRepository()
+        self.notesService = NotesService(storage: noteStorage)
         self.clipboardRepository = ClipboardRepository()
 
         // 启动维护任务
@@ -344,16 +208,10 @@ class AppStorageManager {
     private func performMaintenance() async {
         logger.info("开始维护任务", category: "Storage")
 
-        // 1. 压缩数据库
-        if let modernStorage = noteStorage as? UnifiedNoteStorage,
-           let indexDB = Mirror(reflecting: modernStorage).descendant("indexDB") as? IndexDatabase {
-            await indexDB.vacuum()
-        }
-
-        // 2. 清理过期数据
+        // 1. 清理过期数据
         await cleanupExpiredData()
 
-        // 3. 优化缓存
+        // 2. 优化缓存
         await optimizeCache()
 
         logger.info("维护任务完成", category: "Storage")

@@ -8,7 +8,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     // MARK: - Properties
     
     private let shardedStorage: ShardedStorage<Note>
-    private let indexDatabase: IndexDatabase?
     private let configuration: StorageConfiguration
     private let cacheManager: NoteCacheManager
     
@@ -26,8 +25,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             baseURL: configuration.baseURL.appendingPathComponent("Notes"),
             strategy: .byMonth
         )
-        self.indexDatabase = nil
-        
+
         self.cacheManager = NoteCacheManager(maxSize: 100)
     }
     
@@ -44,18 +42,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
         for (note, _) in notesWithIndexes {
             try await shardedStorage.create(note)
         }
-        
-        // 如果有索引数据库，更新索引
-        if let indexDB = indexDatabase {
-            for (_, index) in notesWithIndexes {
-                do {
-                    try await indexDB.upsertNoteIndex(index)
-                } catch {
-                    logger.warning("更新笔记索引失败: \(error.localizedDescription)", category: "Storage")
-                }
-            }
-        }
-        
+
         // 缓存新创建的笔记
         for note in items {
             cacheManager.cache(note)
@@ -118,19 +105,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
         for note in items {
             try await shardedStorage.create(note)
         }
-        
-        // 如果有索引数据库，更新索引
-        if let indexDB = indexDatabase {
-            for note in items {
-                let index = NoteIndex(from: note)
-                do {
-                    try await indexDB.upsertNoteIndex(index)
-                } catch {
-                    logger.warning("更新笔记索引失败: \(error.localizedDescription)", category: "Storage")
-                }
-            }
-        }
-        
+
         // 更新缓存
         for note in items {
             cacheManager.cache(note)
@@ -151,18 +126,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     
     func delete(ids: [UUID]) async throws {
         try await shardedStorage.deleteBatch(ids: ids)
-        
-        // 如果有索引数据库，删除索引
-        if let indexDB = indexDatabase {
-            for id in ids {
-                do {
-                    try await indexDB.deleteNoteIndex(id: id)
-                } catch {
-                    logger.warning("删除笔记索引失败: \(error.localizedDescription)", category: "Storage")
-                }
-            }
-        }
-        
+
         // 从缓存中删除
         for id in ids {
             cacheManager.remove(id: id)
@@ -178,17 +142,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     }
     
     func search(query: String, limit: Int? = nil) async throws -> [NoteIndex] {
-        // 优化：优先使用 FTS5 全文搜索，大幅提升搜索性能
-        // 1. 如果有索引数据库，使用全文搜索（O(log N) vs O(N) 内存过滤）
-        if let indexDB = indexDatabase {
-            let indexes = try await indexDB.searchNotes(query: query)
-            if let limit = limit {
-                return Array(indexes.prefix(limit))
-            }
-            return indexes
-        }
-
-        // 2. 如果没有索引数据库，使用内存索引缓存
+        // 1. 使用内存索引缓存过滤
         if let indexes = cachedIndexes {
             let lowercasedQuery = query.lowercased()
             let filtered = indexes.filter { index in
@@ -203,14 +157,14 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             return filtered
         }
 
-        // 3. 如果缓存也为空，触发一次全量加载以初始化缓存
+        // 2. 如果缓存为空，触发一次全量加载以初始化缓存
         if cachedIndexes == nil {
             _ = try? await getAllIndexes(limit: nil, offset: nil)
             // 递归调用一次以使用新加载的缓存
             return try await search(query: query, limit: limit)
         }
 
-        // 4. 最后回退到基础存储的搜索
+        // 3. 最后回退到基础存储的搜索
         if let searchResult = try await shardedStorage.search(query: query) as? [NoteIndex] {
             if let limit = limit {
                 return Array(searchResult.prefix(limit))
@@ -233,22 +187,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             return result
         }
         
-        // 2. 如果有索引数据库，直接从数据库获取
-        if let indexDB = indexDatabase {
-            let indexes = try await indexDB.getAllNoteIndexes()
-            var result = indexes
-            
-            // 应用分页
-            if let offset = offset {
-                result = Array(result.dropFirst(offset))
-            }
-            if let limit = limit {
-                result = Array(result.prefix(limit))
-            }
-            return result
-        }
-        
-        // 3. 否则从基础存储获取，并初始化缓存
+        // 2. 否则从基础存储获取，并初始化缓存
         let allResult = try await shardedStorage.getAllIndexes()
         
         // 初始化缓存
@@ -281,24 +220,14 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     }
     
     func count() async throws -> Int {
-        // 如果有索引数据库，直接查询计数
-        if let indexDB = indexDatabase {
-            return await indexDB.getNoteCount()
-        }
-        
-        // 否则从全量查询中计算
+        // 从全量查询中计算
         let indexes = try await getAllIndexes()
         return indexes.count
     }
     
     func clear() async throws {
         try await shardedStorage.clear()
-        
-        // 如果有索引数据库，清空索引
-        if let indexDB = indexDatabase {
-            try await indexDB.clearNoteIndexes()
-        }
-        
+
         // 清空缓存
         cacheManager.clear()
         
@@ -320,7 +249,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             totalSize: totalSize,
             cacheSize: cacheManager.count,
             lastModified: Date(),
-            storageType: indexDatabase != nil ? .modern : .sharded
+            storageType: .sharded
         )
     }
     

@@ -222,31 +222,3 @@ final class StructuredLogger: ObservableObject {
 
 /// 全局日志实例
 let logger = StructuredLogger.shared
-
-// MARK: - 兼容旧 Logger
-
-/// 简化版日志记录器 - 保留以兼容现有代码
-@available(*, deprecated, message: "请使用 StructuredLogger 替代")
-struct Logger {
-    static let shared = StructuredLogger.shared
-
-    func info(_ message: String) {
-        StructuredLogger.shared.info(message)
-    }
-
-    func performance(_ message: String) {
-        StructuredLogger.shared.performance(message)
-    }
-
-    func critical(_ message: String) {
-        StructuredLogger.shared.critical(message)
-    }
-
-    func warning(_ message: String, category: String = "") {
-        StructuredLogger.shared.warning(message, category: category)
-    }
-
-    func debug(_ message: String, category: String = "") {
-        StructuredLogger.shared.debug(message, category: category)
-    }
-}

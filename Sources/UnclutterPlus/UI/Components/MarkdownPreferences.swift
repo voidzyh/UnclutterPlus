@@ -127,8 +127,12 @@ final class Preferences: ObservableObject {
         notesAutoSaveInterval = savedInterval > 0 ? savedInterval : 2.0
         
         // Load menu bar icon visibility (default: true)
-        if defaults.object(forKey: "ShowMenuBarIcon") != nil {
+        // 统一使用 ConfigurationManager 的键，兼容迁移旧的 "ShowMenuBarIcon" 键
+        if defaults.object(forKey: "ui.menuBarIcon.enabled") != nil {
+            showMenuBarIcon = defaults.bool(forKey: "ui.menuBarIcon.enabled")
+        } else if defaults.object(forKey: "ShowMenuBarIcon") != nil {
             showMenuBarIcon = defaults.bool(forKey: "ShowMenuBarIcon")
+            defaults.removeObject(forKey: "ShowMenuBarIcon")
         } else {
             showMenuBarIcon = true
         }
@@ -142,7 +146,7 @@ final class Preferences: ObservableObject {
         defaults.set(baseURLString, forKey: "MarkdownBaseURLString")
         defaults.set(mouseScrollMode.rawValue, forKey: "MouseScrollMode")
         defaults.set(notesAutoSaveInterval, forKey: "NotesAutoSaveInterval")
-        defaults.set(showMenuBarIcon, forKey: "ShowMenuBarIcon")
+        defaults.set(showMenuBarIcon, forKey: "ui.menuBarIcon.enabled")
     }
 }
 

@@ -7,18 +7,36 @@ import Combine
 /// 性能基准测试
 final class PerformanceBenchmarkTests: XCTestCase {
     var notesService: NotesService!
+    var storage: UnifiedNoteStorage!
+    var storageRoot: URL!
     var cancellables: Set<AnyCancellable>!
 
     @MainActor
     override func setUpWithError() throws {
         try super.setUpWithError()
-        notesService = NotesService()
+
+        storageRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("UnclutterPlusPerformanceTests")
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: storageRoot, withIntermediateDirectories: true)
+
+        storage = UnifiedNoteStorage(
+            configuration: StorageConfiguration(baseURL: storageRoot, cacheSizeLimit: 100)
+        )
+        notesService = NotesService(storage: storage)
         cancellables = Set<AnyCancellable>()
     }
 
     override func tearDownWithError() throws {
         notesService = nil
+        storage = nil
         cancellables = nil
+
+        if let storageRoot {
+            try? FileManager.default.removeItem(at: storageRoot)
+        }
+        storageRoot = nil
+
         try super.tearDownWithError()
     }
 

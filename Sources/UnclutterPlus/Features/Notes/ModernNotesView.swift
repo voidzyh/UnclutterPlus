@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 import MarkdownUI
 
 /// 现代化笔记视图 - 改进的交互体验和流畅动画
@@ -8,8 +7,6 @@ struct ModernNotesView: View {
     @Namespace private var notesNamespace
     
     // 状态管理
-    @State private var selectedNote: Note?
-    @State private var searchText: String = ""
     @State private var isCreatingNew = false
     
     // 侧边栏列可见性
@@ -38,13 +35,13 @@ struct ModernNotesView: View {
             .background(ModernDesignSystem.shared.color(.bgCanvas))
             .navigationTitle("Notes")
             // 使用原生 Searchable
-            .searchable(text: $searchText, placement: .sidebar, prompt: "Search notes...")
+            .searchable(text: $viewModel.searchText, placement: .sidebar, prompt: "Search notes...")
             // 使用原生 Toolbar
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
                         viewModel.createNote()
-                        searchText = ""
+                        viewModel.searchText = ""
                     }) {
                         Label("Create Note", systemImage: "square.and.pencil")
                     }
@@ -56,14 +53,13 @@ struct ModernNotesView: View {
                 ModernDesignSystem.shared.color(.bgSurface)
                     .ignoresSafeArea()
 
-                if let note = selectedNote ?? viewModel.selectedNote {
+                if let note = viewModel.selectedNote {
                     NoteEditorWrapper(note: note) { updatedNote in
-                        if let index = viewModel.notes.firstIndex(where: { $0.id == updatedNote.id }) {
-                            viewModel.notes[index] = updatedNote
-                            if selectedNote?.id == updatedNote.id {
-                                selectedNote = updatedNote
-                            }
-                        }
+                        viewModel.updateSelectedNote(
+                            title: updatedNote.title,
+                            content: updatedNote.content,
+                            tags: updatedNote.tags
+                        )
                     }
                     .id(note.id)
                     .transition(.opacity)
@@ -79,9 +75,6 @@ struct ModernNotesView: View {
         }
         .onAppear {
             viewModel.loadInitialData()
-        }
-        .onChange(of: searchText) { _, newValue in
-             viewModel.searchText = newValue
         }
     }
     
@@ -135,7 +128,7 @@ struct ModernNotesView: View {
     // MARK: - 笔记列表
     
     private var notesList: some View {
-        List(selection: $selectedNote) {
+        List(selection: noteSelection) {
             if viewModel.filteredNotes.isEmpty {
                 Text("No notes found")
                     .font(.body)
@@ -150,9 +143,6 @@ struct ModernNotesView: View {
                         onToggleFavorite: { viewModel.toggleFavorite(note) },
                         onDelete: {
                             viewModel.deleteNote(note)
-                            if selectedNote?.id == note.id {
-                                selectedNote = nil
-                            }
                         }
                     )
                     // 适配 List 选择机制
@@ -165,6 +155,21 @@ struct ModernNotesView: View {
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+    }
+
+    private var noteSelection: Binding<Note?> {
+        Binding(
+            get: { viewModel.selectedNote },
+            set: { note in
+                withAnimation(ModernDesignSystem.Motion.snap) {
+                    if let note {
+                        viewModel.selectNote(note)
+                    } else {
+                        viewModel.deselectNote()
+                    }
+                }
+            }
+        )
     }
     
     // MARK: - 空状态
@@ -190,12 +195,11 @@ struct ModernNotesView: View {
     // MARK: - Helper Methods
     
     private func isNoteSelected(_ note: Note) -> Bool {
-        return selectedNote?.id == note.id || viewModel.selectedNote?.id == note.id
+        return viewModel.selectedNote?.id == note.id
     }
     
     private func selectNote(_ note: Note) {
         withAnimation(ModernDesignSystem.Motion.snap) {
-            selectedNote = note
             viewModel.selectNote(note)
         }
     }

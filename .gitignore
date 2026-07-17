@@ -55,3 +55,6 @@ app.log
 # Claude assistant files
 CLAUDE.md
 CLAUDE-zh.md
+# AI tooling workspaces
+.codegraph/
+.omo/

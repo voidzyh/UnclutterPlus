@@ -29,12 +29,11 @@ class KeyboardSupportPanel: NSPanel {
         super.resignKey()
         logger.debug("Panel resigned key window", category: "WindowManager")
         
-        // 检查是否应该自动隐藏
-        if let windowManager = (NSApp.delegate as? AppDelegate)?.windowManager {
-            // 当窗口失去 key 状态时，确保编辑状态被清除，避免阻止自动隐藏
-            windowManager.setEditingNote(false)
-            windowManager.checkAutoHideOnLostFocus()
-        }
+        // 检查是否应该自动隐藏（直接使用单例，避免依赖具体 AppDelegate 类型）
+        let windowManager = WindowManager.shared
+        // 当窗口失去 key 状态时，确保编辑状态被清除，避免阻止自动隐藏
+        windowManager.setEditingNote(false)
+        windowManager.checkAutoHideOnLostFocus()
     }
 }
 
