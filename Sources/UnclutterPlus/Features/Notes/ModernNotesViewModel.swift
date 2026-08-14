@@ -13,9 +13,6 @@ final class ModernNotesViewModel: ObservableObject {
     @Published var selectedNote: Note?
     @Published var searchText: String = "" {
         didSet {
-            if notesService.searchText != searchText {
-                notesService.searchText = searchText
-            }
             debouncedSearch.send(searchText)
         }
     }
@@ -122,21 +119,8 @@ final class ModernNotesViewModel: ObservableObject {
             await notesService.loadNoteIndexes()
         }
 
+        // UI 状态由本 ViewModel 自持，Service 仅提供数据（笔记内容 + 统计）
         notes = await notesService.getAllNotes()
-        selectedNote = notesService.selectedNote
-        if searchText != notesService.searchText {
-            searchText = notesService.searchText
-        }
-        sortOption = notesService.sortOption
-        isAscending = notesService.isAscending
-        viewLayout = notesService.viewLayout
-        sidebarWidth = notesService.sidebarWidth
-        isMultiSelectMode = notesService.isMultiSelectMode
-        selectedNoteIds = notesService.selectedNoteIds
-        showingNewNoteDialog = notesService.showingNewNoteDialog
-        newNoteTitle = notesService.newNoteTitle
-        newNoteTags = notesService.newNoteTags
-        isLoading = notesService.isLoading
         statistics = await notesService.getStatistics()
         applyFilters()
     }
@@ -209,6 +193,11 @@ final class ModernNotesViewModel: ObservableObject {
             newNoteTags.removeAll()
             showingNewNoteDialog = false
             await reloadFromService(loadIndexes: false)
+
+            // 创建后自动选中新笔记（保持原有交互）
+            if let newest = notes.max(by: { $0.createdAt < $1.createdAt }) {
+                selectedNote = newest
+            }
         }
     }
 
@@ -218,7 +207,6 @@ final class ModernNotesViewModel: ObservableObject {
         isSaving = true
         updatedNote.update(title: title, content: content, tags: tags)
         selectedNote = updatedNote
-        notesService.selectedNote = updatedNote
 
         if let index = notes.firstIndex(where: { $0.id == updatedNote.id }) {
             notes[index] = updatedNote
@@ -255,7 +243,7 @@ final class ModernNotesViewModel: ObservableObject {
                 error = nil
                 if pendingSaveNote == nil {
                     if selectedNote?.id == note.id {
-                        selectedNote = notesService.selectedNote ?? note
+                        selectedNote = await notesService.getNote(id: note.id) ?? note
                     }
                     await reloadFromService(loadIndexes: false)
                 }
@@ -467,19 +455,16 @@ final class ModernNotesViewModel: ObservableObject {
 
     func clearSearch() {
         searchText = ""
-        notesService.clearSearch()
     }
 
     func selectNote(_ note: Note) {
         selectionLoadGeneration += 1
         selectedNote = note
-        notesService.selectedNote = note
     }
 
     func deselectNote() {
         selectionLoadGeneration += 1
         selectedNote = nil
-        notesService.selectedNote = nil
     }
 
     func toggleSelection(_ note: Note) {
@@ -488,7 +473,6 @@ final class ModernNotesViewModel: ObservableObject {
         } else {
             selectedNoteIds.insert(note.id)
         }
-        notesService.selectedNoteIds = selectedNoteIds
     }
 
     func deleteSelectedNotes() {
@@ -505,20 +489,16 @@ final class ModernNotesViewModel: ObservableObject {
             error = nil
             selectedNoteIds.removeAll()
             isMultiSelectMode = false
-            notesService.selectedNoteIds.removeAll()
-            notesService.isMultiSelectMode = false
             await reloadFromService(loadIndexes: false)
         }
     }
 
     func selectAllNotes() {
         selectedNoteIds = Set(notes.map { $0.id })
-        notesService.selectedNoteIds = selectedNoteIds
     }
 
     func deselectAllNotes() {
         selectedNoteIds.removeAll()
-        notesService.selectedNoteIds.removeAll()
     }
 
     // MARK: - 排序和过滤
@@ -548,27 +528,22 @@ final class ModernNotesViewModel: ObservableObject {
 
     func setSortOption(_ option: NoteSortOption) {
         sortOption = option
-        notesService.sortOption = option
         applyFilters()
     }
 
     func toggleSortOrder() {
         isAscending.toggle()
-        notesService.isAscending = isAscending
         applyFilters()
     }
 
     func setViewLayout(_ layout: ViewLayout) {
         viewLayout = layout
-        notesService.viewLayout = layout
     }
 
     func toggleMultiSelectMode() {
         isMultiSelectMode.toggle()
-        notesService.isMultiSelectMode = isMultiSelectMode
         if !isMultiSelectMode {
             selectedNoteIds.removeAll()
-            notesService.selectedNoteIds.removeAll()
         }
     }
 }

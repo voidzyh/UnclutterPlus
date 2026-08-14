@@ -184,26 +184,26 @@ final class NotesServiceTests: XCTestCase {
         XCTAssertEqual(allNotes.count, 3, "应该返回所有笔记")
     }
     
-    /// 测试排序功能
+    /// 测试排序功能（排序逻辑已下沉至 ViewModel 层，此处验证 VM 集成行为）
+    @MainActor
     func testSorting() async throws {
         // Given
         await notesService.createNote(title: "A Note", content: "Content A")
         await notesService.createNote(title: "B Note", content: "Content B")
         await notesService.createNote(title: "C Note", content: "Content C")
-        
-        // 等待 Combine 管道处理
-        try? await Task.sleep(nanoseconds: 500_000_000)
 
-        // When - 设置按标题升序排序
-        await MainActor.run {
-            notesService.sortOption = .title
-            notesService.isAscending = true
+        // When - 在 ViewModel 层按标题升序排序
+        let viewModel = ModernNotesViewModel(notesService: notesService)
+        await viewModel.refresh()
+        viewModel.setSortOption(.title)
+        if !viewModel.isAscending {
+            viewModel.toggleSortOrder()
         }
-        
-        // 等待排序生效（因为有防抖动）
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        
-        let sortedNotes = await MainActor.run { notesService.filteredNotes }
+
+        // 等待过滤任务完成
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        let sortedNotes = viewModel.filteredNotes
 
         // Then
         XCTAssertEqual(sortedNotes.count, 3, "应该有3个笔记")

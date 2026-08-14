@@ -52,12 +52,14 @@ final class ModernNotesViewModelRaceTests: XCTestCase {
 
         XCTAssertEqual(viewModel.selectedNote?.title, "Edit B")
         XCTAssertEqual(viewModel.selectedNote?.wordCount, 5)
-        XCTAssertEqual(service.selectedNote?.id, original.id)
-        XCTAssertEqual(service.selectedNote?.title, "Edit B")
+
+        // 选择状态由 ViewModel 自持，持久化结果以服务层缓存为准
+        let canonical = await service.getNote(id: original.id)
+        XCTAssertEqual(canonical?.title, "Edit B")
     }
 
     @MainActor
-    func testRapidSelectDelayedFirstLoadLeavesLatestSelectionInViewModelAndService() async throws {
+    func testRapidSelectLeavesLatestSelectionInViewModel() async throws {
         let storage = GateControlledNoteStorage()
         let noteA = Note(title: "A", content: "Full A")
         let noteB = Note(title: "B", content: "Full B")
@@ -65,42 +67,32 @@ final class ModernNotesViewModelRaceTests: XCTestCase {
 
         let service = NotesService(storage: storage)
         let viewModel = ModernNotesViewModel(notesService: service)
+        await viewModel.refresh()
 
-        await storage.pauseReads(for: [noteA.id])
+        // 新架构下选择是同步操作：最后一次选择立即生效
         viewModel.selectNote(noteA)
-        await storage.waitForPausedReadCount(1)
-
         viewModel.selectNote(noteB)
-        try await waitUntil {
-            viewModel.selectedNote?.id == noteB.id && service.selectedNote?.id == noteB.id
-        }
-
-        await storage.releasePausedReads()
-        try await waitUntil {
-            await storage.readCalledCount >= 2
-        }
-        await drainMainActor()
 
         XCTAssertEqual(viewModel.selectedNote?.id, noteB.id)
         XCTAssertEqual(viewModel.selectedNote?.title, "B")
-        XCTAssertEqual(service.selectedNote?.id, noteB.id)
-        XCTAssertEqual(service.selectedNote?.title, "B")
     }
 
     @MainActor
-    func testSelectingOneNoteTriggersOneStorageRead() async throws {
+    func testSelectingOneNoteDoesNotTriggerStorageRead() async throws {
         let storage = GateControlledNoteStorage()
         let note = Note(title: "One", content: "Full body")
         try await storage.create([note])
 
         let service = NotesService(storage: storage)
         let viewModel = ModernNotesViewModel(notesService: service)
-        viewModel.selectNote(note)
+        await viewModel.refresh()
 
-        await storage.waitForReadCount(1)
+        // 选择不再触发存储读取（笔记内容已在内存中）
+        let readCountBefore = await storage.readCalledCount
+        viewModel.selectNote(note)
         await drainMainActor()
-        let readCount = await storage.readCalledCount
-        XCTAssertEqual(readCount, 1)
+        let readCountAfter = await storage.readCalledCount
+        XCTAssertEqual(readCountAfter, readCountBefore)
     }
 
     @MainActor
@@ -206,7 +198,7 @@ final class ModernNotesViewModelRaceTests: XCTestCase {
     }
 
     @MainActor
-    func testLayoutAndMultiSelectChangesStaySynchronizedWithService() async throws {
+    func testLayoutAndMultiSelectStateOwnedByViewModel() async throws {
         let storage = GateControlledNoteStorage()
         let noteA = Note(title: "A", content: "A")
         let noteB = Note(title: "B", content: "B")
@@ -216,22 +208,18 @@ final class ModernNotesViewModelRaceTests: XCTestCase {
         let viewModel = ModernNotesViewModel(notesService: service)
         await viewModel.refresh()
 
+        // UI 状态由 ViewModel 自持（不再镜像到 Service）
         viewModel.setViewLayout(.grid)
         XCTAssertEqual(viewModel.viewLayout, .grid)
-        XCTAssertEqual(service.viewLayout, .grid)
 
         viewModel.toggleMultiSelectMode()
         viewModel.selectAllNotes()
         XCTAssertTrue(viewModel.isMultiSelectMode)
-        XCTAssertTrue(service.isMultiSelectMode)
         XCTAssertEqual(viewModel.selectedNoteIds, Set([noteA.id, noteB.id]))
-        XCTAssertEqual(service.selectedNoteIds, viewModel.selectedNoteIds)
 
         viewModel.toggleMultiSelectMode()
         XCTAssertFalse(viewModel.isMultiSelectMode)
-        XCTAssertFalse(service.isMultiSelectMode)
         XCTAssertTrue(viewModel.selectedNoteIds.isEmpty)
-        XCTAssertTrue(service.selectedNoteIds.isEmpty)
     }
 
     @MainActor

@@ -9,7 +9,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     
     private let shardedStorage: ShardedStorage<Note>
     private let configuration: StorageConfiguration
-    private let cacheManager: NoteCacheManager
     
     // 内存索引缓存
     private var cachedIndexes: [NoteIndex]?
@@ -25,8 +24,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             baseURL: configuration.baseURL.appendingPathComponent("Notes"),
             strategy: .byMonth
         )
-
-        self.cacheManager = NoteCacheManager(maxSize: 100)
     }
     
     // MARK: - UnifiedStorageProtocol Implementation
@@ -43,11 +40,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             try await shardedStorage.create(note)
         }
 
-        // 缓存新创建的笔记
-        for note in items {
-            cacheManager.cache(note)
-        }
-        
         // 确保缓存已初始化
         indexLock.lock()
         let needInit = cachedIndexes == nil
@@ -72,18 +64,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     }
     
     func read(id: UUID) async throws -> Note? {
-        // 先检查缓存
-        if let cachedNote = cacheManager.get(id: id) {
-            return cachedNote
-        }
-        
-        if let note = try await shardedStorage.read(id: id) {
-            // 缓存读取到的笔记
-            cacheManager.cache(note)
-            return note
-        } else {
-            return nil
-        }
+        return try await shardedStorage.read(id: id)
     }
     
     func readBatch(ids: [UUID]) async throws -> [Note] {
@@ -92,10 +73,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             if let item = try await shardedStorage.read(id: id) {
                 items.append(item)
             }
-        }
-        // 缓存读取到的笔记
-        for note in items {
-            cacheManager.cache(note)
         }
         return items
     }
@@ -106,11 +83,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
             try await shardedStorage.create(note)
         }
 
-        // 更新缓存
-        for note in items {
-            cacheManager.cache(note)
-        }
-        
         // 更新内存索引缓存
         indexLock.lock()
         if var indexes = cachedIndexes {
@@ -127,11 +99,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     func delete(ids: [UUID]) async throws {
         try await shardedStorage.deleteBatch(ids: ids)
 
-        // 从缓存中删除
-        for id in ids {
-            cacheManager.remove(id: id)
-        }
-        
         // 更新内存索引缓存
         indexLock.lock()
         if var indexes = cachedIndexes {
@@ -228,9 +195,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
     func clear() async throws {
         try await shardedStorage.clear()
 
-        // 清空缓存
-        cacheManager.clear()
-        
         // 清空内存索引缓存
         indexLock.lock()
         cachedIndexes = []
@@ -247,7 +211,7 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
         return StorageStatistics(
             totalItems: count,
             totalSize: totalSize,
-            cacheSize: cacheManager.count,
+            cacheSize: 0,
             lastModified: Date(),
             storageType: .sharded
         )
@@ -273,82 +237,6 @@ final class UnifiedNoteStorage: UnifiedStorageProtocol {
         
         return size
     }
-}
-
-// MARK: - Note Cache Manager
-
-/// 笔记缓存管理器
-private final class NoteCacheManager {
-    private var cache: [UUID: CachedNote] = [:]
-    private let maxSize: Int
-    private let accessQueue = DispatchQueue(label: "note.cache.access", qos: .userInitiated)
-    
-    init(maxSize: Int) {
-        self.maxSize = maxSize
-    }
-    
-    func cache(_ note: Note) {
-        accessQueue.async {
-            let cachedNote = CachedNote(
-                note: note,
-                lastAccessed: Date()
-            )
-            
-            self.cache[note.id] = cachedNote
-            
-            // 如果缓存超过最大大小，删除最久未访问的项目
-            if self.cache.count > self.maxSize {
-                self.evictOldest()
-            }
-        }
-    }
-    
-    func get(id: UUID) -> Note? {
-        accessQueue.sync {
-            guard var cachedNote = cache[id] else { return nil }
-            
-            // 更新访问时间
-            cachedNote.lastAccessed = Date()
-            cache[id] = cachedNote
-            
-            return cachedNote.note
-        }
-    }
-    
-    func remove(id: UUID) {
-        accessQueue.async {
-            self.cache.removeValue(forKey: id)
-        }
-    }
-    
-    func clear() {
-        accessQueue.async {
-            self.cache.removeAll()
-        }
-    }
-    
-    var count: Int {
-        accessQueue.sync { cache.count }
-    }
-    
-    private func evictOldest() {
-        guard cache.count > maxSize else { return }
-        
-        // 找到最久未访问的项目
-        let sortedByAccess = cache.sorted { $0.value.lastAccessed < $1.value.lastAccessed }
-        let itemsToRemove = sortedByAccess.prefix(cache.count - maxSize)
-        
-        for (id, _) in itemsToRemove {
-            cache.removeValue(forKey: id)
-        }
-    }
-}
-
-// MARK: - Cached Note
-
-private struct CachedNote {
-    let note: Note
-    var lastAccessed: Date
 }
 
 // MARK: - Compatibility Extensions
