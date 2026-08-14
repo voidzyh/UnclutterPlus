@@ -80,6 +80,12 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
         openItem.target = self
         menu.addItem(openItem)
 
+        // 迷你速记（Tot 式快速入口，⌘⇧N）
+        let quickNoteItem = NSMenuItem(title: "quicknote.menu_item".localized, action: #selector(openQuickNote(_:)), keyEquivalent: "n")
+        quickNoteItem.keyEquivalentModifierMask = [.command, .shift]
+        quickNoteItem.target = self
+        menu.addItem(quickNoteItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let prefsItem = NSMenuItem(title: "menu.preferences".localized, action: #selector(openPreferences(_:)), keyEquivalent: ",")
@@ -106,6 +112,11 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
 
     private func showPreferencesWindow() {
         PreferencesWindowManager.shared.showPreferences()
+    }
+
+    /// 打开迷你速记窗口
+    @objc private func openQuickNote(_ sender: Any?) {
+        QuickNoteWindowManager.shared.show()
     }
 
     // MARK: - 菜单栏滚动/点击唤出

@@ -379,3 +379,11 @@
 "intent.copy_latest.success" = "已複製最近剪貼板項";
 "intent.copy_latest.empty" = "剪貼板歷史為空";
 "intent.copy_latest.short_title" = "複製最近";
+
+// MARK: - Quick Note
+"quicknote.title" = "速記";
+"quicknote.menu_item" = "快速速記";
+"quicknote.hint" = "⌘↩︎ 儲存 · Esc 關閉";
+"quicknote.cancel" = "取消";
+"quicknote.save" = "儲存為筆記";
+"quicknote.default_title" = "速記";

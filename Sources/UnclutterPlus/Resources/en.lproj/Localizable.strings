@@ -382,3 +382,11 @@
 "intent.copy_latest.success" = "Copied latest clipboard item";
 "intent.copy_latest.empty" = "Clipboard history is empty";
 "intent.copy_latest.short_title" = "Copy Latest";
+
+// MARK: - Quick Note
+"quicknote.title" = "Quick Note";
+"quicknote.menu_item" = "Quick Note";
+"quicknote.hint" = "⌘↩︎ Save · Esc Close";
+"quicknote.cancel" = "Cancel";
+"quicknote.save" = "Save as Note";
+"quicknote.default_title" = "Quick Note";
