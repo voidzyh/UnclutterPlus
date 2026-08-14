@@ -68,19 +68,25 @@ enum OCRStatus: String, Codable {
 
 class ScreenshotManager: ObservableObject {
     static let shared = ScreenshotManager()
-    
+
     @Published var screenshots: [ScreenshotItem] = []
     @Published var selectedScreenshots: Set<UUID> = []
-    
+
     private let config = ConfigurationManager.shared
+
+    /// 存储目录覆盖（仅用于测试注入；nil 时从 ConfigurationManager 读取真实路径）
+    private let directoryOverride: URL?
+
     private var screenshotsDirectory: URL {
-        config.screenshotsStoragePath
+        directoryOverride ?? config.screenshotsStoragePath
     }
     private var metadataDirectory: URL {
-        config.screenshotsStoragePath.appendingPathComponent("Metadata")
+        screenshotsDirectory.appendingPathComponent("Metadata")
     }
-    
-    private init() {
+
+    /// - Parameter directoryOverride: 截图存储目录覆盖（默认 nil，使用配置路径；测试可注入临时目录）
+    init(directoryOverride: URL? = nil) {
+        self.directoryOverride = directoryOverride
         // 确保目录存在
         try? FileManager.default.createDirectory(at: screenshotsDirectory, 
                                                withIntermediateDirectories: true)
