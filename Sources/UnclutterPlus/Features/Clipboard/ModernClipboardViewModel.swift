@@ -32,7 +32,7 @@ final class ModernClipboardViewModel: ObservableObject {
 
     /// 数据源：走持久化的 ClipboardRepository（而非旧的空 stub ClipboardManager）。
     /// ClipboardMonitor 采集的新内容会写入此 repository，从而驱动 UI 实时更新。
-    private let repository = AppStorageManager.shared.clipboardRepository
+    let repository: ClipboardRepository
     private var cancellables = Set<AnyCancellable>()
     private let debouncedSearch = PassthroughSubject<String, Never>()
 
@@ -45,7 +45,9 @@ final class ModernClipboardViewModel: ObservableObject {
 
     // MARK: - 初始化
 
-    init() {
+    /// - Parameter repository: 数据仓库（默认生产单例；测试可注入 mock 支撑的实例）
+    init(repository: ClipboardRepository = AppStorageManager.shared.clipboardRepository) {
+        self.repository = repository
         setupBindings()
         setupDebouncedSearch()
         loadInitialData()
@@ -54,13 +56,43 @@ final class ModernClipboardViewModel: ObservableObject {
     // MARK: - 私有方法
 
     private func setupBindings() {
-        // 订阅 repository 变化（ClipboardMonitor 写入新项 / 更新 useCount 时触发）
-        repository.objectWillChange
+        // 订阅 repository 的变更明细（ClipboardMonitor 写入新项 / 更新 useCount 时触发），
+        // 按事件增量合并而非 O(N) 全量重载
+        repository.changes
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.loadInitialData()
+            .sink { [weak self] change in
+                Task { @MainActor [weak self] in
+                    await self?.applyChange(change)
+                }
             }
             .store(in: &cancellables)
+    }
+
+    /// 按变更明细增量更新内存列表（新增插头部、更新原位替换、删除移除、清空清列表）
+    private func applyChange(_ change: ClipboardChange) async {
+        switch change {
+        case .added(let id):
+            if let item = await repository.getItem(id: id),
+               !clipboardItems.contains(where: { $0.id == id }) {
+                clipboardItems.insert(item, at: 0)
+                applyFilters()
+            }
+        case .updated(let id):
+            if let item = await repository.getItem(id: id),
+               let index = clipboardItems.firstIndex(where: { $0.id == id }) {
+                clipboardItems[index] = item
+                applyFilters()
+            }
+        case .removed(let id):
+            let before = clipboardItems.count
+            clipboardItems.removeAll { $0.id == id }
+            if clipboardItems.count != before {
+                applyFilters()
+            }
+        case .cleared:
+            clipboardItems.removeAll()
+            applyFilters()
+        }
     }
 
     private func setupDebouncedSearch() {

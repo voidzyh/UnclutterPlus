@@ -2,6 +2,14 @@ import Foundation
 import Combine
 import SwiftUI
 
+/// 剪贴板变更事件（增量刷新数据源）
+enum ClipboardChange {
+    case added(UUID)
+    case updated(UUID)
+    case removed(UUID)
+    case cleared
+}
+
 /// 剪贴板数据仓库
 @MainActor
 final class ClipboardRepository: ObservableObject {
@@ -15,6 +23,11 @@ final class ClipboardRepository: ObservableObject {
 
     /// 是否只显示收藏
     @Published var showPinnedOnly: Bool = false
+
+    // MARK: - 变更流（订阅者按明细增量合并，避免 O(N) 全量重载）
+
+    /// 每次数据变更（增/改/删/清空）发布一条明细事件
+    let changes = PassthroughSubject<ClipboardChange, Never>()
 
     // MARK: - Private Properties
 
@@ -146,6 +159,7 @@ final class ClipboardRepository: ObservableObject {
                 self.clipboardIndexes.insert(index, at: 0)
                 self.itemCache[item.id] = item
             }
+            changes.send(.added(item.id))
         } catch {
             logger.error("添加剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
         }
@@ -163,6 +177,7 @@ final class ClipboardRepository: ObservableObject {
                 self.clipboardIndexes.removeAll { $0.id == item.id }
                 self.itemCache.removeValue(forKey: item.id)
             }
+            changes.send(.removed(item.id))
         } catch {
             logger.error("删除剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
         }
@@ -180,6 +195,9 @@ final class ClipboardRepository: ObservableObject {
                     self.clipboardIndexes.removeAll { $0.id == item.id }
                     self.itemCache.removeValue(forKey: item.id)
                 }
+            }
+            for id in ids {
+                changes.send(.removed(id))
             }
         } catch {
             logger.error("批量删除剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
@@ -205,6 +223,7 @@ final class ClipboardRepository: ObservableObject {
                     self.itemCache[item.id] = updatedItem
                 }
             }
+            changes.send(.updated(item.id))
         } catch {
             logger.error("切换收藏状态失败: \(error.localizedDescription)", category: "Storage")
         }
@@ -221,6 +240,7 @@ final class ClipboardRepository: ObservableObject {
                     self.clipboardIndexes[index] = ClipboardIndex(from: updatedItem)
                 }
             }
+            changes.send(.updated(updatedItem.id))
         } catch {
             logger.error("更新剪贴板项目失败: \(error.localizedDescription)", category: "Storage")
         }
@@ -245,6 +265,7 @@ final class ClipboardRepository: ObservableObject {
                     self.clipboardIndexes[index] = ClipboardIndex(from: updatedItem)
                 }
             }
+            changes.send(.updated(item.id))
         } catch {
             logger.error("更新使用计数失败: \(error.localizedDescription)", category: "Storage")
         }
@@ -260,6 +281,7 @@ final class ClipboardRepository: ObservableObject {
                 self.clipboardIndexes.removeAll()
                 self.itemCache.removeAll()
             }
+            changes.send(.cleared)
         } catch {
             logger.error("清空所有项目失败: \(error.localizedDescription)", category: "Storage")
         }
@@ -279,6 +301,9 @@ final class ClipboardRepository: ObservableObject {
                     self.clipboardIndexes.removeAll { $0.id == index.id }
                     self.itemCache.removeValue(forKey: index.id)
                 }
+            }
+            for id in ids {
+                changes.send(.removed(id))
             }
         } catch {
             logger.error("清理未收藏项目失败: \(error.localizedDescription)", category: "Storage")
