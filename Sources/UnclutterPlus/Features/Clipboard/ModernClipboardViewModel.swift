@@ -144,6 +144,7 @@ final class ModernClipboardViewModel: ObservableObject {
         pasteboard.clearContents()
         switch item.content {
         case .text(let text):
+            // 只写纯文本，粘贴时不带任何格式（对齐 Maccy 的纯文本粘贴基线）
             pasteboard.setString(text, forType: .string)
         case .image(let data):
             if let image = NSImage(data: data), let tiff = image.tiffRepresentation {
@@ -152,6 +153,8 @@ final class ModernClipboardViewModel: ObservableObject {
         case .file(let url):
             pasteboard.writeObjects([url as NSURL])
         }
+        // 复制成功后按配置自动隐藏面板（与截图面板行为一致）
+        WindowManager.shared.hideWindowAfterAction(.clipboardCopied)
         // 注意：ClipboardMonitor 会监听到 changeCount 变化并自行 +1 useCount，
         // 这里不重复增加计数。
     }
@@ -162,6 +165,11 @@ final class ModernClipboardViewModel: ObservableObject {
 
     func clearAll() async {
         await repository.clearAll()
+    }
+
+    /// 清除非 pin 项目（对齐 Maccy 的 Clear Unpinned）
+    func clearUnpinned() async {
+        await repository.clearUnpinned()
     }
 
     func refresh() async {

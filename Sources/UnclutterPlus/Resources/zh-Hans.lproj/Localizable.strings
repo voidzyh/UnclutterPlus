@@ -192,6 +192,15 @@
 "preferences.clipboard.show_use_count_help" = "在剪贴板项目上显示使用频次标签";
 "preferences.clipboard.auto_cleanup" = "自动清理已启用";
 "preferences.clipboard.auto_cleanup_help" = "自动删除过期的剪贴板项目";
+"preferences.clipboard.ignore_concealed" = "忽略密码管理器内容";
+"preferences.clipboard.ignore_concealed_help" = "跳过被密码管理器标记为机密的内容（1Password、Bitwarden、钥匙串等）";
+"preferences.clipboard.ignore_transient" = "忽略瞬态内容";
+"preferences.clipboard.ignore_transient_help" = "跳过被标记为瞬态的自动生成内容（如片段工具）";
+"preferences.clipboard.excluded_apps" = "排除的应用（Bundle ID，逗号分隔）：";
+"preferences.clipboard.excluded_apps_placeholder" = "例如 com.1password.1password, com.apple.KeychainAccess";
+"preferences.clipboard.excluded_apps_help" = "来自这些应用的复制内容将不会被采集";
+"clipboard.clear_unpinned" = "清除非置顶";
+"clipboard.clear_unpinned_help" = "删除除置顶项以外的全部剪贴板历史";
 
 // MARK: - 启动默认筛选器设置
 "preferences.clipboard.default_filter" = "启动默认筛选面板";

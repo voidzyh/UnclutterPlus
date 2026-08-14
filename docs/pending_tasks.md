@@ -9,8 +9,8 @@
 
 ### P0 — 立足基本盘（对齐原版 Unclutter 体验并修其短板）
 
-- [ ] 浮动面板全链路稳定（唤出/隐藏/自动隐藏/多屏定位）——重构后首要验收项
-- [ ] 剪贴板基线：pin、纯文本粘贴、应用排除规则、密码管理器内容自动忽略（对齐 Maccy）
+- [ ] 浮动面板全链路稳定（唤出/隐藏/自动隐藏/多屏定位）——重构后首要验收项（代码侧已收敛，需真机回归）
+- [x] 剪贴板基线：pin、纯文本粘贴、应用排除规则、密码管理器内容自动忽略（对齐 Maccy）——2026-08 完成
 - [ ] 文件暂存基线：拖入拖出、Quick Look 预览、Finder 揭示
 - [ ] 全局快捷键 + 键盘优先操作流（`GlobalHotkey` 已存在，需在面板收敛后完成接线）
 - [ ] 面板唤出速度与内存占用达标（把"稳定轻快"做成对原版的对比卖点）
@@ -30,14 +30,14 @@
 - [ ] Raycast 扩展联动
 - [ ] 截图 → 笔记/文件面板一键流转
 
-## 🔧 技术 Backlog（结构 P2，详见 refactor_findings.md）
+## 🔧 技术 Backlog（结构 P2，详见 refactor_findings.md 与 architecture/reassessment_2026-08.md）
 
 - [ ] 错误系统收敛：13 个错误枚举 → 1 套
 - [ ] 存储层并发统一（actor 化，消除 NSLock-in-async 的 Swift 6 隐患）
 - [ ] ViewModel 模板去重（Notes/Clipboard/Files 三段式重复）
-- [ ] View/VM 状态双轨消除（Files/Screenshots/Clipboard 视图）
+- [ ] View/VM 状态双轨消除（Clipboard 视图 @State searchText/selectedItem 与 VM 并存）
 - [ ] PreferencesView 拆分（849 行）与命名统一（去 Modern 前缀）
-- [ ] `@StateObject` 包单例反模式修正（应 `@ObservedObject`）
+- [x] `@StateObject` 包单例反模式修正（应 `@ObservedObject`）——2026-08 完成（仅剩 InsightsView 一处）
 - [ ] 剪贴板列表 O(N) 全量重载改增量刷新
 
 ## 📋 低优先级测试 TODO（非核心功能，可延后）
@@ -57,6 +57,14 @@
 ---
 
 ## ✅ 已完成（历史记录）
+
+### 2026-08 剪贴板基线补全与重构收口
+- 三笔逻辑提交收口进行中的重构（面板现代化 + Core/UI 依赖倒置、笔记服务纯数据化、功能流测试套件）
+- 剪贴板基线补全：pin/取消 pin/清除非 pin 接线、纯文本粘贴确认、密码管理器 ConcealedType + 1Password 标记忽略、瞬态内容忽略、应用排除规则（Bundle ID 配置 + 偏好设置 UI）
+- 修复剪贴板指纹 bootstrap 有损 bug（preview 截断/文件名反推指纹 → 重启后长文本与文件重复入库）；`fingerprint` 提升为 ClipboardItem 一等持久化字段，遗留数据启动时按完整内容迁移
+- 剪贴板复制后自动隐藏面板（对齐截图面板行为）
+- `@StateObject` 包单例反模式修正（InsightsView）
+- 新增架构与需求重评估：[architecture/reassessment_2026-08.md](architecture/reassessment_2026-08.md)
 
 ### 2026-07 架构清理与重构
 - 两波死代码清理共约 -7,500 行（`0ec17bb`、`e0c351f`）：旧 AppDelegate、NotesManager、UnifiedStorageManager、IndexDatabase、NoteRepository、CachedStorage、PerformanceOptimizer 等 20 个文件

@@ -67,6 +67,12 @@ struct ModernClipboardView: View {
                 }
                 .help("Show/Hide Filters")
 
+                Button(action: { Task { await viewModel.clearUnpinned() } }) {
+                    Label("clipboard.clear_unpinned".localized, systemImage: "pin.slash")
+                }
+                .disabled(viewModel.clipboardItems.isEmpty)
+                .help("clipboard.clear_unpinned_help".localized)
+
                 Button(action: { Task { await viewModel.clearAll() } }) {
                     Label("Clear All", systemImage: "trash")
                 }
@@ -166,6 +172,7 @@ struct ModernClipboardView: View {
                     isSelected: selectedItem == item.id,
                     onSelect: { selectedItem = item.id },
                     onCopy: { Task { await viewModel.copyToClipboard(item) } },
+                    onPin: { Task { await viewModel.pinItem(item) } },
                     onDelete: { Task { await viewModel.deleteItem(item) } }
                 )
             }
@@ -199,6 +206,7 @@ struct ClipboardItemRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
     let onCopy: () -> Void
+    let onPin: () -> Void
     let onDelete: () -> Void
     
     @State private var isHovered = false
@@ -231,9 +239,14 @@ struct ClipboardItemRow: View {
             
             Spacer()
             
-            // Actions
-            if isHovered || isSelected {
+            // Actions（pin 项目常驻显示 pin 按钮，便于随时取消）
+            if isHovered || isSelected || item.isPinned {
                 HStack(spacing: 4) {
+                    IconButton(
+                        icon: item.isPinned ? "pin.fill" : "pin",
+                        color: item.isPinned ? .orange : .secondary,
+                        action: onPin
+                    )
                     IconButton(icon: "doc.on.doc", action: onCopy)
                     IconButton(icon: "trash", color: .red, action: onDelete)
                 }

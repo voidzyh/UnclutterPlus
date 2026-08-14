@@ -289,6 +289,21 @@ struct PreferencesView: View {
                     Toggle("preferences.clipboard.show_use_count".localized, isOn: $config.showUseCount)
                         .help("preferences.clipboard.show_use_count_help".localized)
                     
+                    Toggle("preferences.clipboard.ignore_concealed".localized, isOn: $config.clipboardIgnoreConcealed)
+                        .help("preferences.clipboard.ignore_concealed_help".localized)
+                    
+                    Toggle("preferences.clipboard.ignore_transient".localized, isOn: $config.clipboardIgnoreTransient)
+                        .help("preferences.clipboard.ignore_transient_help".localized)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("preferences.clipboard.excluded_apps".localized)
+                        TextField("preferences.clipboard.excluded_apps_placeholder".localized, text: $config.clipboardExcludedApps)
+                            .textFieldStyle(.roundedBorder)
+                        Text("preferences.clipboard.excluded_apps_help".localized)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    
                     Toggle("preferences.clipboard.auto_cleanup".localized, isOn: .constant(true))
                         .disabled(true)
                         .help("preferences.clipboard.auto_cleanup_help".localized)

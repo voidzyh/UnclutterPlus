@@ -56,6 +56,20 @@ class ConfigurationManager: ObservableObject {
     // 剪贴板监听设置（智能洞察数据源）
     @AppStorage("clipboard.monitor.enabled") var clipboardMonitorEnabled: Bool = true
     @AppStorage("clipboard.monitor.interval") var clipboardMonitorInterval: Double = 0.5 // 轮询间隔（秒）
+    // 敏感内容忽略：密码管理器标记（ConcealedType / 1Password）与瞬态内容
+    @AppStorage("clipboard.ignore.concealed") var clipboardIgnoreConcealed: Bool = true
+    @AppStorage("clipboard.ignore.transient") var clipboardIgnoreTransient: Bool = true
+    // 应用排除规则：逗号分隔的 bundle ID（如 com.1password.1password），来自这些应用的复制内容不入库
+    @AppStorage("clipboard.excludedApps") var clipboardExcludedApps: String = ""
+    /// 解析后的排除应用 bundle ID 集合（小写、去空白）
+    var clipboardExcludedAppIDs: Set<String> {
+        Set(
+            clipboardExcludedApps
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+                .filter { !$0.isEmpty }
+        )
+    }
     // 频率阈值：粘贴次数达到该值的片段视为"高频"
     @AppStorage("clipboard.insights.frequencyThreshold") var insightsFrequencyThreshold: Int = 3
 

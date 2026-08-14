@@ -5,7 +5,8 @@ import SwiftUI
 /// 数据来自 ClipboardInsightEngine。用户点"生成洞察"触发 AI 批处理：
 /// 高频项（频率统计）→ AI 相似聚类 → 每组总结成文档 → 可导出 Obsidian。
 struct InsightsView: View {
-    @StateObject private var engine = ClipboardInsightEngine.shared
+    // 单例的生命周期不由视图管理，@ObservedObject 仅订阅其变化（避免 @StateObject 包单例反模式）
+    @ObservedObject private var engine = ClipboardInsightEngine.shared
     @State private var showExportSuccess = false
 
     var body: some View {

@@ -183,6 +183,15 @@
 "preferences.clipboard.show_use_count_help" = "Display usage frequency labels on clipboard items";
 "preferences.clipboard.auto_cleanup" = "Auto-cleanup enabled";
 "preferences.clipboard.auto_cleanup_help" = "Automatically remove expired clipboard items";
+"preferences.clipboard.ignore_concealed" = "Ignore password manager content";
+"preferences.clipboard.ignore_concealed_help" = "Skip content marked as concealed by password managers (1Password, Bitwarden, Keychain, etc.)";
+"preferences.clipboard.ignore_transient" = "Ignore transient content";
+"preferences.clipboard.ignore_transient_help" = "Skip auto-generated content marked as transient (e.g. snippet tools)";
+"preferences.clipboard.excluded_apps" = "Excluded apps (Bundle IDs, comma-separated):";
+"preferences.clipboard.excluded_apps_placeholder" = "e.g. com.1password.1password, com.apple.KeychainAccess";
+"preferences.clipboard.excluded_apps_help" = "Content copied from these apps will not be captured";
+"clipboard.clear_unpinned" = "Clear Unpinned";
+"clipboard.clear_unpinned_help" = "Remove all clipboard history except pinned items";
 
 // MARK: - Default Filter Settings
 "preferences.clipboard.default_filter" = "Default Filter Panel";
