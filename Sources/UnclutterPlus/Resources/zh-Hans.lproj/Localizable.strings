@@ -379,3 +379,15 @@
 "preferences.ocr.engine.help" = "Vision 完全在设备本地运行、无需配置；CLI 需要已安装的二进制文件。";
 "preferences.ocr.deepseek_langs.help" = "逗号分隔的语言代码（zh,en,ja,ko,fr,de,es）";
 "preferences.storage.reveal" = "在 Finder 中显示";
+
+// MARK: - App Intents
+"intent.show_panel.title" = "显示 UnclutterPlus 面板";
+"intent.show_panel.description" = "显示 UnclutterPlus 浮动面板";
+"intent.show_panel.short_title" = "显示面板";
+"intent.hide_panel.title" = "隐藏 UnclutterPlus 面板";
+"intent.hide_panel.description" = "隐藏 UnclutterPlus 浮动面板";
+"intent.copy_latest.title" = "复制最近剪贴板项";
+"intent.copy_latest.description" = "将最近一条剪贴板历史复制回系统剪贴板";
+"intent.copy_latest.success" = "已复制最近剪贴板项";
+"intent.copy_latest.empty" = "剪贴板历史为空";
+"intent.copy_latest.short_title" = "复制最近";

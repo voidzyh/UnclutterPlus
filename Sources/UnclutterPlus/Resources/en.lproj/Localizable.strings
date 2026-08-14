@@ -370,3 +370,15 @@
 "preferences.ocr.engine.help" = "Vision runs fully on-device with no configuration; CLI requires an installed binary.";
 "preferences.ocr.deepseek_langs.help" = "Comma-separated language codes (zh,en,ja,ko,fr,de,es)";
 "preferences.storage.reveal" = "Reveal in Finder";
+
+// MARK: - App Intents
+"intent.show_panel.title" = "Show UnclutterPlus Panel";
+"intent.show_panel.description" = "Shows the UnclutterPlus floating panel";
+"intent.show_panel.short_title" = "Show Panel";
+"intent.hide_panel.title" = "Hide UnclutterPlus Panel";
+"intent.hide_panel.description" = "Hides the UnclutterPlus floating panel";
+"intent.copy_latest.title" = "Copy Latest Clipboard Item";
+"intent.copy_latest.description" = "Copies the most recent clipboard history item back to the clipboard";
+"intent.copy_latest.success" = "Copied latest clipboard item";
+"intent.copy_latest.empty" = "Clipboard history is empty";
+"intent.copy_latest.short_title" = "Copy Latest";

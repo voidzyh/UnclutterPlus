@@ -321,4 +321,29 @@ final class ClipboardRepository: ObservableObject {
             return []
         }
     }
+
+    /// 将最新一项复制回系统剪贴板（供 App Intents / 菜单栏快捷动作使用）。
+    /// - Parameter pasteboard: 可注入（测试用独立剪贴板，避免污染用户剪贴板）
+    /// - Returns: 是否成功
+    @discardableResult
+    func copyLatestItemToPasteboard(pasteboard: NSPasteboard = .general) async -> Bool {
+        await waitForInitialLoad()
+        guard let index = clipboardIndexes.first,
+              let item = await getItem(id: index.id) else {
+            return false
+        }
+
+        pasteboard.clearContents()
+        switch item.content {
+        case .text(let text):
+            pasteboard.setString(text, forType: .string)
+        case .image(let data):
+            if let image = NSImage(data: data), let tiff = image.tiffRepresentation {
+                pasteboard.setData(tiff, forType: .tiff)
+            }
+        case .file(let url):
+            pasteboard.writeObjects([url as NSURL])
+        }
+        return true
+    }
 }

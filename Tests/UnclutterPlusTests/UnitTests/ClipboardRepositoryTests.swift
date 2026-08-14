@@ -41,6 +41,30 @@ final class ClipboardRepositoryTests: XCTestCase {
         XCTAssertEqual(repository.totalCount, 1)
         XCTAssertEqual(repository.clipboardIndexes.first?.id, item.id)
     }
+
+    // MARK: - copyLatestItemToPasteboard（App Intents 数据源）
+
+    func testCopyLatestItemWritesTextToPasteboard() async throws {
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("test.copyLatest.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+
+        let item = ClipboardItem(content: .text("latest content"))
+        await repository.addItem(item)
+
+        let succeeded = await repository.copyLatestItemToPasteboard(pasteboard: pasteboard)
+
+        XCTAssertTrue(succeeded)
+        XCTAssertEqual(pasteboard.string(forType: .string), "latest content")
+    }
+
+    func testCopyLatestItemReturnsFalseWhenEmpty() async {
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("test.copyLatest.empty.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+
+        let succeeded = await repository.copyLatestItemToPasteboard(pasteboard: pasteboard)
+
+        XCTAssertFalse(succeeded)
+    }
     
     func testDeleteItem() async throws {
         // Given
