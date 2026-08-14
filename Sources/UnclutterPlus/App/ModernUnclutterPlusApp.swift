@@ -18,11 +18,18 @@ struct ModernUnclutterPlusApp: App {
 final class ModernAppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
 
+    /// 进程启动时刻（AppDelegate 在应用引导最早阶段创建，用于启动耗时打点）
+    private let launchStartTime = ProcessInfo.processInfo.systemUptime
+
     private var windowManager: WindowManager { WindowManager.shared }
     private var menuBarTracker: MenuBarScrollTracker { MenuBarScrollTracker.shared }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        logger.info("UnclutterPlus v2.0.0 启动完成", category: "Service")
+        let launchDurationMs = (ProcessInfo.processInfo.systemUptime - launchStartTime) * 1000
+        logger.info(
+            "UnclutterPlus v2.0.0 启动完成（耗时 \(String(format: "%.0f", launchDurationMs))ms）",
+            category: "Service"
+        )
 
         // 依赖注入：面板内容视图（App 层 → Core 层）与文件夹/暂存文件动作的自动隐藏回调
         WindowManager.shared.contentFactory = { AnyView(ModernMainContentView()) }

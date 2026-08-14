@@ -320,6 +320,65 @@ final class PerformanceBenchmarks: XCTestCase {
                           "内存使用过多: \(formatBytes(memoryGrowth))，要求 < 100MB")
     }
 
+    // MARK: - 剪贴板万级数据基准（P0 性能达标）
+
+    /// 10,000 条剪贴板历史：索引加载 / VM 全量加载 / 搜索过滤
+    func testClipboardTenThousandItemsPerformance() async throws {
+        let storage = MockGenericStorage<ClipboardItem, ClipboardIndex>()
+        storage.indexFactory = { ClipboardIndex(from: $0) }
+
+        // 1. 准备 10,000 条数据（直接进存储，绕过逐条 addItem 的开销）
+        let batchStart = Date()
+        var items: [ClipboardItem] = []
+        for index in 0..<10_000 {
+            items.append(ClipboardItem(
+                content: .text("clipboard item \(index) swift macOS 开发笔记"),
+                timestamp: Date(timeIntervalSinceNow: -Double(index))
+            ))
+        }
+        try await storage.create(items)
+        let batchDuration = Date().timeIntervalSince(batchStart) * 1000
+        print("📦 内存构建 10,000 项耗时: \(String(format: "%.1f", batchDuration))ms")
+
+        let repository = ClipboardRepository(storage: storage)
+
+        // 2. 索引加载基准
+        let loadStart = Date()
+        await repository.loadIndexes()
+        let loadDuration = Date().timeIntervalSince(loadStart) * 1000
+        print("📇 10,000 项索引加载耗时: \(String(format: "%.1f", loadDuration))ms")
+        XCTAssertEqual(repository.clipboardIndexes.count, 10_000)
+        XCTAssertLessThan(loadDuration, 500, "索引加载未达标：\(loadDuration)ms")
+
+        // 3. VM 全量加载基准（逐条 getItem 初始加载）
+        let vm = ModernClipboardViewModel(repository: repository)
+        let vmStart = Date()
+        while vm.clipboardItems.count < 10_000 {
+            if Date().timeIntervalSince(vmStart) > 10 {
+                XCTFail("VM 加载 10,000 项超时")
+                return
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        let vmDuration = Date().timeIntervalSince(vmStart) * 1000
+        print("🖥️ VM 加载 10,000 项耗时: \(String(format: "%.1f", vmDuration))ms")
+        XCTAssertLessThan(vmDuration, 5000, "VM 加载未达标：\(vmDuration)ms")
+
+        // 4. 搜索过滤基准（含防抖等待）
+        let filterStart = Date()
+        vm.searchText = "swift"
+        while vm.filteredItems.count < 10_000 {
+            if Date().timeIntervalSince(filterStart) > 5 {
+                XCTFail("过滤 10,000 项超时")
+                return
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        let filterDuration = Date().timeIntervalSince(filterStart) * 1000
+        print("🔍 10,000 项搜索过滤耗时（含防抖）: \(String(format: "%.1f", filterDuration))ms")
+        XCTAssertLessThan(filterDuration, 2000, "搜索过滤未达标：\(filterDuration)ms")
+    }
+
     // MARK: - Helper Methods
 
     /// 生成测试笔记
