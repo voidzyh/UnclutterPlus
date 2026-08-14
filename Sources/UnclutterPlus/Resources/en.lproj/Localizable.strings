@@ -7,10 +7,13 @@
 "tab.files" = "Folders";
 "tab.clipboard" = "Clipboard";
 "tab.notes" = "Notes";
+"tab.screenshots" = "Screenshots";
 
 // MARK: - Main Window
 "window.main.title" = "UnclutterPlus";
 "button.preferences" = "Preferences";
+"app.empty.title" = "Ready to Unclutter";
+"app.empty.open_settings" = "Open Settings";
 
 // MARK: - Preferences Window
 "preferences.title" = "Preferences";

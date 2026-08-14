@@ -24,8 +24,12 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         logger.info("UnclutterPlus v2.0.0 启动完成", category: "Service")
 
-        // 启动时即创建浮动面板（避免首次唤出时的初始化延迟）
-        _ = windowManager
+        // 依赖注入：面板内容视图（App 层 → Core 层）与文件夹动作的自动隐藏回调
+        WindowManager.shared.contentFactory = { AnyView(ModernMainContentView()) }
+        WindowManager.shared.prepareWindow()
+        FavoriteFoldersManager.shared.autoHideHandler = { action in
+            WindowManager.shared.hideWindowAfterAction(action)
+        }
 
         setupStatusBar()
         setupMenuBarScrollTracking()
@@ -91,8 +95,7 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPreferencesWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        PreferencesWindowManager.shared.showPreferences()
     }
 
     // MARK: - 菜单栏滚动/点击唤出
@@ -138,11 +141,7 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
         ClickFeedbackManager.shared.showFeedback(at: NSEvent.mouseLocation)
 
         // 基于窗口状态切换显示
-        if windowManager.isWindowVisible {
-            windowManager.hideWindow()
-        } else {
-            windowManager.showWindow()
-        }
+        windowManager.toggleWindow()
     }
 
     // MARK: - 全局快捷键
@@ -151,7 +150,7 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
         // Command+Shift+U 唤出/隐藏面板（keyCode 32 = "U"）
         let registered = GlobalHotkey.shared.register(keyCode: 32, modifiers: [.command, .shift]) {
             Task { @MainActor in
-                WindowManager.shared.showWindow()
+                WindowManager.shared.toggleWindow()
             }
         }
         logger.info("全局快捷键 Command+Shift+U 注册\(registered ? "成功" : "失败")", category: "ModernAppDelegate")

@@ -56,8 +56,8 @@ echo "📝 Preparing release v$NEW_VERSION..."
 echo "$NEW_VERSION" > VERSION
 
 # 更新 Info.plist
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $NEW_VERSION" "Sources/$APP_NAME/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "Sources/$APP_NAME/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $NEW_VERSION" "Sources/$APP_NAME/Resources/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "Sources/$APP_NAME/Resources/Info.plist"
 
 # 更新 CHANGELOG.md
 if [[ -f "CHANGELOG.md" ]]; then
@@ -81,7 +81,7 @@ if [[ -f "CHANGELOG.md" ]]; then
 fi
 
 # 提交更改
-git add VERSION "Sources/$APP_NAME/Info.plist"
+git add VERSION "Sources/$APP_NAME/Resources/Info.plist"
 if [[ -f "CHANGELOG.md" ]]; then
     git add CHANGELOG.md
 fi

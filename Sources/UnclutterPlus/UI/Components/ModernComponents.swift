@@ -30,7 +30,7 @@ struct ModernHeader<Actions: View>: View {
             if !title.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.title)
+                        .font(.roundedTitle)
                         .foregroundColor(ModernDesignSystem.shared.color(.textPrimary))
                     if let subtitle = subtitle {
                         Text(subtitle)
@@ -56,7 +56,7 @@ struct ModernHeader<Actions: View>: View {
         .background(.ultraThinMaterial)
         .overlay(
             Rectangle()
-                .fill(Color.black.opacity(0.05))
+                .fill(ModernDesignSystem.shared.color(.strokeAdaptive))
                 .frame(height: 1),
             alignment: .bottom
         )
@@ -70,7 +70,7 @@ struct CrystalSearchBar: View {
     @FocusState private var isFocused: Bool
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: ModernDesignSystem.Spacing.sm) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(isFocused ? .accentColor : .secondary)
                 .font(.system(size: 14))
@@ -89,15 +89,15 @@ struct CrystalSearchBar: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.horizontal, ModernDesignSystem.Spacing.sm)
+        .padding(.vertical, ModernDesignSystem.Spacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.black.opacity(0.05))
+            RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.sm)
+                .fill(ModernDesignSystem.shared.color(.bgSurfaceHover))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isFocused ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1)
+            RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.sm)
+                .stroke(isFocused ? ModernDesignSystem.shared.color(.borderFocus) : Color.clear, lineWidth: 1)
         )
         .animation(ModernDesignSystem.Motion.snap, value: isFocused)
     }
@@ -111,7 +111,7 @@ struct ModernStatChip: View {
     var color: Color = .accentColor
     
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: ModernDesignSystem.Spacing.xs) {
             Image(systemName: icon)
                 .font(.caption)
                 .foregroundColor(color)
@@ -124,8 +124,8 @@ struct ModernStatChip: View {
                 .font(.caption)
                 .foregroundColor(ModernDesignSystem.shared.color(.textSecondary))
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, ModernDesignSystem.Spacing.sm)
+        .padding(.vertical, ModernDesignSystem.Spacing.xs)
         .background(
             Capsule()
                 .fill(color.opacity(0.1))
@@ -146,7 +146,7 @@ struct ModernActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: ModernDesignSystem.Spacing.xs) {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .medium))
                 
@@ -155,23 +155,32 @@ struct ModernActionButton: View {
                         .font(.subheadline)
                 }
             }
-            .padding(.horizontal, label != nil ? 12 : 8)
-            .padding(.vertical, 6)
-            .foregroundColor(isProminent ? .white : .primary)
+            .padding(.horizontal, label != nil ? ModernDesignSystem.Spacing.md : ModernDesignSystem.Spacing.sm)
+            .padding(.vertical, ModernDesignSystem.Spacing.xs)
+            .foregroundColor(isProminent ? .white : ModernDesignSystem.shared.color(.textPrimary))
             .background(
                 Group {
                     if isProminent {
-                        Color.accentColor
+                        // 主按钮：accent 渐变 + 白字 (spec §5)
+                        LinearGradient(
+                            colors: [
+                                ModernDesignSystem.shared.color(.accentMain),
+                                ModernDesignSystem.shared.color(.accentMain).opacity(0.85)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     } else {
-                        Color.black.opacity(0.05)
+                        ModernDesignSystem.shared.color(.bgSurfaceHover)
                     }
                 }
             )
-            .cornerRadius(8)
+            .cornerRadius(ModernDesignSystem.Radius.sm)
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.sm)
+                    .stroke(isProminent ? Color.clear : ModernDesignSystem.shared.color(.strokeAdaptive), lineWidth: 0.5)
             )
+            .shadow(color: isProminent ? Color.accentColor.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .hoverScaleEffect()

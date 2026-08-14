@@ -7,10 +7,13 @@
 "tab.files" = "文件夹";
 "tab.clipboard" = "剪贴板";
 "tab.notes" = "笔记";
+"tab.screenshots" = "截图";
 
 // MARK: - 主窗口
 "window.main.title" = "UnclutterPlus";
 "button.preferences" = "偏好设置";
+"app.empty.title" = "一切就绪";
+"app.empty.open_settings" = "打开设置";
 
 // MARK: - 设置窗口
 "preferences.title" = "偏好设置";

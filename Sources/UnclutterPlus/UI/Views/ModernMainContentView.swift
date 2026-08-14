@@ -5,41 +5,44 @@ import Combine
 /// 侧边栏导航 + 内容区域布局
 struct ModernMainContentView: View {
     @StateObject private var viewModel = ModernMainContentViewModel()
-    @ObservedObject private var designSystem = ModernDesignSystem.shared
     @Namespace private var animationNamespace
-    
-    // 状态管理
-    @State private var selectedTab: String = "files"
+
+    // 状态管理（selectedTab 唯一数据源在 viewModel，视图不再自持副本）
     @State private var isSettingsHovered = false
-    
+
     var body: some View {
         HStack(spacing: 0) {
             // 左侧水晶导航栏
             sidebarNavigation
                 .frame(width: ModernDesignSystem.Spacing.sidebarWidth)
                 .zIndex(10)
-            
+
             // 右侧画布内容区
             ZStack {
                 ModernDesignSystem.shared.color(.bgCanvas)
                     .ignoresSafeArea()
-                
+
                 contentArea
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .zIndex(1)
         }
-        .frame(width: 800, height: 600) // Default size for preview/window
-        .background(ModernDesignSystem.shared.color(.bgCanvas))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // 圆角裁剪由 WindowManager 在 AppKit 层完成（Radius.lg），SwiftUI 层不再重复裁剪；
+        // 根背景已被不透明内容区覆盖，仅保留自适应描边
+        .overlay(
+            RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.lg, style: .continuous)
+                .strokeBorder(ModernDesignSystem.shared.color(.strokeAdaptive), lineWidth: 1)
+        )
     }
-    
+
     // MARK: - 侧边栏
-    
+
     private var sidebarNavigation: some View {
         VStack(spacing: 0) {
-            // App Logo
-            Image(systemName: "sparkles")
-                .font(.system(size: 20))
+            // App 标识（紧凑）
+            Image(systemName: "tray.full.fill")
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .purple],
@@ -47,42 +50,46 @@ struct ModernMainContentView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .padding(.top, ModernDesignSystem.Spacing.xl)
-                .padding(.bottom, ModernDesignSystem.Spacing.xxl)
-                .opacity(0.9)
-            
+                .frame(width: 36, height: 36)
+                .background(
+                    RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.shell, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.12))
+                )
+                .padding(.top, ModernDesignSystem.Spacing.lg)
+                .padding(.bottom, ModernDesignSystem.Spacing.md)
+
             // 导航按钮组
-            VStack(spacing: ModernDesignSystem.Spacing.lg) {
-                ForEach(viewModel.enabledTabs, id: \.self) { tab in
+            VStack(spacing: ModernDesignSystem.Spacing.sm) {
+                ForEach(viewModel.enabledTabs) { tab in
                     SidebarTabButton(
                         tab: tab,
-                        isSelected: selectedTab == tab,
+                        isSelected: viewModel.selectedTab == tab,
                         namespace: animationNamespace
                     ) {
                         withAnimation(ModernDesignSystem.Motion.smooth) {
-                            selectedTab = tab
+                            viewModel.selectTab(tab)
                         }
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             // 底部设置按钮
             Button(action: {
                 viewModel.showPreferences()
             }) {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 18))
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundColor(isSettingsHovered ? .primary : .secondary)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 40, height: 40)
                     .background(
-                        Circle()
-                            .fill(isSettingsHovered ? Color.primary.opacity(0.1) : Color.clear)
+                        RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.shell, style: .continuous)
+                            .fill(isSettingsHovered ? ModernDesignSystem.shared.color(.bgSurfaceHover) : Color.clear)
                     )
             }
             .buttonStyle(.plain)
-            .padding(.bottom, ModernDesignSystem.Spacing.lg)
+            .padding(.bottom, ModernDesignSystem.Spacing.md)
             .onHover { hovering in
                 withAnimation(ModernDesignSystem.Motion.snap) {
                     isSettingsHovered = hovering
@@ -93,58 +100,57 @@ struct ModernMainContentView: View {
         .background(.ultraThinMaterial)
         .overlay(
             Rectangle()
-                .fill(Color.white.opacity(0.1))
+                .fill(ModernDesignSystem.shared.color(.strokeAdaptive))
                 .frame(width: 1),
             alignment: .trailing
         )
     }
-    
+
     // MARK: - 内容区域
-    
+
     @ViewBuilder
     private var contentArea: some View {
         if viewModel.enabledTabs.isEmpty {
             emptyStateView
         } else {
-            // 使用 ZStack + Opacity 实现淡入淡出切换，避免 Frame 变化
+            // 常驻保活：已访问的 tab 视图保留在视图树中（隐藏不销毁），
+            // 切换时仅调整透明度/层级，保留各自的滚动、搜索与选中状态
             ZStack {
-                if selectedTab == "files" {
-                    ModernFilesView()
-                        .transition(.opacity)
-                }
-                
-                if selectedTab == "clipboard" {
-                    ModernClipboardView()
-                        .transition(.opacity)
-                }
-                
-                if selectedTab == "notes" {
-                    ModernNotesView()
-                        .transition(.opacity)
-                }
-
-                if selectedTab == "screenshots" {
-                    ScreenshotsView()
-                        .transition(.opacity)
-                }
+                keepAliveTab(.files) { ModernFilesView() }
+                keepAliveTab(.clipboard) { ModernClipboardView() }
+                keepAliveTab(.notes) { ModernNotesView() }
+                keepAliveTab(.screenshots) { ScreenshotsView() }
             }
-            .animation(ModernDesignSystem.Motion.smooth, value: selectedTab)
+            .animation(ModernDesignSystem.Motion.smooth, value: viewModel.selectedTab)
         }
     }
-    
+
+    /// 单个 tab 的常驻容器：首次切换到才创建（首启懒加载），激活时淡入 + 10px 滑入（spec §5）
+    @ViewBuilder
+    private func keepAliveTab<Content: View>(_ tab: AppTab, @ViewBuilder content: () -> Content) -> some View {
+        if viewModel.visitedTabs.contains(tab) {
+            let isActive = viewModel.selectedTab == tab
+            content()
+                .opacity(isActive ? 1 : 0)
+                .offset(x: isActive ? 0 : 10)
+                .allowsHitTesting(isActive)
+                .zIndex(isActive ? 1 : 0)
+        }
+    }
+
     // MARK: - 空状态
-    
+
     private var emptyStateView: some View {
         VStack(spacing: ModernDesignSystem.Spacing.xl) {
             Image(systemName: "sparkles")
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
-            
-            Text("Ready to Unclutter")
+
+            Text("app.empty.title".localized)
                 .font(.title)
                 .foregroundColor(ModernDesignSystem.shared.color(.textPrimary))
-            
-            Button("Open Settings") {
+
+            Button("app.empty.open_settings".localized) {
                 viewModel.showPreferences()
             }
             .buttonStyle(.bordered)
@@ -155,38 +161,40 @@ struct ModernMainContentView: View {
 // MARK: - 组件：侧边栏按钮
 
 struct SidebarTabButton: View {
-    let tab: String
+    let tab: AppTab
     let isSelected: Bool
     var namespace: Namespace.ID
     let action: () -> Void
-    
+
     @State private var isHovered = false
-    
+
     var body: some View {
         Button(action: action) {
             ZStack {
                 // 选中态背景 (Pill shape)
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.accentColor.opacity(0.15))
+                    RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.shell, style: .continuous)
+                        .fill(ModernDesignSystem.shared.color(.accentSoft))
                         .matchedGeometryEffect(id: "tabBackground", in: namespace)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 40, height: 40)
                 }
-                
+
                 // 悬停态背景
                 if isHovered && !isSelected {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.primary.opacity(0.05))
-                        .frame(width: 44, height: 44)
+                    RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.shell, style: .continuous)
+                        .fill(ModernDesignSystem.shared.color(.bgSurfaceHover))
+                        .frame(width: 40, height: 40)
                 }
-                
-                // 图标
-                Image(systemName: iconName)
-                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+
+                // 图标（hover 时轻微放大 + 主题色辉光，spec §4）
+                Image(systemName: tab.icon)
+                    .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(iconColor)
+                    .scaleEffect(isHovered ? 1.1 : 1.0)
+                    .shadow(color: isHovered ? tab.color.opacity(0.5) : .clear, radius: 4)
                     .symbolEffect(.bounce, value: isSelected) // iOS 17/macOS 14+ animation
             }
-            .frame(width: 44, height: 44)
+            .frame(width: 40, height: 40)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -195,24 +203,14 @@ struct SidebarTabButton: View {
                 isHovered = hovering
             }
         }
-        .help(tab.capitalized)
+        .help(tab.title)
     }
-    
+
     private var iconColor: Color {
         if isSelected {
             return .accentColor
         }
         return isHovered ? .primary : .secondary
-    }
-    
-    private var iconName: String {
-        switch tab {
-        case "files": return "folder"
-        case "clipboard": return "doc.on.clipboard"
-        case "notes": return "note.text"
-        case "screenshots": return "camera.viewfinder"
-        default: return "square"
-        }
     }
 }
 
@@ -220,29 +218,55 @@ struct SidebarTabButton: View {
 
 @MainActor
 final class ModernMainContentViewModel: ObservableObject {
-    @Published var enabledTabs: [String] = ["files", "clipboard", "notes", "screenshots"]
-    @Published var selectedTab: String = "files"
-    
+    /// 当前启用的 tab（顺序与开关来自 ConfigurationManager 的用户配置）
+    @Published private(set) var enabledTabs: [AppTab] = []
+    /// 当前选中 tab（唯一数据源）
+    @Published private(set) var selectedTab: AppTab = .files
+    /// 已访问过的 tab：首次切换到才创建对应视图（懒加载），之后常驻保活
+    @Published private(set) var visitedTabs: Set<AppTab> = []
+
     private var cancellables = Set<AnyCancellable>()
-    
+
     init() {
+        // 启动时优先落在用户配置的默认标签页
+        if let defaultTab = AppTab(rawValue: ConfigurationManager.shared.defaultTab) {
+            selectedTab = defaultTab
+        }
+        updateEnabledTabs()
         setupBindings()
     }
-    
+
+    func selectTab(_ tab: AppTab) {
+        selectedTab = tab
+        visitedTabs.insert(tab)
+    }
+
     func showPreferences() {
         NotificationCenter.default.post(name: .showPreferences, object: nil)
     }
-    
+
     private func setupBindings() {
+        // 配置变更（tab 开关/顺序/默认标签）时刷新
         NotificationCenter.default.publisher(for: .configurationChanged)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateEnabledTabs()
             }
             .store(in: &cancellables)
     }
-    
+
+    /// 从 ConfigurationManager 读取启用开关 / 顺序 / 默认标签，刷新 tab 列表并校正选中项
     private func updateEnabledTabs() {
-        // Reload from config if needed
+        let config = ConfigurationManager.shared
+        let tabs = config.enabledTabsOrder.compactMap { AppTab(rawValue: $0) }
+        enabledTabs = tabs
+
+        // 选中项被关闭时回退到默认标签（默认也不可用时取第一个）
+        if !tabs.contains(selectedTab) {
+            let fallback = AppTab(rawValue: config.defaultTab) ?? .files
+            selectedTab = tabs.contains(fallback) ? fallback : (tabs.first ?? .files)
+        }
+        visitedTabs.insert(selectedTab)
     }
 }
 

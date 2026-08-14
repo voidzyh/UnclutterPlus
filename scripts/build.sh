@@ -48,7 +48,27 @@ else
 fi
 
 # 复制 Info.plist
-cp "Sources/$APP_NAME/Info.plist" "$APP_BUNDLE/Contents/"
+cp "Sources/$APP_NAME/Resources/Info.plist" "$APP_BUNDLE/Contents/"
+
+# 复制 SwiftPM 资源 bundle（含全部 lproj 本地化资源，LocalizationManager 依赖 Bundle.module）
+# macOS 上 bundle 后缀为 .bundle（Linux 为 .resources），多架构构建位于 apple/Products/Release
+RESOURCE_BUNDLE_FOUND=""
+for candidate in \
+    "$BUILD_DIR/apple/Products/Release/${APP_NAME}_${APP_NAME}.bundle" \
+    "$BUILD_DIR/release/${APP_NAME}_${APP_NAME}.bundle" \
+    "$BUILD_DIR/apple/Products/Release/${APP_NAME}_${APP_NAME}.resources" \
+    "$BUILD_DIR/release/${APP_NAME}_${APP_NAME}.resources"; do
+    if [ -d "$candidate" ]; then
+        RESOURCE_BUNDLE_FOUND="$candidate"
+        break
+    fi
+done
+if [ -n "$RESOURCE_BUNDLE_FOUND" ]; then
+    cp -R "$RESOURCE_BUNDLE_FOUND" "$APP_BUNDLE/Contents/Resources/"
+    echo "✅ SwiftPM resource bundle included ($(basename "$RESOURCE_BUNDLE_FOUND"))"
+else
+    echo "⚠️  Warning: SwiftPM resource bundle not found, localization will not work"
+fi
 
 # 复制图标文件
 if [ -f "Sources/$APP_NAME/Resources/$APP_NAME.icns" ]; then

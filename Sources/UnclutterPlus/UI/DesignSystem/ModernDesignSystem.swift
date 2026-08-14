@@ -4,123 +4,69 @@ import SwiftUI
 
 /// 现代化设计系统 - 提供统一的视觉语言、动画和交互规范
 /// Design Philosophy: "Crystal & Canvas"
-@MainActor
-final class ModernDesignSystem: ObservableObject, @unchecked Sendable {
-    @MainActor
+///
+/// 纯常量与静态映射的命名空间，不含实例状态；
+/// `shared` 仅为兼容历史调用点（`ModernDesignSystem.shared.color(_:)`）保留。
+final class ModernDesignSystem {
+    /// 兼容层：语义颜色的实例访问入口，内部为纯静态映射
     static let shared = ModernDesignSystem()
-    
-    // MARK: - 主题状态
-    
-    @Published var currentTheme: AppTheme = .system
-    @Published var colorScheme: ColorScheme = .light
-    @Published var tintColor: Color = .blue
-    
-    private init() {
-        setupThemeObserver()
-    }
-    
-    // MARK: - 动画系统 (Motion)
-    
+
+    private init() {}
+
+    // MARK: - 动画系统 (Motion, spec §5)
+
     enum Motion {
-        /// 极快 - 用于微交互 (Hover, Click)
-        static let snap = Animation.spring(response: 0.2, dampingFraction: 0.7, blendDuration: 0)
-        /// 快速 - 用于一般状态变化
-        static let fast = Animation.spring(response: 0.3, dampingFraction: 0.75, blendDuration: 0.1)
+        /// 微交互 (Hover, Click) - spring(response: 0.3, damping: 0.7)
+        static let snap = Animation.spring(response: 0.3, dampingFraction: 0.7, blendDuration: 0)
         /// 平滑 - 用于布局变化和页面切换
         static let smooth = Animation.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.15)
-        /// 弹性 - 用于强调性动画
-        static let bouncy = Animation.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0.2)
     }
-    
-    // MARK: - 间距系统 (Spacing)
-    
+
+    // MARK: - 间距系统 (Spacing, spec §3)
+
     enum Spacing {
-        /// 4px - 紧凑间距
+        /// 4px - 紧凑分组
         static let xs: CGFloat = 4
-        /// 8px - 组件内间距
+        /// 8px - 组件内边距
         static let sm: CGFloat = 8
-        /// 12px - 标准元素间距
-        static let md: CGFloat = 12
-        /// 16px - 容器内边距
-        static let lg: CGFloat = 16
-        /// 24px - 区块间距
-        static let xl: CGFloat = 24
+        /// 16px - 卡片内边距
+        static let md: CGFloat = 16
+        /// 24px - 区块分隔
+        static let lg: CGFloat = 24
         /// 32px - 主要布局分割
-        static let xxl: CGFloat = 32
-        
-        /// 侧边栏宽度
+        static let xl: CGFloat = 32
+        /// 40px - 超大布局间距（沿 scale 顺延）
+        static let xxl: CGFloat = 40
+
+        /// 侧边栏宽度 (collapsed/icon-only)
         static let sidebarWidth: CGFloat = 68
-        /// 扩展侧边栏宽度
-        static let sidebarWidthExpanded: CGFloat = 200
-        /// 顶部工具栏高度
-        static let toolbarHeight: CGFloat = 44
     }
-    
+
     // MARK: - 圆角系统 (Radius)
-    
+
     enum Radius {
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8
+        /// 10px - 主外壳/小组件容器圆角
+        static let shell: CGFloat = 10
         static let md: CGFloat = 12
         static let lg: CGFloat = 16
         static let xl: CGFloat = 24
         static let full: CGFloat = 999
     }
-    
-    // MARK: - 颜色系统 (Semantic)
-    
-    /// 获取当前主题下的语义颜色
+
+    // MARK: - 颜色系统 (Semantic, spec §2)
+
+    /// 获取语义颜色（纯静态映射，无主题状态）
     func color(_ token: ColorToken) -> Color {
-        // 这里可以根据 currentTheme 扩展更多逻辑
         return token.color
     }
-    
-    // MARK: - 主题切换逻辑
-    
-    func switchTheme(_ theme: AppTheme) {
-        withAnimation(Motion.smooth) {
-            currentTheme = theme
-            applyTheme(theme)
-        }
-    }
-    
-    private func setupThemeObserver() {
-        // 监听系统外观变化
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.handleSystemThemeChange()
-            }
-        }
-    }
-    
-    private func handleSystemThemeChange() {
-        if currentTheme == .system {
-            updateSystemTheme()
-        }
-    }
-    
-    private func updateSystemTheme() {
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
-        colorScheme = isDark ? .dark : .light
-    }
-    
-    private func applyTheme(_ theme: AppTheme) {
-        switch theme {
-        case .system: updateSystemTheme()
-        case .light: colorScheme = .light
-        case .dark: colorScheme = .dark
-        case .colorful: 
-            colorScheme = .light
-            tintColor = .purple
-        }
-    }
+
+    /// bg.floating - 工具栏 / Popover 浮层材质
+    static let bgFloating: Material = .regular
 }
 
-// MARK: - 颜色令牌 (Color Tokens)
+// MARK: - 颜色令牌 (Color Tokens, spec §2)
 
 enum ColorToken {
     case bgCanvas
@@ -129,23 +75,45 @@ enum ColorToken {
     case textPrimary
     case textSecondary
     case textTertiary
+    case accentMain
+    case accentSoft
+    case strokeAdaptive
     case borderSubtle
     case borderFocus
-    
+
     var color: Color {
         switch self {
         case .bgCanvas:
+            // bg.canvas - 主背景
             return Color(nsColor: .windowBackgroundColor)
         case .bgSurface:
-            return Color("SurfaceColor") // 需要在 Assets 能够回退，这里暂时使用系统色
+            // bg.surface - 卡片/弹层，动态系统色，深浅色自适应
+            return Color(nsColor: .controlBackgroundColor)
         case .bgSurfaceHover:
             return Color.primary.opacity(0.05)
         case .textPrimary:
+            // text.primary - 标题/主要数据
             return Color.primary
         case .textSecondary:
+            // text.secondary - 元数据/副标题
             return Color.secondary
         case .textTertiary:
             return Color(nsColor: .tertiaryLabelColor)
+        case .accentMain:
+            // accent.main - 主操作色
+            return Color.accentColor
+        case .accentSoft:
+            // accent.soft - 悬停/选中底色：light 10% / dark 20%
+            return Color(nsColor: NSColor(name: nil) { appearance in
+                NSColor.systemBlue.withAlphaComponent(appearance.isDarkAppearance ? 0.2 : 0.1)
+            })
+        case .strokeAdaptive:
+            // 自适应描边：light 下黑 8% / dark 下白 15%，避免"双盲描边"
+            return Color(nsColor: NSColor(name: nil) { appearance in
+                appearance.isDarkAppearance
+                    ? NSColor.white.withAlphaComponent(0.15)
+                    : NSColor.black.withAlphaComponent(0.08)
+            })
         case .borderSubtle:
             return Color.primary.opacity(0.1)
         case .borderFocus:
@@ -154,43 +122,37 @@ enum ColorToken {
     }
 }
 
+private extension NSAppearance {
+    /// 当前外观是否为深色模式
+    var isDarkAppearance: Bool {
+        bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+}
+
 // MARK: - View Modifiers
 
 extension View {
-    /// 这里的 'designSystem' 访问可能会有些问题，建议直接使用 static 常量或者环境对象
-    /// 为方便起见，我们使用 extension 方法
-    
     /// 玻璃拟态背景 (Crystal Effect)
     func glassEffect(_ material: Material = .ultraThinMaterial, cornerRadius: CGFloat = ModernDesignSystem.Radius.lg) -> some View {
         self.background(material)
             .cornerRadius(cornerRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                    .stroke(ModernDesignSystem.shared.color(.strokeAdaptive), lineWidth: 0.5)
             )
             .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
     }
-    
-    /// 卡片样式 (Canvas Card)
+
+    /// 卡片样式 (Canvas Card, spec §5)
+    /// bg.surface 背景 + 1px 自适应描边 + 投影；hover 时 scale(1.02)、投影半径加大
+    /// - Parameter hover: 外部驱动的悬停态；内部同时自带 hover 检测
     func cardStyle(hover: Bool = false) -> some View {
-        self.background(Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(ModernDesignSystem.Radius.md)
-            .shadow(color: Color.black.opacity(hover ? 0.12 : 0.06), radius: hover ? 8 : 4, x: 0, y: hover ? 4 : 2)
-            .overlay(
-                RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.md)
-                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
-            )
+        self.modifier(CardStyleModifier(externalHover: hover))
     }
-    
+
     /// 悬停缩放效果
     func hoverScaleEffect(scale: CGFloat = 1.02) -> some View {
         self.modifier(HoverScaleModifier(scale: scale))
-    }
-    
-    /// 点击涟漪效果 (简单版)
-    func pressEffect() -> some View {
-        self.buttonStyle(PlainButtonStyle()) // Reset styling
-            .modifier(PressEffectModifier())
     }
 }
 
@@ -199,7 +161,7 @@ extension View {
 struct HoverScaleModifier: ViewModifier {
     let scale: CGFloat
     @State private var isHovered = false
-    
+
     func body(content: Content) -> some View {
         content
             .scaleEffect(isHovered ? scale : 1.0)
@@ -210,52 +172,34 @@ struct HoverScaleModifier: ViewModifier {
     }
 }
 
-struct PressEffectModifier: ViewModifier {
-    @State private var isPressed = false
-    
+/// 卡片样式修饰：自带 hover 检测，externalHover 供调用方外部驱动
+struct CardStyleModifier: ViewModifier {
+    var externalHover: Bool = false
+    @State private var isHovered = false
+
+    /// 外部驱动与自身 hover 任一成立即视为高亮
+    private var highlighted: Bool { externalHover || isHovered }
+
     func body(content: Content) -> some View {
         content
-            .scaleEffect(isPressed ? 0.96 : 1.0)
-            .opacity(isPressed ? 0.8 : 1.0)
-            .animation(ModernDesignSystem.Motion.snap, value: isPressed)
-            .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-                isPressed = pressing
-            }, perform: {})
+            .background(ModernDesignSystem.shared.color(.bgSurface))
+            .cornerRadius(ModernDesignSystem.Radius.md)
+            .overlay(
+                RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.md)
+                    .stroke(ModernDesignSystem.shared.color(.strokeAdaptive), lineWidth: 1)
+            )
+            .scaleEffect(highlighted ? 1.02 : 1.0)
+            .shadow(color: Color.black.opacity(0.1), radius: highlighted ? 12 : 8, x: 0, y: 4)
+            .animation(ModernDesignSystem.Motion.snap, value: highlighted)
+            .onHover { hovering in
+                isHovered = hovering
+            }
     }
 }
 
-// MARK: - Typography Extension
+// MARK: - Typography (spec §3)
 
 extension Font {
-    static let display = Font.system(size: 28, weight: .bold, design: .rounded)
-    static let title = Font.system(size: 20, weight: .semibold, design: .rounded)
-    static let headline = Font.system(size: 16, weight: .semibold, design: .default)
-    static let body = Font.system(size: 14, weight: .regular, design: .default)
-    static let caption = Font.system(size: 12, weight: .medium, design: .default)
-    static let code = Font.system(size: 13, weight: .regular, design: .monospaced)
-}
-
-// MARK: - Enums & Support Structures
-
-enum AppTheme: String, CaseIterable {
-    case system = "System"
-    case light = "Light"
-    case dark = "Dark"
-    case colorful = "Colorful"
-    
-    var icon: String {
-        switch self {
-        case .system: return "gearshape.2"
-        case .light: return "sun.max.fill"
-        case .dark: return "moon.fill"
-        case .colorful: return "paintbrush.fill"
-        }
-    }
-}
-
-struct ShadowStyle {
-    let color: Color
-    let radius: CGFloat
-    let x: CGFloat
-    let y: CGFloat
+    /// 圆体标题：基于系统 .title 动态字级，仅替换为圆体设计，不遮蔽系统动态字级
+    static let roundedTitle = Font.system(.title, design: .rounded, weight: .semibold)
 }

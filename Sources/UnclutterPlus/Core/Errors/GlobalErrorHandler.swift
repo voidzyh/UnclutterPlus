@@ -354,47 +354,6 @@ struct ErrorStatistics {
     }
 }
 
-// MARK: - Error Alert View
-
-/// 错误提示视图（用于 SwiftUI）
-struct ErrorAlertView: View {
-    @StateObject private var errorHandler = GlobalErrorHandler.shared
-
-    var body: some View {
-        EmptyView()
-            .alert(
-                errorHandler.currentError?.title ?? "错误",
-                isPresented: .constant(errorHandler.currentError != nil),
-                presenting: errorHandler.currentError
-            ) { error in
-                Button("确定") {
-                    errorHandler.clearCurrentError()
-                }
-
-                if error.suggestion != nil {
-                    Button("查看建议") {
-                        // 显示详细建议（可以打开一个新窗口或对话框）
-                        errorHandler.clearCurrentError()
-                    }
-                }
-            } message: { error in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(error.message)
-
-                    if let suggestion = error.suggestion {
-                        Text("\n💡 建议: \(suggestion)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Text("\n错误代码: \(error.errorCode)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-    }
-}
-
 // MARK: - Convenience Extensions
 
 /// 便捷的错误处理扩展

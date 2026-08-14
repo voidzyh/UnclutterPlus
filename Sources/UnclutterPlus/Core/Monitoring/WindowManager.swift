@@ -65,34 +65,52 @@ class WindowManager: NSObject, ObservableObject {
         return window?.isVisible ?? false
     }
     
+    /// 面板内容视图工厂（由 App 层注入，避免 Core 层直接实例化 UI 视图）
+    var contentFactory: (() -> AnyView)?
+    
     override init() {
         super.init()
-        setupWindow()
+        // 窗口延迟创建：等待 App 层注入 contentFactory 后调用 prepareWindow()
     }
     
-    private func setupWindow() {
-        let contentView = ModernMainContentView()
-        
+    /// 在 contentFactory 就绪后创建窗口（幂等）
+    func prepareWindow() {
+        guard window == nil, let content = contentFactory?() else { return }
+        setupWindow(content: content)
+    }
+    
+    private func setupWindow(content: AnyView) {
         window = KeyboardSupportPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 300),
-            styleMask: [.titled, .closable, .resizable, .nonactivatingPanel],
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 520),
+            styleMask: [.titled, .closable, .resizable, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         
-        let hostingView = NSHostingView(rootView: contentView)
+        let hostingView = NSHostingView(rootView: content)
         window?.contentView = hostingView
         window?.level = .floating
         window?.isFloatingPanel = true  // 设置为浮动面板
         window?.hidesOnDeactivate = false  // 手动控制失去焦点时的行为
         window?.becomesKeyOnlyIfNeeded = false  // 总是可以成为 key window
         window?.worksWhenModal = true  // 在模态窗口时也工作
-        window?.isOpaque = true
-        window?.backgroundColor = NSColor.controlBackgroundColor
+        
+        // 现代浮动卡片外观：隐藏标题栏与交通灯按钮、圆角、透明底
+        window?.titleVisibility = .hidden
+        window?.titlebarAppearsTransparent = true
+        window?.standardWindowButton(.closeButton)?.isHidden = true
+        window?.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window?.standardWindowButton(.zoomButton)?.isHidden = true
+        window?.isOpaque = false
+        window?.backgroundColor = .clear
         window?.hasShadow = true
         window?.ignoresMouseEvents = false
-        window?.title = "window.main.title".localized
         window?.acceptsMouseMovedEvents = true
+        
+        // 圆角裁剪
+        window?.contentView?.wantsLayer = true
+        window?.contentView?.layer?.cornerRadius = ModernDesignSystem.Radius.lg
+        window?.contentView?.layer?.masksToBounds = true
         
         logger.debug("Window created successfully", category: "WindowManager")
         
@@ -131,6 +149,9 @@ class WindowManager: NSObject, ObservableObject {
     }
     
     func showWindow() {
+        if window == nil {
+            prepareWindow()
+        }
         guard let window = window else {
             logger.debug("Error: Window is nil", category: "WindowManager")
             return
@@ -160,7 +181,7 @@ class WindowManager: NSObject, ObservableObject {
                     NSApp.activate(ignoringOtherApps: true)
                     window.makeKey()
 
-                    if let hostingView = window.contentView as? NSHostingView<ModernMainContentView> {
+                    if let hostingView = window.contentView as? NSHostingView<AnyView> {
                         window.makeFirstResponder(hostingView)
                         logger.debug("Floating window setup complete", category: "WindowManager")
                     }
@@ -170,8 +191,19 @@ class WindowManager: NSObject, ObservableObject {
             }
             logger.debug("Window should now be visible", category: "WindowManager")
         } else {
-            logger.debug("Window is already visible, hiding it", category: "WindowManager")
+            // 已可见时不再隐藏（幂等显示），仅确保获得焦点
+            logger.debug("Window is already visible, bringing to front", category: "WindowManager")
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    
+    /// 切换面板显示状态（用于点击/快捷键等"切换"语义的场景）
+    func toggleWindow() {
+        if isWindowVisible {
             hideWindow()
+        } else {
+            showWindow()
         }
     }
     

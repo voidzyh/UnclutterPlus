@@ -17,23 +17,36 @@ class FavoriteFoldersManager: ObservableObject {
     
     private let fileManager = FileManager.default
     private var cancellables = Set<AnyCancellable>()
-    
+
+    /// 动作后自动隐藏面板的回调（由 App 层注入，避免 Core 层直接依赖 WindowManager 单例）
+    var autoHideHandler: ((AutoHideAction) -> Void)?
+
+    /// 元数据存储目录覆盖（仅用于测试注入；nil 时使用默认 Application Support 路径）
+    private let metadataDirectoryOverride: URL?
+
     /// 元数据存储目录
     private var metadataDirectory: URL {
-        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let appDirectory = appSupport.appendingPathComponent("UnclutterPlus")
-        let metadataDirectory = appDirectory.appendingPathComponent("Files").appendingPathComponent("FoldersMetadata")
-        
+        let metadataDirectory: URL
+        if let override = metadataDirectoryOverride {
+            metadataDirectory = override
+        } else {
+            let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let appDirectory = appSupport.appendingPathComponent("UnclutterPlus")
+            metadataDirectory = appDirectory.appendingPathComponent("Files").appendingPathComponent("FoldersMetadata")
+        }
+
         if !fileManager.fileExists(atPath: metadataDirectory.path) {
             try? fileManager.createDirectory(at: metadataDirectory, withIntermediateDirectories: true)
         }
-        
+
         return metadataDirectory
     }
-    
+
     // MARK: - Initialization
-    
-    init() {
+
+    /// - Parameter metadataDirectoryOverride: 元数据目录覆盖（默认 nil，使用真实用户目录；测试可注入临时目录）
+    init(metadataDirectoryOverride: URL? = nil) {
+        self.metadataDirectoryOverride = metadataDirectoryOverride
         loadFolders()
         setupBindings()
     }
@@ -192,8 +205,8 @@ class FavoriteFoldersManager: ObservableObject {
         // 在 Finder 中打开
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.url.path)
         
-        // 通知 WindowManager 自动隐藏
-        WindowManager.shared.hideWindowAfterAction(.fileOpened)
+        // 通知面板自动隐藏（经 App 层注入的回调）
+        autoHideHandler?(.fileOpened)
     }
     
     /// 在新窗口中打开文件夹
@@ -213,8 +226,8 @@ class FavoriteFoldersManager: ObservableObject {
     func showInFinder(_ folder: FavoriteFolder) {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.url.path)
         
-        // 通知 WindowManager 自动隐藏
-        WindowManager.shared.hideWindowAfterAction(.fileShowInFinder)
+        // 通知面板自动隐藏（经 App 层注入的回调）
+        autoHideHandler?(.fileShowInFinder)
     }
     
     /// 移动文件到文件夹
