@@ -82,6 +82,10 @@ struct ClipboardItem: Codable, Identifiable, Equatable, Storable {
     let sourceAppName: String?
     let sourceAppIcon: Data?
 
+    /// 内容指纹（normalize 后的文本或文件路径），用于跨重启的精确去重与频率统计。
+    /// nil 表示历史遗留数据（v2.0.0 之前采集）未持久化指纹。
+    let fingerprint: String?
+
     // 初始化方法
     init(
         id: UUID = UUID(),
@@ -91,7 +95,8 @@ struct ClipboardItem: Codable, Identifiable, Equatable, Storable {
         useCount: Int = 0,
         sourceAppBundleID: String? = nil,
         sourceAppName: String? = nil,
-        sourceAppIcon: Data? = nil
+        sourceAppIcon: Data? = nil,
+        fingerprint: String? = nil
     ) {
         self.id = id
         self.content = content
@@ -101,6 +106,7 @@ struct ClipboardItem: Codable, Identifiable, Equatable, Storable {
         self.sourceAppBundleID = sourceAppBundleID
         self.sourceAppName = sourceAppName
         self.sourceAppIcon = sourceAppIcon
+        self.fingerprint = fingerprint
     }
 
     // 计算属性：预览文本
@@ -172,6 +178,7 @@ extension ClipboardItem {
         self.sourceAppBundleID = sourceAppBundleID
         self.sourceAppName = sourceAppName
         self.sourceAppIcon = sourceAppIcon
+        self.fingerprint = nil
 
         // 转换内容类型
         switch content {

@@ -77,6 +77,8 @@ struct ClipboardIndex: Codable, Identifiable, StorageIndex {
     let useCount: Int
     let isPinned: Bool
     let previewText: String
+    /// 内容指纹（透传自 ClipboardItem，供 ClipboardMonitor 跨重启去重；nil 为遗留数据）
+    let fingerprint: String?
     
     // StorageIndex Conformance
     var sortKey: Date { timestamp }
@@ -96,6 +98,7 @@ struct ClipboardIndex: Codable, Identifiable, StorageIndex {
         self.sourceApp = item.sourceAppName
         self.useCount = item.useCount
         self.isPinned = item.isPinned
+        self.fingerprint = item.fingerprint
 
         // 确定类型和预览
         switch item.content {

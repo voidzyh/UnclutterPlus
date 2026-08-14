@@ -87,10 +87,24 @@ final class ClipboardMonitor: ObservableObject {
     }
 
     private func processClipboardContent() async {
-        guard let content = readPasteboardContent() else { return }
-
-        // 获取来源应用信息
+        // 获取来源应用信息（先于内容读取：应用排除规则需要它）
         let (bundleID, appName, appIcon) = currentSourceAppInfo()
+
+        // 应用排除规则：来源应用在排除列表时直接跳过
+        if Self.isExcludedSourceApp(bundleID: bundleID, excludedBundleIDs: config.clipboardExcludedAppIDs) {
+            logger.debug("忽略被排除应用的剪贴板内容: \(bundleID ?? "unknown")", category: "ClipboardMonitor")
+            return
+        }
+
+        // 敏感内容忽略：密码管理器标记（ConcealedType / 1Password）与瞬态内容
+        if Self.shouldIgnore(types: pasteboard.types?.map(\.rawValue) ?? [],
+                             ignoreConcealed: config.clipboardIgnoreConcealed,
+                             ignoreTransient: config.clipboardIgnoreTransient) {
+            logger.debug("忽略敏感/瞬态剪贴板内容", category: "ClipboardMonitor")
+            return
+        }
+
+        guard let content = readPasteboardContent() else { return }
 
         switch content {
         case .text(let text):
@@ -118,7 +132,7 @@ final class ClipboardMonitor: ObservableObject {
                 await repository.incrementUseCount(existing)
             }
         } else {
-            // 新内容：创建并持久化
+            // 新内容：创建并持久化（指纹随 item 落盘，供重启后精确去重）
             let item = ClipboardItem(
                 content: .text(trimmed),
                 timestamp: Date(),
@@ -126,7 +140,8 @@ final class ClipboardMonitor: ObservableObject {
                 useCount: 1,
                 sourceAppBundleID: bundleID,
                 sourceAppName: appName,
-                sourceAppIcon: appIcon
+                sourceAppIcon: appIcon,
+                fingerprint: fingerprint
             )
             await repository.addItem(item)
             fingerprintIndex[fingerprint] = item.id
@@ -150,7 +165,7 @@ final class ClipboardMonitor: ObservableObject {
         lastCapturedAt = Date()
     }
 
-    /// 文件处理：按 path 指纹去重。
+    /// 文件处理：按完整路径指纹去重（指纹随 item 落盘）。
     private func handleFile(_ url: URL, bundleID: String?, appName: String?, appIcon: Data?) async {
         let fingerprint = "file::\(url.path)"
 
@@ -166,7 +181,8 @@ final class ClipboardMonitor: ObservableObject {
                 useCount: 1,
                 sourceAppBundleID: bundleID,
                 sourceAppName: appName,
-                sourceAppIcon: appIcon
+                sourceAppIcon: appIcon,
+                fingerprint: fingerprint
             )
             await repository.addItem(item)
             fingerprintIndex[fingerprint] = item.id
@@ -187,27 +203,64 @@ final class ClipboardMonitor: ObservableObject {
             .joined(separator: " ")
     }
 
+    /// 从持久化项目计算指纹（文本用 normalize 指纹，文件用全路径，图片为 nil）。
+    /// 用于遗留数据（fingerprint == nil）的启动迁移。
+    static func fingerprint(for item: ClipboardItem) -> String? {
+        switch item.content {
+        case .text(let text):
+            return fingerprint(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        case .file(let url):
+            return "file::\(url.path)"
+        case .image:
+            return nil
+        }
+    }
+
     /// 启动时从持久化数据重建指纹缓存，确保重启后能正确去重/计数。
+    /// 优先读取 item 上持久化的指纹；遗留数据（nil）回退为按完整内容重算。
     private func bootstrapFingerprints() async {
         guard !didBootstrapFingerprints else { return }
         didBootstrapFingerprints = true
 
         for index in repository.clipboardIndexes {
-            switch index.type {
-            case .text:
-                // 需要完整内容计算指纹；取 preview（前 100 字符）不足以还原，
-                // 但对于去重足够 —— 用 normalize 后的 preview 作为指纹
-                let fp = Self.fingerprint(index.preview)
-                fingerprintIndex[fp] = index.id
-            case .file:
-                let fp = "file::\(index.preview)"
-                fingerprintIndex[fp] = index.id
-            case .image:
-                break
+            if let persisted = index.fingerprint {
+                fingerprintIndex[persisted] = index.id
+                continue
+            }
+
+            // 遗留数据：需要完整内容重算指纹
+            guard let item = await repository.getItem(id: index.id) else { continue }
+            if let computed = Self.fingerprint(for: item) {
+                fingerprintIndex[computed] = index.id
             }
         }
 
         logger.info("剪贴板指纹缓存已重建，共 \(fingerprintIndex.count) 项", category: "ClipboardMonitor")
+    }
+
+    // MARK: - Capture Policies（纯函数，便于测试）
+
+    /// 敏感/瞬态内容判断：密码管理器（1Password 等）会以 ConcealedType 标记，
+    /// 部分工具用 TransientType 标记自动生成内容。对齐 Maccy 的忽略策略。
+    /// - Parameters:
+    ///   - types: pasteboard 的类型列表（rawValue）
+    ///   - ignoreConcealed: 是否忽略 ConcealedType / 1Password 标记
+    ///   - ignoreTransient: 是否忽略 TransientType 标记
+    static func shouldIgnore(types: [String], ignoreConcealed: Bool, ignoreTransient: Bool) -> Bool {
+        let concealedTypes: Set<String> = ["org.nspasteboard.ConcealedType", "com.agilebits.onepassword"]
+        if ignoreConcealed && types.contains(where: { concealedTypes.contains($0) }) {
+            return true
+        }
+        if ignoreTransient && types.contains("org.nspasteboard.TransientType") {
+            return true
+        }
+        return false
+    }
+
+    /// 应用排除规则判断：来源应用 bundle ID（小写）在排除集合中时返回 true。
+    static func isExcludedSourceApp(bundleID: String?, excludedBundleIDs: Set<String>) -> Bool {
+        guard let bundleID = bundleID?.lowercased(), !bundleID.isEmpty else { return false }
+        return excludedBundleIDs.contains(bundleID)
     }
 
     // MARK: - Pasteboard Reading
