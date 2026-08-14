@@ -32,7 +32,16 @@ struct ModernFilesView: View {
                 .background(ModernDesignSystem.shared.color(.bgCanvas))
             }
             
-            // 内容区域
+            // 暂存区（drop zone）—— 拖入文件暂存、拖出到任意应用
+            stagedFilesSection
+                .overlay(
+                    Rectangle()
+                        .fill(ModernDesignSystem.shared.color(.strokeAdaptive))
+                        .frame(height: 1),
+                    alignment: .bottom
+                )
+            
+            // 内容区域（收藏文件夹）
             contentArea
                 .onDrop(of: [.fileURL], isTargeted: $dragOver) { providers in
                     handleDrop(providers: providers)
@@ -84,6 +93,59 @@ struct ModernFilesView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - 暂存区（drop zone）
+    
+    private var stagedFilesSection: some View {
+        VStack(alignment: .leading, spacing: ModernDesignSystem.Spacing.sm) {
+            HStack {
+                Label("files.staged.title".localized, systemImage: "tray.and.arrow.down")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(ModernDesignSystem.shared.color(.textSecondary))
+                
+                Text("\(viewModel.stagedFiles.count)")
+                    .font(.caption2)
+                    .foregroundColor(ModernDesignSystem.shared.color(.textTertiary))
+                
+                Spacer()
+                
+                Button(action: { viewModel.clearStagedFiles() }) {
+                    Text("files.staged.clear".localized)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .disabled(viewModel.stagedFiles.isEmpty)
+                .help("files.staged.clear_help".localized)
+            }
+            
+            if viewModel.stagedFiles.isEmpty {
+                Text("files.staged.empty".localized)
+                    .font(.caption)
+                    .foregroundColor(ModernDesignSystem.shared.color(.textTertiary))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, ModernDesignSystem.Spacing.md)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: ModernDesignSystem.Spacing.sm) {
+                        ForEach(viewModel.stagedFiles) { item in
+                            StagedFileChip(
+                                item: item,
+                                onTap: { viewModel.openStagedFile(item) },
+                                onQuickLook: { QuickLookController.shared.togglePreview(for: item.url) },
+                                onReveal: { viewModel.revealStagedFile(item) },
+                                onRemove: { viewModel.removeStagedFile(item) },
+                                onDragOut: { viewModel.recordStagedFileAccess(item) }
+                            )
+                        }
+                    }
+                    .padding(.vertical, ModernDesignSystem.Spacing.xs)
+                }
+            }
+        }
+        .padding(.horizontal, ModernDesignSystem.Spacing.lg)
+        .padding(.vertical, ModernDesignSystem.Spacing.sm)
     }
     
     // MARK: - 内容区域
@@ -201,13 +263,19 @@ struct ModernFilesView: View {
     }
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        // Simple implementation for drop
+        // 拖入路由：目录 → 收藏文件夹；文件 → 暂存区
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (urlData, error) in
                     if let urlData = urlData as? Data,
                        let url = URL(dataRepresentation: urlData, relativeTo: nil) {
-                        Task { await viewModel.addFolder(url) }
+                        Task { @MainActor in
+                            if ModernFilesViewModel.isDirectory(url) {
+                                await viewModel.addFolder(url)
+                            } else {
+                                viewModel.stageFile(url)
+                            }
+                        }
                     }
                 }
             }
@@ -302,5 +370,68 @@ struct FolderListItem: View {
         )
         .onTapGesture(perform: onTap)
         .hoverScaleEffect(scale: 1.01)
+    }
+}
+
+// MARK: - 暂存文件组件
+
+/// 暂存区文件卡片：拖出到任意应用、点击打开、悬停显示操作、右键菜单（Quick Look/揭示/移除）
+struct StagedFileChip: View {
+    let item: TempFileItem
+    let onTap: () -> Void
+    let onQuickLook: () -> Void
+    let onReveal: () -> Void
+    let onRemove: () -> Void
+    let onDragOut: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: item.exists ? "doc" : "doc.badge.plus")
+                .font(.system(size: 22))
+                .foregroundColor(item.exists ? .blue : ModernDesignSystem.shared.color(.textTertiary))
+
+            Text(item.name)
+                .font(.caption2)
+                .foregroundColor(item.exists ? ModernDesignSystem.shared.color(.textPrimary) : ModernDesignSystem.shared.color(.textTertiary))
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .frame(width: 76, height: 64)
+        .background(ModernDesignSystem.shared.color(.bgSurface))
+        .cornerRadius(ModernDesignSystem.Radius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: ModernDesignSystem.Radius.sm)
+                .stroke(isHovered ? ModernDesignSystem.shared.color(.borderFocus) : ModernDesignSystem.shared.color(.strokeAdaptive), lineWidth: 1)
+        )
+        .overlay(alignment: .topTrailing) {
+            if isHovered {
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(3)
+                .help("files.staged.remove".localized)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .onHover { isHovered = $0 }
+        .contextMenu {
+            Button("files.staged.open".localized, action: onTap)
+            Button("files.staged.quicklook".localized, action: onQuickLook)
+            Button("files.staged.reveal".localized, action: onReveal)
+            Divider()
+            Button("files.staged.remove".localized, role: .destructive, action: onRemove)
+        }
+        .help(item.exists ? item.url.path : "files.staged.missing".localized)
+        .onDrag {
+            // 拖出：向任意应用提供文件 URL（Finder/其他应用执行复制或移动）
+            onDragOut()
+            return NSItemProvider(object: item.url as NSURL)
+        }
     }
 }

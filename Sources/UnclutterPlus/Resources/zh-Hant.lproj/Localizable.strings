@@ -155,6 +155,17 @@
 "preferences.storage.files_location" = "資料夾數據儲存位置";
 "preferences.storage.clipboard_location" = "剪貼簿儲存位置";
 "preferences.storage.notes_location" = "筆記儲存位置";
+
+// MARK: - 暫存檔案（drop zone）
+"files.staged.title" = "暫存檔案";
+"files.staged.empty" = "將檔案拖入此處暫存，之後可拖出到任意應用";
+"files.staged.clear" = "清空";
+"files.staged.clear_help" = "移除全部暫存檔案";
+"files.staged.open" = "開啟";
+"files.staged.quicklook" = "快速查看";
+"files.staged.reveal" = "在 Finder 中顯示";
+"files.staged.remove" = "移除";
+"files.staged.missing" = "檔案已不存在";
 "preferences.storage.migrate_data" = "移轉資料";
 "preferences.storage.reset_paths" = "重設為預設";
 "preferences.storage.invalid_path" = "無效的路徑";

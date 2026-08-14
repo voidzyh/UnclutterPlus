@@ -107,6 +107,17 @@
 "preferences.storage.files_location" = "文件夹数据存储位置";
 "preferences.storage.clipboard_location" = "剪贴板存储位置";
 "preferences.storage.notes_location" = "笔记存储位置";
+
+// MARK: - 暂存文件（drop zone）
+"files.staged.title" = "暂存文件";
+"files.staged.empty" = "将文件拖入此处暂存，之后可拖出到任意应用";
+"files.staged.clear" = "清空";
+"files.staged.clear_help" = "移除全部暂存文件";
+"files.staged.open" = "打开";
+"files.staged.quicklook" = "快速查看";
+"files.staged.reveal" = "在 Finder 中显示";
+"files.staged.remove" = "移除";
+"files.staged.missing" = "文件已不存在";
 "preferences.storage.migrate_data" = "迁移数据";
 "preferences.storage.reset_paths" = "重置为默认";
 "preferences.storage.invalid_path" = "无效的路径";

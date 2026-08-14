@@ -11,7 +11,7 @@
 
 - [ ] 浮动面板全链路稳定（唤出/隐藏/自动隐藏/多屏定位）——重构后首要验收项（代码侧已收敛，需真机回归）
 - [x] 剪贴板基线：pin、纯文本粘贴、应用排除规则、密码管理器内容自动忽略（对齐 Maccy）——2026-08 完成
-- [ ] 文件暂存基线：拖入拖出、Quick Look 预览、Finder 揭示
+- [x] 文件暂存基线：拖入拖出、Quick Look 预览、Finder 揭示——2026-08 完成（暂存架重建，与收藏文件夹共存）
 - [ ] 全局快捷键 + 键盘优先操作流（`GlobalHotkey` 已存在，需在面板收敛后完成接线）
 - [ ] 面板唤出速度与内存占用达标（把"稳定轻快"做成对原版的对比卖点）
 
@@ -64,6 +64,7 @@
 - 修复剪贴板指纹 bootstrap 有损 bug（preview 截断/文件名反推指纹 → 重启后长文本与文件重复入库）；`fingerprint` 提升为 ClipboardItem 一等持久化字段，遗留数据启动时按完整内容迁移
 - 剪贴板复制后自动隐藏面板（对齐截图面板行为）
 - `@StateObject` 包单例反模式修正（InsightsView）
+- 文件暂存架重建（`TempFileManager` + `TempFileItem`）：拖入文件暂存（目录自动路由到收藏文件夹）、拖出到任意应用、Quick Look 预览（`QuickLookController`）、Finder 揭示、访问统计、缺失文件容忍、JSON 持久化 + 8 个单元测试
 - 新增架构与需求重评估：[architecture/reassessment_2026-08.md](architecture/reassessment_2026-08.md)
 
 ### 2026-07 架构清理与重构

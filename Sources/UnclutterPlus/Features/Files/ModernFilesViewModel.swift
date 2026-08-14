@@ -10,6 +10,7 @@ final class ModernFilesViewModel: ObservableObject {
     
     @Published var folders: [FavoriteFolder] = []
     @Published var filteredFolders: [FavoriteFolder] = []
+    @Published var stagedFiles: [TempFileItem] = []
     @Published var searchText: String = "" {
         didSet {
             debouncedSearch.send(searchText)
@@ -34,6 +35,7 @@ final class ModernFilesViewModel: ObservableObject {
     // MARK: - 私有属性
     
     private let foldersManager = FavoriteFoldersManager.shared
+    private let tempFileManager = TempFileManager.shared
     private var cancellables = Set<AnyCancellable>()
     private let debouncedSearch = PassthroughSubject<String, Never>()
     
@@ -64,6 +66,14 @@ final class ModernFilesViewModel: ObservableObject {
             .sink { [weak self] folders in
                 self?.folders = folders
                 self?.applyFilters()
+            }
+            .store(in: &cancellables)
+
+        // 监听暂存文件的变化
+        tempFileManager.$files
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] files in
+                self?.stagedFiles = files
             }
             .store(in: &cancellables)
     }
@@ -151,6 +161,40 @@ final class ModernFilesViewModel: ObservableObject {
     
     func showInFinder(_ folder: FavoriteFolder) async {
         foldersManager.showInFinder(folder)
+    }
+
+    // MARK: - 暂存文件（drop zone）
+
+    /// 暂存一个文件（引用）；目录不会被暂存（应走收藏文件夹流程）
+    @discardableResult
+    func stageFile(_ url: URL) -> Bool {
+        tempFileManager.stageFile(url: url)
+    }
+
+    func removeStagedFile(_ item: TempFileItem) {
+        tempFileManager.removeFile(item)
+    }
+
+    func clearStagedFiles() {
+        tempFileManager.clearAllFiles()
+    }
+
+    func openStagedFile(_ item: TempFileItem) {
+        tempFileManager.openFile(item)
+    }
+
+    func revealStagedFile(_ item: TempFileItem) {
+        tempFileManager.revealInFinder(item)
+    }
+
+    func recordStagedFileAccess(_ item: TempFileItem) {
+        tempFileManager.recordAccess(for: item)
+    }
+
+    /// 判断 URL 是否为目录（拖入路由：目录 → 收藏文件夹，文件 → 暂存）
+    static func isDirectory(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
     
     func handleFileDragToFolder(providers: [NSItemProvider], folder: FavoriteFolder) -> Bool {

@@ -98,6 +98,17 @@
 "preferences.storage.files_location" = "Folders Storage";
 "preferences.storage.clipboard_location" = "Clipboard Storage";
 "preferences.storage.notes_location" = "Notes Storage";
+
+// MARK: - Staged Files (drop zone)
+"files.staged.title" = "Staged Files";
+"files.staged.empty" = "Drag files here to stage them, then drag out to any app";
+"files.staged.clear" = "Clear";
+"files.staged.clear_help" = "Remove all staged files";
+"files.staged.open" = "Open";
+"files.staged.quicklook" = "Quick Look";
+"files.staged.reveal" = "Show in Finder";
+"files.staged.remove" = "Remove";
+"files.staged.missing" = "File no longer exists";
 "preferences.storage.migrate_data" = "Migrate Data";
 "preferences.storage.reset_paths" = "Reset to Defaults";
 "preferences.storage.invalid_path" = "Invalid Path";

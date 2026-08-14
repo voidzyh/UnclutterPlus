@@ -24,10 +24,13 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         logger.info("UnclutterPlus v2.0.0 启动完成", category: "Service")
 
-        // 依赖注入：面板内容视图（App 层 → Core 层）与文件夹动作的自动隐藏回调
+        // 依赖注入：面板内容视图（App 层 → Core 层）与文件夹/暂存文件动作的自动隐藏回调
         WindowManager.shared.contentFactory = { AnyView(ModernMainContentView()) }
         WindowManager.shared.prepareWindow()
         FavoriteFoldersManager.shared.autoHideHandler = { action in
+            WindowManager.shared.hideWindowAfterAction(action)
+        }
+        TempFileManager.shared.autoHideHandler = { action in
             WindowManager.shared.hideWindowAfterAction(action)
         }
 

@@ -92,10 +92,10 @@
 
 ## 4. 推进计划（按轮）
 
-1. **R1（本轮）剪贴板基线补全**：指纹持久化修复（§2.1-1）、密码管理器 ConcealedType 忽略 + 瞬态忽略、应用排除规则（Bundle ID 白名单配置）、pin/取消 pin/清除非 pin 接线、copy 后自动隐藏。配置项全部落 `ConfigurationManager` + 偏好设置 UI + 本地化。
-2. **R2 文件面板基线**：拖出（`NSItemProvider`/file URL 拖拽）、Quick Look（`QLPreviewPanel`）、Finder 揭示 + 自动隐藏接线；补齐 Files 功能流测试。
+1. **R1（完成 2026-08-14）剪贴板基线补全**：指纹持久化修复、密码管理器 ConcealedType 忽略 + 瞬态忽略、应用排除规则、pin/取消 pin/清除非 pin 接线、copy 后自动隐藏（提交 `066c073`、`4a0558a`）。
+2. **R2（完成 2026-08-14）文件暂存架重建**：`TempFileManager`（引用式暂存 + 访问统计 + 持久化 + 缺失容忍）、拖入路由（文件→暂存，目录→收藏文件夹）、拖出到任意应用、Quick Look、Finder 揭示。
 3. **R3 存储层并发统一**：`ShardedStorage`/`UnifiedNoteStorage` actor 化、`waitForInit` 改 Task 化等待；顺带剪贴板增量刷新。
-4. **R4 错误系统收敛 + 小修**：统一错误枚举、`InsightsView` `@StateObject`→`@ObservedObject`。
+4. **R4 错误系统收敛 + 小修**：统一错误枚举。
 5. **R5 差异化启动**：iCloud 技术调研报告 → 立项。
 
 每轮以"测试全绿 + 独立提交"为完成标准；文档随轮更新 [pending_tasks.md](../pending_tasks.md) 勾选状态。
