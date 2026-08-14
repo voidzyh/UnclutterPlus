@@ -57,8 +57,8 @@ public actor ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         // 创建基础目录
         try? fileManager.createDirectory(at: baseURL, withIntermediateDirectories: true)
 
-        // 加载分片索引
-        loadShardIndex()
+        // 加载分片索引（静态方法，避免 init 非隔离上下文调用 actor 方法）
+        self.shardIndex = Self.loadShardIndex(at: indexURL)
     }
 
     // MARK: - Public Methods
@@ -353,16 +353,17 @@ public actor ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         return nil
     }
 
-    /// 加载分片索引
-    private func loadShardIndex() {
-        guard fileManager.fileExists(atPath: indexURL.path) else { return }
+    /// 加载分片索引（静态，供 init 在非隔离上下文调用）
+    private static func loadShardIndex(at indexURL: URL) -> [UUID: String] {
+        guard FileManager.default.fileExists(atPath: indexURL.path) else { return [:] }
 
         do {
             let data = try Data(contentsOf: indexURL)
             let index = try JSONDecoder().decode([String: String].self, from: data)
-            shardIndex = index.compactMapKeys { UUID(uuidString: $0) }
+            return index.compactMapKeys { UUID(uuidString: $0) }
         } catch {
             logger.error("加载分片索引失败: \(error.localizedDescription)", category: "Storage")
+            return [:]
         }
     }
 
@@ -371,9 +372,10 @@ public actor ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         saveIndexTask?.cancel()
 
         saveIndexTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: saveIndexDelay)
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: self.saveIndexDelay)
             guard !Task.isCancelled else { return }
-            await self?.performSaveShardIndex()
+            await self.performSaveShardIndex()
         }
     }
 
