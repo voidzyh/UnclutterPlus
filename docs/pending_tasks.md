@@ -17,7 +17,7 @@
 
 ### P1 — 差异化（原版没有或用户反复要求的）
 
-- [ ] iCloud/CloudKit 同步（原版用户第一大痛点）
+- [ ] iCloud/CloudKit 同步（原版用户第一大痛点）——技术调研完成（[产品级报告](product/icloud_sync_research.md)：推荐 CloudKit 私有库 + CKSyncEngine，首域笔记；P0 立项验证需 Apple Developer 账号）
 - [x] 截图管理：自动归集 + Vision 本地 OCR 全文搜索（做"管理"不做"拍摄"）——2026-08 完成（Vision 本地 OCR 引擎替代 Deepseek CLI 为默认）
 - [ ] Shortcuts / App Intents 集成（竞品标配）
 - [x] 剪贴板智能：高频片段统计（已有洞察引擎基础）、多项合并粘贴——合并粘贴 2026-08 完成（多选 + 按列表顺序合并 + 可配置分隔符）
@@ -57,6 +57,12 @@
 ---
 
 ## ✅ 已完成（历史记录）
+
+### 2026-08 iCloud/CloudKit 同步技术调研（R5）
+- 一手来源调研（Apple 官方文档/Technote/WWDC/apple org 示例，每条事实附来源链接）：四方案对比 + 配额限制（TN3164）+ 冲突机制 + entitlement 打包 + 菜单栏应用适用性
+- **结论**：推荐 CloudKit 私有库 + CKSyncEngine（原生 CKRecord），首个同步域选笔记；不推荐 NSPersistentCloudKitContainer（需引入整套 Core Data）；iCloud Drive 文件同步仅适合单设备备份场景
+- 落地路线：P0 立项验证（签名链路）→ P1 笔记域 → P2 截图 → P3 剪贴板（opt-in）→ P4 推送增强
+- 三份报告：`docs/product/icloud_sync_research.md`（总报告）+ `icloud_drive_sync_research.md` + `cloudkit-native-ckrecord-research.md`（分项）
 
 ### 2026-08 P1/P2 冲刺（todo list 依次执行）
 - Shortcuts / App Intents：显示/隐藏面板、复制最近剪贴板项（AppShortcutsProvider 暴露；.app bundle 下可用）
