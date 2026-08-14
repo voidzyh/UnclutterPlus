@@ -33,12 +33,12 @@
 ## 🔧 技术 Backlog（结构 P2，详见 refactor_findings.md 与 architecture/reassessment_2026-08.md）
 
 - [ ] 错误系统收敛：13 个错误枚举 → 1 套
-- [ ] 存储层并发统一（actor 化，消除 NSLock-in-async 的 Swift 6 隐患）
+- [x] 存储层并发统一（actor 化，消除 NSLock-in-async 的 Swift 6 隐患）——2026-08 完成（ShardedStorage/UnifiedNoteStorage actor 化，waitForInit 改 Task 化等待）
 - [ ] ViewModel 模板去重（Notes/Clipboard/Files 三段式重复）
 - [ ] View/VM 状态双轨消除（Clipboard 视图 @State searchText/selectedItem 与 VM 并存）
 - [ ] PreferencesView 拆分（849 行）与命名统一（去 Modern 前缀）
 - [x] `@StateObject` 包单例反模式修正（应 `@ObservedObject`）——2026-08 完成（仅剩 InsightsView 一处）
-- [ ] 剪贴板列表 O(N) 全量重载改增量刷新
+- [x] 剪贴板列表 O(N) 全量重载改增量刷新——2026-08 完成（repository 变更明细 + VM 增量合并）
 
 ## 📋 低优先级测试 TODO（非核心功能，可延后）
 
@@ -57,6 +57,13 @@
 ---
 
 ## ✅ 已完成（历史记录）
+
+### 2026-08 R3 存储层并发统一
+- `ShardedStorage` actor 化：移除 GCD 并发队列与 barrier，shardIndex 由 actor 隔离；`loadAll` 跨分片并行 IO 经不捕获 self 的子任务 + 静态编解码器保留；索引防抖保存改 Task 化
+- `UnifiedNoteStorage` actor 化：NSLock 全移除，索引缓存 actor 隔离
+- `ClipboardStorageAdapter` 初始化改 Task 化等待（消除 100ms 忙等轮询）
+- 剪贴板增量刷新：`ClipboardRepository` 发布变更明细（added/updated/removed/cleared），`ModernClipboardViewModel` 按事件增量合并，替代 objectWillChange 全量重载
+- 新增 `ShardedStorageConcurrencyTests`（并发读写删/跨实例索引重建）+ `ClipboardIncrementalRefreshTests`（冷缓存场景验证零重读），125 测试全绿
 
 ### 2026-08 剪贴板基线补全与重构收口
 - 三笔逻辑提交收口进行中的重构（面板现代化 + Core/UI 依赖倒置、笔记服务纯数据化、功能流测试套件）

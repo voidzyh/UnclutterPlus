@@ -49,8 +49,8 @@
 | 剪贴板指纹 bootstrap 有损 | **P0（bug）** | 数据正确性，已列入本轮修复 |
 | 剪贴板 copy 不自动隐藏 / pin 未接线 | **P0（基线）** | 面板链路 + Maccy 基线对齐，本轮修复 |
 | 文件面板拖出/QuickLook/Finder 揭示缺失 | **P0（基线）** | pending_tasks P0 明确项，下一轮 |
-| 存储层并发统一（NSLock/GCD 混用 + `waitForInit` 忙等轮询） | **P1 高** | Swift 6 严格并发下 NSLock-in-async 会升级为编译错误；`waitForInit` 的 100ms 忙等浪费启动时间。建议 actor 化 + 用 `Task`/`AsyncStream` 替代轮询 |
-| 剪贴板 O(N) 全量重载 | **P1 中** | `repository.objectWillChange` 任何变化都触发逐条 `getItem` 重载；应在 repository 上发布变更明细（item id + 类型）做增量合并 |
+| 存储层并发统一（NSLock/GCD 混用 + `waitForInit` 忙等轮询） | ~~P1 高~~ ✅ R3 完成 | `ShardedStorage`/`UnifiedNoteStorage` 已 actor 化（GCD barrier、NSLock 全移除），初始化改 Task 化等待；剪贴板增量刷新同步完成 |
+| 剪贴板 O(N) 全量重载 | ~~P1 中~~ ✅ R3 完成 | `ClipboardRepository` 发布变更明细（added/updated/removed/cleared），VM 按事件增量合并 |
 | 错误系统收敛（13 枚举 → 1 套） | **P1 中** | 真实债务，但对单一功能不阻塞；建议与存储 actor 化同批做（错误多集中在存储/服务层） |
 | View/VM 状态双轨（Clipboard 视图 `@State searchText/selectedItem` 与 VM 并存） | **P1 中** | 拖慢剪贴板增量刷新改造，建议先收敛 |
 | VM 三段式模板去重（setupBindings/debouncedSearch/applyFilters ×3） | **P2** | 可提取 `FilterableViewModel` 基类或组合，但风险是过早抽象 |
@@ -94,7 +94,7 @@
 
 1. **R1（完成 2026-08-14）剪贴板基线补全**：指纹持久化修复、密码管理器 ConcealedType 忽略 + 瞬态忽略、应用排除规则、pin/取消 pin/清除非 pin 接线、copy 后自动隐藏（提交 `066c073`、`4a0558a`）。
 2. **R2（完成 2026-08-14）文件暂存架重建**：`TempFileManager`（引用式暂存 + 访问统计 + 持久化 + 缺失容忍）、拖入路由（文件→暂存，目录→收藏文件夹）、拖出到任意应用、Quick Look、Finder 揭示。
-3. **R3 存储层并发统一**：`ShardedStorage`/`UnifiedNoteStorage` actor 化、`waitForInit` 改 Task 化等待；顺带剪贴板增量刷新。
+3. **R3（完成 2026-08-14）存储层并发统一**：`ShardedStorage`/`UnifiedNoteStorage` actor 化（移除 GCD barrier 与 NSLock）、`waitForInit` 忙等改 Task 化等待、剪贴板增量刷新（repository 变更明细 + VM 增量合并）。
 4. **R4 错误系统收敛 + 小修**：统一错误枚举。
 5. **R5 差异化启动**：iCloud 技术调研报告 → 立项。
 
