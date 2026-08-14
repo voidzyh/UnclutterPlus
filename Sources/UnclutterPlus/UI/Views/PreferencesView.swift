@@ -435,8 +435,15 @@ struct PreferencesView: View {
 
             // MARK: - OCR（补全：此前定义但无 UI）
             Section("preferences.ocr.section".localized) {
+                Picker("preferences.ocr.engine".localized, selection: $config.ocrEngineType) {
+                    Text("preferences.ocr.engine.vision".localized).tag("vision")
+                    Text("preferences.ocr.engine.cli".localized).tag("cli")
+                }
+                .help("preferences.ocr.engine.help".localized)
                 TextField("preferences.ocr.deepseek_path".localized, text: $config.deepseekBinaryPath)
+                    .disabled(config.ocrEngineType != "cli")
                 TextField("preferences.ocr.deepseek_langs".localized, text: $config.deepseekLanguages)
+                    .help("preferences.ocr.deepseek_langs.help".localized)
                 Toggle("preferences.ocr.auto".localized, isOn: $config.ocrAutoEnabled)
             }
         }

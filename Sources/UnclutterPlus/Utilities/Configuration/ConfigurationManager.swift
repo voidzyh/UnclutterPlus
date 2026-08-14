@@ -83,6 +83,8 @@ class ConfigurationManager: ObservableObject {
     @AppStorage("ocr.deepseek.path") var deepseekBinaryPath: String = "" // 例如 /usr/local/bin/deepseek-ocr
     @AppStorage("ocr.deepseek.langs") var deepseekLanguages: String = "zh,en" // 逗号分隔
     @AppStorage("ocr.auto") var ocrAutoEnabled: Bool = true
+    // OCR 引擎："vision"（本地 Vision，默认）或 "cli"（Deepseek 外部二进制）
+    @AppStorage("ocr.engine") var ocrEngineType: String = "vision"
 
     // AI 服务设置（智能整理 / 聚类总结）
     // 实现类型："http" (OpenAI 兼容 API) 或 "cli" (本地命令行如 ollama)

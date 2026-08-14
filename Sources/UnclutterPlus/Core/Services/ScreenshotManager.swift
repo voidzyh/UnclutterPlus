@@ -269,9 +269,10 @@ class ScreenshotManager: ObservableObject {
             }
         }
         
-        // 执行 OCR（这里会调用 OCREngine）
-        // 暂时使用占位符，后续会实现
-        let ocrEngine = DeepseekOCREngine()
+        // 执行 OCR（引擎按配置选择：默认本地 Vision，可切回 Deepseek CLI）
+        let ocrEngine: any OCREngine = config.ocrEngineType == "cli"
+            ? DeepseekOCREngine()
+            : VisionOCREngine()
         let result = await ocrEngine.recognize(imageURL: item.imageURL)
         
         // 更新结果

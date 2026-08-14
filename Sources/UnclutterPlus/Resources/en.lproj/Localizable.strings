@@ -364,4 +364,9 @@
 "preferences.ocr.deepseek_path" = "DeepSeek CLI Path";
 "preferences.ocr.deepseek_langs" = "Languages";
 "preferences.ocr.auto" = "Auto OCR after screenshot";
+"preferences.ocr.engine" = "OCR Engine";
+"preferences.ocr.engine.vision" = "Local Vision (recommended, no setup)";
+"preferences.ocr.engine.cli" = "DeepSeek CLI (external binary)";
+"preferences.ocr.engine.help" = "Vision runs fully on-device with no configuration; CLI requires an installed binary.";
+"preferences.ocr.deepseek_langs.help" = "Comma-separated language codes (zh,en,ja,ko,fr,de,es)";
 "preferences.storage.reveal" = "Reveal in Finder";

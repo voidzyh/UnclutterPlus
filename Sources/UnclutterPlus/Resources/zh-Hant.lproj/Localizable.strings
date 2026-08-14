@@ -361,4 +361,9 @@
 "preferences.ocr.deepseek_path" = "DeepSeek CLI Path";
 "preferences.ocr.deepseek_langs" = "Languages";
 "preferences.ocr.auto" = "Auto OCR after screenshot";
+"preferences.ocr.engine" = "OCR 引擎";
+"preferences.ocr.engine.vision" = "本地 Vision（推薦，免配置）";
+"preferences.ocr.engine.cli" = "DeepSeek CLI（外部二進位）";
+"preferences.ocr.engine.help" = "Vision 完全在裝置本地執行、無需配置；CLI 需要已安裝的二進位檔案。";
+"preferences.ocr.deepseek_langs.help" = "逗號分隔的語言代碼（zh,en,ja,ko,fr,de,es）";
 "preferences.storage.reveal" = "Reveal in Finder";
