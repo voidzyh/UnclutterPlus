@@ -117,12 +117,16 @@ public actor ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
 
     /// 读取项目
     public func read(id: UUID) async throws -> Item? {
+        // 索引命中：尝试直接读取；文件缺失（旧格式索引只有裸文件名、或索引过期）时
+        // 回退目录扫描并自愈索引
         if let shardName = shardIndex[id] {
             let shardPath = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
-            return try loadFromPath(shardPath)
+            if let item = try loadFromPath(shardPath) {
+                return item
+            }
         }
 
-        // 索引未命中时全目录查找（重建索引）
+        // 索引未命中或路径失效：全目录查找（重建索引）
         if let path = try await findItemPath(id: id) {
             return try loadFromPath(path)
         }
@@ -142,11 +146,20 @@ public actor ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
 
     /// 删除项目
     public func delete(id: UUID) async throws {
-        guard let shardName = shardIndex[id] else {
+        // 索引命中且文件存在 → 直接删除；否则回退目录扫描（兼容旧格式索引/过期索引）
+        var target: URL?
+        if let shardName = shardIndex[id] {
+            let path = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
+            if fileManager.fileExists(atPath: path.path) {
+                target = path
+            }
+        }
+        if target == nil {
+            target = try await findItemPath(id: id)
+        }
+        guard let shardPath = target else {
             throw StorageError.notFound(id)
         }
-
-        let shardPath = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
 
         do {
             try fileManager.removeItem(at: shardPath)

@@ -114,4 +114,39 @@ final class ShardedStorageConcurrencyTests: XCTestCase {
         let all = try await storage.loadAll()
         XCTAssertTrue(all.isEmpty)
     }
+
+    // MARK: - 旧格式索引兼容（冒烟测试实测发现）
+
+    /// 遗留 .shard_index.json 的值为裸文件名（无目录前缀），按新格式解析会指向
+    /// 不存在的路径；read/delete 必须回退目录扫描（并自愈索引）。
+    func testLegacyBareFilenameIndexFallsBackToDirectoryScan() async throws {
+        // Given - 手工构造遗留布局：分片目录 + 旧格式索引
+        let item = makeItem("legacy-index")
+        let shardDir = baseURL.appendingPathComponent("2025-11")
+        try FileManager.default.createDirectory(at: shardDir, withIntermediateDirectories: true)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let itemData = try encoder.encode(item)
+        try itemData.write(to: shardDir.appendingPathComponent("\(item.id.uuidString).json"))
+
+        // 旧格式：值为裸文件名（无 "2025-11/" 前缀）
+        let legacyIndex = [item.id.uuidString: "\(item.id.uuidString).json"]
+        try JSONEncoder().encode(legacyIndex)
+            .write(to: baseURL.appendingPathComponent(".shard_index.json"))
+
+        // When - 新实例读取
+        let storage = ShardedStorage<ClipboardItem>(baseURL: baseURL, strategy: .byMonth)
+        let loaded = try await storage.read(id: item.id)
+
+        // Then - 目录扫描兜底仍能找到
+        XCTAssertEqual(loaded?.preview, item.preview, "旧格式索引下 read 应回退目录扫描")
+
+        // When - 删除同样走兜底
+        try await storage.delete(id: item.id)
+
+        // Then - 文件已删除
+        let remaining = try await storage.loadAll()
+        XCTAssertTrue(remaining.isEmpty)
+    }
 }

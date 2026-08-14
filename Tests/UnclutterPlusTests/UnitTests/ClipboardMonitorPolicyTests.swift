@@ -139,4 +139,27 @@ final class ClipboardMonitorPolicyTests: XCTestCase {
         let item = ClipboardItem(content: .text("legacy"))
         XCTAssertNil(ClipboardIndex(from: item).fingerprint)
     }
+
+    // MARK: - 指纹索引重建
+
+    func testFingerprintIndexFromIndexesMapsPersistedFingerprints() {
+        let withFp = ClipboardItem(content: .text("hello"), fingerprint: "hello")
+        let legacy = ClipboardItem(content: .text("legacy"))
+        let file = ClipboardItem(content: .file(URL(fileURLWithPath: "/tmp/a.txt")), fingerprint: "file::/tmp/a.txt")
+
+        let result = ClipboardMonitor.fingerprintIndex(from: [
+            ClipboardIndex(from: withFp),
+            ClipboardIndex(from: legacy),
+            ClipboardIndex(from: file),
+        ])
+
+        XCTAssertEqual(result.count, 2)
+        XCTAssertEqual(result["hello"], withFp.id)
+        XCTAssertEqual(result["file::/tmp/a.txt"], file.id)
+        XCTAssertNil(result["legacy"], "遗留数据（无指纹）不应直接映射")
+    }
+
+    func testFingerprintIndexFromEmptyIndexesIsEmpty() {
+        XCTAssertTrue(ClipboardMonitor.fingerprintIndex(from: []).isEmpty)
+    }
 }

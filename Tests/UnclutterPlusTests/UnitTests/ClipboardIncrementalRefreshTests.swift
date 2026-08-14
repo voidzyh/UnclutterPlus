@@ -130,6 +130,24 @@ final class ClipboardIncrementalRefreshTests: XCTestCase {
         // Then
         XCTAssertTrue(viewModel.clipboardItems.first?.isPinned ?? false)
     }
+
+    // MARK: - 初始加载等待（启动竞态回归）
+
+    /// 冒烟测试发现的回归：指纹 bootstrap 在仓储加载完成前读到空索引。
+    /// waitForInitialLoad 必须保证返回后索引已就绪。
+    func testWaitForInitialLoadCompletesAfterIndexesLoaded() async throws {
+        // Given - 存量数据直接进存储（模拟历史数据）
+        let a = ClipboardItem(content: .text("history-a"))
+        let b = ClipboardItem(content: .text("history-b"))
+        try await mockStorage.create([a, b])
+
+        // When - 仓储创建后立即等待
+        let repository = ClipboardRepository(storage: mockStorage)
+        await repository.waitForInitialLoad()
+
+        // Then - 等待返回后索引必须已加载
+        XCTAssertEqual(repository.clipboardIndexes.count, 2, "waitForInitialLoad 返回后索引应已就绪")
+    }
 }
 
 // MARK: - 计数版内存存储（验证增量读取次数）

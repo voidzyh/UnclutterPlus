@@ -222,20 +222,33 @@ final class ClipboardMonitor: ObservableObject {
         guard !didBootstrapFingerprints else { return }
         didBootstrapFingerprints = true
 
-        for index in repository.clipboardIndexes {
-            if let persisted = index.fingerprint {
-                fingerprintIndex[persisted] = index.id
-                continue
-            }
+        // 先等待仓储初始加载完成——否则读到空索引，指纹缓存重建为空，
+        // 重启后无法去重（启动竞态，冒烟测试实测发现）
+        await repository.waitForInitialLoad()
 
-            // 遗留数据：需要完整内容重算指纹
+        var rebuilt = Self.fingerprintIndex(from: repository.clipboardIndexes)
+
+        // 遗留数据：需要完整内容重算指纹
+        for index in repository.clipboardIndexes where index.fingerprint == nil {
             guard let item = await repository.getItem(id: index.id) else { continue }
             if let computed = Self.fingerprint(for: item) {
-                fingerprintIndex[computed] = index.id
+                rebuilt[computed] = index.id
             }
         }
 
+        fingerprintIndex = rebuilt
         logger.info("剪贴板指纹缓存已重建，共 \(fingerprintIndex.count) 项", category: "ClipboardMonitor")
+    }
+
+    /// 从索引列表重建指纹映射（纯函数，便于测试）：仅映射已持久化指纹的项。
+    static func fingerprintIndex(from indexes: [ClipboardIndex]) -> [String: UUID] {
+        var result: [String: UUID] = [:]
+        for index in indexes {
+            if let fingerprint = index.fingerprint {
+                result[fingerprint] = index.id
+            }
+        }
+        return result
     }
 
     // MARK: - Capture Policies（纯函数，便于测试）
