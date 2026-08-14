@@ -40,33 +40,23 @@ class ClipboardStorageAdapter: UnifiedStorageProtocol {
     typealias Index = ClipboardIndex
 
     private let shardedStorage: ShardedStorage<ClipboardItem>
-    private var isInitialized = false
+
+    /// 初始化任务：首次访问前完成数据可用性检查（替代 isInitialized + 忙等轮询）
+    private let initializationTask: Task<Void, Never>
 
     init(shardedStorage: ShardedStorage<ClipboardItem>) {
         self.shardedStorage = shardedStorage
-        
-        // 异步初始化，确保数据可用
-        Task {
-            await initializeStorage()
-        }
-    }
-    
-    /// 初始化存储，确保数据可用
-    private func initializeStorage() async {
-        do {
+
+        initializationTask = Task {
             // 尝试加载所有数据，触发存储初始化
-            _ = try await shardedStorage.loadAll()
-            isInitialized = true
+            _ = try? await shardedStorage.loadAll()
             logger.info("剪贴板存储初始化完成", category: "Storage")
-        } catch {
-            logger.error("剪贴板存储初始化失败: \(error.localizedDescription)", category: "Storage")
         }
     }
-    
+
+    /// 等待初始化完成（Task 化等待，无轮询）
     private func waitForInit() async {
-        while !isInitialized {
-            try? await Task.sleep(nanoseconds: 100_000_000) // 等待100ms
-        }
+        await initializationTask.value
     }
 
     func create(_ items: [ClipboardItem]) async throws {

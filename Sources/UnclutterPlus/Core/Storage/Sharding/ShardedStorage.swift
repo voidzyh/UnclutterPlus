@@ -15,22 +15,37 @@ enum ShardingStrategy {
     case byHash(buckets: Int)
 }
 
-/// 分片存储实现
-public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
+/// 分片存储实现（actor 并发模型）
+///
+/// 状态（shardIndex）由 actor 隔离，无需 GCD barrier/锁；
+/// 文件 IO 为小 JSON 的短操作，直接在 actor 方法内执行；
+/// `loadAll` 的跨分片并行读取通过不捕获 self 的子任务 + 静态解码器保留。
+public actor ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID {
     private let baseURL: URL
     private let strategy: ShardingStrategy
     private let fileManager = FileManager.default
-    private let encoder: JSONEncoder
-    private let decoder: JSONDecoder
-    private let queue = DispatchQueue(label: "sharded.storage", attributes: .concurrent)
+
+    // 编码器/解码器为静态配置（iso8601），供并行子任务在 actor 外安全使用
+    private static var encoder: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [] // 紧凑格式，节省空间
+        return encoder
+    }
+
+    private static var decoder: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
 
     // 分片索引（记录每个 ID 对应的分片位置）
     private var shardIndex: [UUID: String] = [:]
     private let indexURL: URL
-    
-    // 索引保存防抖动
-    private var saveIndexWorkItem: DispatchWorkItem?
-    private let saveIndexDelay: TimeInterval = 0.5
+
+    // 索引保存防抖动（Task 化，替代 DispatchWorkItem）
+    private var saveIndexTask: Task<Void, Never>?
+    private let saveIndexDelay: UInt64 = 500_000_000 // 0.5s
 
     // MARK: - Initialization
 
@@ -38,15 +53,6 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         self.baseURL = baseURL
         self.strategy = strategy
         self.indexURL = baseURL.appendingPathComponent(".shard_index.json")
-
-        // 配置编码器
-        self.encoder = JSONEncoder()
-        self.encoder.dateEncodingStrategy = .iso8601
-        self.encoder.outputFormatting = [] // 紧凑格式，节省空间
-
-        // 配置解码器
-        self.decoder = JSONDecoder()
-        self.decoder.dateDecodingStrategy = .iso8601
 
         // 创建基础目录
         try? fileManager.createDirectory(at: baseURL, withIntermediateDirectories: true)
@@ -61,33 +67,18 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
     public func create(_ item: Item) async throws {
         let shardPath = getShardPath(for: item)
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(throwing: StorageError.writeFailed(underlying: NSError()))
-                    return
-                }
+        do {
+            let directory = shardPath.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
 
-                do {
-                    let directory = shardPath.deletingLastPathComponent()
-                    try self.fileManager.createDirectory(
-                        at: directory,
-                        withIntermediateDirectories: true
-                    )
+            let data = try Self.encoder.encode(item)
+            try data.write(to: shardPath, options: .atomic)
 
-                    let data = try self.encoder.encode(item)
-                    try data.write(to: shardPath, options: .atomic)
-
-                    self.queue.async(flags: .barrier) {
-                        let relativePath = shardPath.path.replacingOccurrences(of: self.baseURL.path, with: "")
-                        self.shardIndex[item.id] = relativePath
-                        self.saveShardIndex()
-                        continuation.resume()
-                    }
-                } catch {
-                    continuation.resume(throwing: StorageError.writeFailed(underlying: error))
-                }
-            }
+            let relativePath = shardPath.path.replacingOccurrences(of: baseURL.path, with: "")
+            shardIndex[item.id] = relativePath
+            scheduleIndexSave()
+        } catch {
+            throw StorageError.writeFailed(underlying: error)
         }
     }
 
@@ -95,25 +86,13 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
     public func update(_ item: Item) async throws {
         try await create(item)
     }
-    
-    /// 批量保存（限制最大并发数为 10，优化内存使用）
+
+    /// 批量保存
     public func saveBatch(_ items: [Item]) async throws {
-        let maxConcurrency = 10
-        var activeTaskCount = 0
+        var errors: [Error] = []
 
         await withTaskGroup(of: Error?.self) { group in
             for item in items {
-                // 限制并发数量
-                while activeTaskCount >= maxConcurrency {
-                    // 等待至少一个任务完成
-                    if let error = await group.next() {
-                        if let error = error {
-                            logger.error("批量保存单个失败: \(error.localizedDescription)", category: "Storage")
-                        }
-                        activeTaskCount -= 1
-                    }
-                }
-
                 group.addTask { [weak self] in
                     do {
                         try await self?.create(item)
@@ -122,54 +101,43 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
                         return error
                     }
                 }
-                activeTaskCount += 1
             }
 
-            // 收集剩余任务的错误
-            var errors: [Error] = []
             for await error in group {
                 if let error = error {
                     errors.append(error)
                 }
             }
+        }
 
-            if !errors.isEmpty {
-                logger.error("批量保存错误: \(errors.count) 个失败", category: "Storage")
-            }
+        if !errors.isEmpty {
+            logger.error("批量保存错误: \(errors.count) 个失败", category: "Storage")
         }
     }
 
     /// 读取项目
     public func read(id: UUID) async throws -> Item? {
-        guard let shardName = shardIndex[id] else {
-            // 尝试查找
-            if let path = try await findItemPath(id: id) {
-                return try await loadFromPath(path)
-            }
-            return nil
+        if let shardName = shardIndex[id] {
+            let shardPath = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
+            return try loadFromPath(shardPath)
         }
 
-        let shardPath = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
-        return try await loadFromPath(shardPath)
+        // 索引未命中时全目录查找（重建索引）
+        if let path = try await findItemPath(id: id) {
+            return try loadFromPath(path)
+        }
+        return nil
     }
 
     /// 批量读取
     public func readBatch(ids: [UUID]) async throws -> [Item] {
-        return await withTaskGroup(of: Item?.self) { group in
-            for id in ids {
-                group.addTask { [weak self] in
-                    try? await self?.read(id: id)
-                }
+        var items: [Item] = []
+        for id in ids {
+            if let item = try await read(id: id) {
+                items.append(item)
             }
-
-            var items: [Item] = []
-            for await item in group {
-                if let item = item {
-                    items.append(item)
-                }
-            }
-            return items
         }
+        return items
     }
 
     /// 删除项目
@@ -180,53 +148,33 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
 
         let shardPath = getShardDirectory(for: shardName).appendingPathComponent("\(id.uuidString).json")
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.async(flags: .barrier) { [weak self] in
-                do {
-                    try self?.fileManager.removeItem(at: shardPath)
-                    self?.shardIndex.removeValue(forKey: id)
-                    self?.saveShardIndex()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
+        do {
+            try fileManager.removeItem(at: shardPath)
+            shardIndex.removeValue(forKey: id)
+            scheduleIndexSave()
+        } catch {
+            throw StorageError.writeFailed(underlying: error)
         }
     }
 
-    /// 批量删除（限制最大并发数为 10，优化内存使用）
+    /// 批量删除
     public func deleteBatch(ids: [UUID]) async throws {
-        let maxConcurrency = 10
-        var activeTaskCount = 0
         var errors: [Error] = []
 
-        await withTaskGroup(of: Result<Void, Error>.self) { group in
+        await withTaskGroup(of: Error?.self) { group in
             for id in ids {
-                // 限制并发数量
-                while activeTaskCount >= maxConcurrency {
-                    // 等待至少一个任务完成
-                    if let result = await group.next() {
-                        if case .failure(let error) = result {
-                            errors.append(error)
-                        }
-                    }
-                    activeTaskCount -= 1
-                }
-
                 group.addTask { [weak self] in
                     do {
                         try await self?.delete(id: id)
-                        return .success(())
+                        return nil
                     } catch {
-                        return .failure(error)
+                        return error
                     }
                 }
-                activeTaskCount += 1
             }
 
-            // 等待所有剩余任务完成
-            for await result in group {
-                if case .failure(let error) = result {
+            for await error in group {
+                if let error = error {
                     errors.append(error)
                 }
             }
@@ -237,10 +185,8 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         }
     }
 
-    /// 获取所有项目
+    /// 获取所有项目（跨分片并行 IO，不在 actor 上阻塞）
     public func loadAll() async throws -> [Item] {
-        var items: [Item] = []
-
         let shardDirs = try fileManager.contentsOfDirectory(
             at: baseURL,
             includingPropertiesForKeys: [.isDirectoryKey]
@@ -249,19 +195,21 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
             return isDirectory == true && !url.lastPathComponent.hasPrefix(".")
         }
 
+        var items: [Item] = []
+
         await withTaskGroup(of: [Item].self) { group in
             for shardDir in shardDirs {
-                group.addTask { [weak self] in
-                    guard let self = self else { return [] }
-
-                    let files = (try? self.fileManager.contentsOfDirectory(
+                // 子任务不捕获 self：文件列举与解码用本地资源完成，保持并行 IO
+                group.addTask {
+                    let files = (try? FileManager.default.contentsOfDirectory(
                         at: shardDir,
                         includingPropertiesForKeys: nil
                     ).filter { $0.pathExtension == "json" }) ?? []
 
                     var shardItems: [Item] = []
                     for file in files {
-                        if let item = try? await self.loadFromPath(file) {
+                        if let data = try? Data(contentsOf: file),
+                           let item = try? Self.decoder.decode(Item.self, from: data) {
                             shardItems.append(item)
                         }
                     }
@@ -276,15 +224,13 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
 
         return items
     }
-    
+
     /// 搜索项目（基础实现 - 加载所有项目并过滤）
     public func search(query: String) async throws -> [Item] {
         let allItems = try await loadAll()
-        
+
         // 简单的文本搜索实现
         return allItems.filter { item in
-            // 这里假设Item有某种文本内容可以搜索
-            // 实际实现可能需要根据具体的Item类型来调整
             if let note = item as? Note {
                 return note.content.localizedCaseInsensitiveContains(query) ||
                        note.title.localizedCaseInsensitiveContains(query)
@@ -292,7 +238,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
             return false
         }
     }
-    
+
     /// 获取所有索引（基础实现 - 为每个项目创建索引）
     public func getAllIndexes() async throws -> [NoteIndex] {
         let allItems = try await loadAll()
@@ -317,33 +263,23 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
 
     /// 清空所有数据
     public func clear() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.async(flags: .barrier) { [weak self] in
-                guard let self = self else {
-                    continuation.resume()
-                    return
-                }
+        do {
+            // 删除所有分片目录
+            let contents = try fileManager.contentsOfDirectory(
+                at: baseURL,
+                includingPropertiesForKeys: nil
+            )
 
-                do {
-                    // 删除所有分片目录
-                    let contents = try self.fileManager.contentsOfDirectory(
-                        at: self.baseURL,
-                        includingPropertiesForKeys: nil
-                    )
-
-                    for item in contents {
-                        try self.fileManager.removeItem(at: item)
-                    }
-
-                    // 清空索引
-                    self.shardIndex.removeAll()
-                    self.saveShardIndex()
-
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+            for item in contents {
+                try fileManager.removeItem(at: item)
             }
+
+            // 清空索引
+            shardIndex.removeAll()
+            saveIndexTask?.cancel()
+            performSaveShardIndex()
+        } catch {
+            throw StorageError.writeFailed(underlying: error)
         }
     }
 
@@ -384,27 +320,14 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         return baseURL
     }
 
-    /// 从路径加载项目
-    private func loadFromPath(_ path: URL) async throws -> Item? {
-        return try await withCheckedThrowingContinuation { continuation in
-            queue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-
-                do {
-                    let data = try Data(contentsOf: path)
-                    let item = try self.decoder.decode(Item.self, from: data)
-                    continuation.resume(returning: item)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
+    /// 从路径加载项目（actor 内同步 IO）
+    private func loadFromPath(_ path: URL) throws -> Item? {
+        guard fileManager.fileExists(atPath: path.path) else { return nil }
+        let data = try Data(contentsOf: path)
+        return try Self.decoder.decode(Item.self, from: data)
     }
 
-    /// 查找项目路径
+    /// 查找项目路径（索引未命中时）
     private func findItemPath(id: UUID) async throws -> URL? {
         let filename = "\(id.uuidString).json"
 
@@ -422,7 +345,7 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
                 // 更新索引
                 let shardName = "\(shardDir.lastPathComponent)/\(filename)"
                 shardIndex[id] = shardName
-                saveShardIndex()
+                scheduleIndexSave()
                 return possiblePath
             }
         }
@@ -437,29 +360,23 @@ public class ShardedStorage<Item: Codable & Identifiable> where Item.ID == UUID 
         do {
             let data = try Data(contentsOf: indexURL)
             let index = try JSONDecoder().decode([String: String].self, from: data)
-
-            // 转换为 UUID 索引
             shardIndex = index.compactMapKeys { UUID(uuidString: $0) }
         } catch {
             logger.error("加载分片索引失败: \(error.localizedDescription)", category: "Storage")
         }
     }
 
-    /// 保存分片索引（防抖动）
-    private func saveShardIndex() {
-        // 取消之前的待处理保存
-        saveIndexWorkItem?.cancel()
-        
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            self.performSaveShardIndex()
+    /// 调度分片索引保存（Task 防抖，合并短时间内的多次更新）
+    private func scheduleIndexSave() {
+        saveIndexTask?.cancel()
+
+        saveIndexTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: saveIndexDelay)
+            guard !Task.isCancelled else { return }
+            await self?.performSaveShardIndex()
         }
-        
-        saveIndexWorkItem = workItem
-        // 延迟保存，合并短时间内的多次更新
-        queue.asyncAfter(deadline: .now() + saveIndexDelay, execute: workItem)
     }
-    
+
     /// 执行保存分片索引
     private func performSaveShardIndex() {
         do {
