@@ -203,6 +203,12 @@
 "preferences.clipboard.excluded_apps_help" = "Content copied from these apps will not be captured";
 "clipboard.clear_unpinned" = "Clear Unpinned";
 "clipboard.clear_unpinned_help" = "Remove all clipboard history except pinned items";
+"clipboard.multiselect" = "Multi-Select";
+"clipboard.multiselect_help" = "Select multiple items to merge-copy them together";
+"clipboard.merge" = "Merge & Copy";
+"clipboard.merge_help" = "Combine selected items into one and copy to clipboard";
+"preferences.clipboard.merge_separator" = "Merge separator:";
+"preferences.clipboard.merge_separator_help" = "Text inserted between merged items (\\n = newline, \\t = tab)";
 
 // MARK: - Default Filter Settings
 "preferences.clipboard.default_filter" = "Default Filter Panel";

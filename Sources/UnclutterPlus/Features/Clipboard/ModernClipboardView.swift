@@ -51,6 +51,24 @@ struct ModernClipboardView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button(action: {
                     withAnimation(ModernDesignSystem.Motion.snap) {
+                        viewModel.toggleMultiSelectMode()
+                    }
+                }) {
+                    Label(
+                        "clipboard.multiselect".localized,
+                        systemImage: viewModel.isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle"
+                    )
+                }
+                .help("clipboard.multiselect_help".localized)
+
+                Button(action: { Task { await viewModel.mergeSelectedToPasteboard() } }) {
+                    Label("clipboard.merge".localized, systemImage: "arrow.triangle.merge")
+                }
+                .disabled(!viewModel.canMerge)
+                .help("clipboard.merge_help".localized)
+
+                Button(action: {
+                    withAnimation(ModernDesignSystem.Motion.snap) {
                         showInsights.toggle()
                     }
                 }) {
@@ -170,7 +188,15 @@ struct ModernClipboardView: View {
                 ClipboardItemRow(
                     item: item,
                     isSelected: selectedItem == item.id,
-                    onSelect: { selectedItem = item.id },
+                    isMultiSelectMode: viewModel.isMultiSelectMode,
+                    isMultiSelected: viewModel.selectedItemIds.contains(item.id),
+                    onSelect: {
+                        if viewModel.isMultiSelectMode {
+                            viewModel.toggleSelection(item)
+                        } else {
+                            selectedItem = item.id
+                        }
+                    },
                     onCopy: { Task { await viewModel.copyToClipboard(item) } },
                     onPin: { Task { await viewModel.pinItem(item) } },
                     onDelete: { Task { await viewModel.deleteItem(item) } }
@@ -204,6 +230,8 @@ struct ModernClipboardView: View {
 struct ClipboardItemRow: View {
     let item: ClipboardItem
     let isSelected: Bool
+    let isMultiSelectMode: Bool
+    let isMultiSelected: Bool
     let onSelect: () -> Void
     let onCopy: () -> Void
     let onPin: () -> Void
@@ -213,12 +241,19 @@ struct ClipboardItemRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Icon
-            contentIcon
-                .font(.system(size: 16))
-                .frame(width: 36, height: 36)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
+            // 多选指示（多选模式下替换图标）
+            if isMultiSelectMode {
+                Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18))
+                    .foregroundColor(isMultiSelected ? .accentColor : ModernDesignSystem.shared.color(.textTertiary))
+                    .frame(width: 36, height: 36)
+            } else {
+                contentIcon
+                    .font(.system(size: 16))
+                    .frame(width: 36, height: 36)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+            }
             
             // Content
             VStack(alignment: .leading, spacing: 4) {
@@ -239,8 +274,8 @@ struct ClipboardItemRow: View {
             
             Spacer()
             
-            // Actions（pin 项目常驻显示 pin 按钮，便于随时取消）
-            if isHovered || isSelected || item.isPinned {
+            // Actions（pin 项目常驻显示 pin 按钮，便于随时取消；多选模式下隐藏单行操作）
+            if !isMultiSelectMode && (isHovered || isSelected || item.isPinned) {
                 HStack(spacing: 4) {
                     IconButton(
                         icon: item.isPinned ? "pin.fill" : "pin",

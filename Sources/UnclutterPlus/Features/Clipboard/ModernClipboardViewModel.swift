@@ -20,6 +20,10 @@ final class ModernClipboardViewModel: ObservableObject {
     @Published var selectedContentType: ClipboardContentType = .all
     @Published var selectedDateRange: DateRange = .all
     @Published var sortOption: SortOption = .newest
+
+    // 多选模式（合并粘贴）
+    @Published var isMultiSelectMode = false
+    @Published var selectedItemIds: Set<UUID> = []
     
     // 统计信息
     @Published var statistics: [ClipboardStatistic] = []
@@ -202,6 +206,76 @@ final class ModernClipboardViewModel: ObservableObject {
     /// 清除非 pin 项目（对齐 Maccy 的 Clear Unpinned）
     func clearUnpinned() async {
         await repository.clearUnpinned()
+    }
+
+    // MARK: - 多选与合并粘贴
+
+    /// 是否满足合并条件（至少选中两项）
+    var canMerge: Bool { selectedItemIds.count >= 2 }
+
+    /// 按当前过滤列表顺序的选中项（合并输入）
+    var orderedSelectedItems: [ClipboardItem] {
+        filteredItems.filter { selectedItemIds.contains($0.id) }
+    }
+
+    /// 切换多选模式；退出时清空选择
+    func toggleMultiSelectMode() {
+        isMultiSelectMode.toggle()
+        if !isMultiSelectMode {
+            selectedItemIds.removeAll()
+        }
+    }
+
+    /// 切换单个项目的选择状态
+    func toggleSelection(_ item: ClipboardItem) {
+        if selectedItemIds.contains(item.id) {
+            selectedItemIds.remove(item.id)
+        } else {
+            selectedItemIds.insert(item.id)
+        }
+    }
+
+    func selectAll() {
+        selectedItemIds = Set(clipboardItems.map(\.id))
+    }
+
+    func deselectAll() {
+        selectedItemIds.removeAll()
+    }
+
+    /// 合并选中项（按列表顺序）为纯文本并写入系统剪贴板；成功后按配置自动隐藏面板。
+    func mergeSelectedToPasteboard() async {
+        let ordered = orderedSelectedItems
+        guard ordered.count >= 2 else { return }
+
+        let merged = Self.mergedText(for: ordered, separator: ConfigurationManager.shared.clipboardMergeSeparator)
+        guard !merged.isEmpty else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(merged, forType: .string)
+
+        WindowManager.shared.hideWindowAfterAction(.clipboardCopied)
+        // 退出多选并清空选择
+        isMultiSelectMode = false
+        selectedItemIds.removeAll()
+        // 注意：ClipboardMonitor 会将合并结果作为新片段入库（内容指纹不同），
+        // 这正是合并粘贴的预期行为。
+    }
+
+    /// 合并文本（纯函数，便于测试）：按列表顺序拼接，图片用"图片"、文件用文件名占位。
+    static func mergedText(for items: [ClipboardItem], separator: String) -> String {
+        items.map { item in
+            switch item.content {
+            case .text(let text):
+                return text
+            case .image:
+                return "图片"
+            case .file(let url):
+                return url.lastPathComponent
+            }
+        }
+        .joined(separator: separator)
     }
 
     func refresh() async {

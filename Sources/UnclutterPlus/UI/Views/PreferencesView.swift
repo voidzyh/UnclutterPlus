@@ -304,6 +304,14 @@ struct PreferencesView: View {
                             .foregroundColor(.secondary)
                     }
                     
+                    HStack {
+                        Text("preferences.clipboard.merge_separator".localized)
+                        TextField("\\n", text: $config.clipboardMergeSeparator)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                    }
+                    .help("preferences.clipboard.merge_separator_help".localized)
+                    
                     Toggle("preferences.clipboard.auto_cleanup".localized, isOn: .constant(true))
                         .disabled(true)
                         .help("preferences.clipboard.auto_cleanup_help".localized)

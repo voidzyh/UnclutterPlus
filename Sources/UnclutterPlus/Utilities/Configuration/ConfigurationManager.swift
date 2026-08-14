@@ -72,6 +72,8 @@ class ConfigurationManager: ObservableObject {
     }
     // 频率阈值：粘贴次数达到该值的片段视为"高频"
     @AppStorage("clipboard.insights.frequencyThreshold") var insightsFrequencyThreshold: Int = 3
+    // 合并粘贴的分隔符（多项选择的剪贴板内容按此分隔拼接）
+    @AppStorage("clipboard.mergeSeparator") var clipboardMergeSeparator: String = "\n"
 
     // 截图管理设置
     // 全局快捷键（存储为字符串，如 "command-shift-1"），空字符串代表未设置

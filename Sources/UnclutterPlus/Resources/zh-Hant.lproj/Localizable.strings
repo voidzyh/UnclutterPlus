@@ -294,6 +294,12 @@
 "preferences.clipboard.excluded_apps_help" = "來自這些應用的複製內容將不會被採集";
 "clipboard.clear_unpinned" = "清除非置頂";
 "clipboard.clear_unpinned_help" = "刪除除置頂項以外的全部剪貼板歷史";
+"clipboard.multiselect" = "多選";
+"clipboard.multiselect_help" = "選擇多個項目以合併複製";
+"clipboard.merge" = "合併複製";
+"clipboard.merge_help" = "將選中的項目合併為一條並複製到剪貼板";
+"preferences.clipboard.merge_separator" = "合併分隔符：";
+"preferences.clipboard.merge_separator_help" = "合併項目之間插入的文字（\\n = 換行，\\t = 製表符）";
 
 // MARK: - 啟動預設篩選器設置
 "preferences.clipboard.default_filter" = "啟動預設篩選面板";

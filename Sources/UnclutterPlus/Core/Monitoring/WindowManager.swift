@@ -54,6 +54,9 @@ class WindowManager: NSObject, ObservableObject {
     private var isDraggingFile: Bool = false
     private var hasModalWindow: Bool = false
 
+    /// Esc 键本地监听（面板可见时按下 Esc 隐藏面板）
+    private var escKeyMonitor: Any?
+
     // 自动隐藏倒计时进度（0.0 - 1.0）
     @Published private(set) var autoHideProgress: Double = 0.0
     private var autoHideProgressTimer: Timer?
@@ -145,6 +148,24 @@ class WindowManager: NSObject, ObservableObject {
                 self?.setEditingNote(false)
                 self?.checkAutoHideOnLostFocus()
             }
+        }
+
+        setupEscapeKeyMonitor()
+    }
+
+    /// 面板可见时按下 Esc 隐藏面板（键盘优先操作流，P0 收尾项）
+    private func setupEscapeKeyMonitor() {
+        guard escKeyMonitor == nil else { return }
+
+        escKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self else { return event }
+            // keyCode 53 = Esc；仅在面板可见时消费事件
+            if event.keyCode == 53, self.isWindowVisible {
+                logger.debug("Esc 键隐藏面板", category: "WindowManager")
+                self.hideWindow()
+                return nil
+            }
+            return event
         }
     }
     

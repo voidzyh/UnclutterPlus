@@ -212,6 +212,12 @@
 "preferences.clipboard.excluded_apps_help" = "来自这些应用的复制内容将不会被采集";
 "clipboard.clear_unpinned" = "清除非置顶";
 "clipboard.clear_unpinned_help" = "删除除置顶项以外的全部剪贴板历史";
+"clipboard.multiselect" = "多选";
+"clipboard.multiselect_help" = "选择多个项目以合并复制";
+"clipboard.merge" = "合并复制";
+"clipboard.merge_help" = "将选中的项目合并为一条并复制到剪贴板";
+"preferences.clipboard.merge_separator" = "合并分隔符：";
+"preferences.clipboard.merge_separator_help" = "合并项目之间插入的文本（\\n = 换行，\\t = 制表符）";
 
 // MARK: - 启动默认筛选器设置
 "preferences.clipboard.default_filter" = "启动默认筛选面板";
