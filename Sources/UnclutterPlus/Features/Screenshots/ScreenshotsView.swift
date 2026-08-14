@@ -3,11 +3,8 @@ import AppKit
 
 struct ScreenshotsView: View {
     @StateObject private var viewModel = ScreenshotsViewModel()
-    @State private var hoveredScreenshot: UUID?
-    @State private var editingScreenshotName: UUID?
-    @State private var newScreenshotName = ""
-    
-    // UI State
+
+    // UI State（仅纯视图状态；数据/搜索/选择/视图模式均在 ViewModel）
     @State private var columnCount: Double = 4
     @State private var dragOver = false
     

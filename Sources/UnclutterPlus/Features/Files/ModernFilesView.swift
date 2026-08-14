@@ -7,13 +7,7 @@ struct ModernFilesView: View {
     @StateObject private var viewModel = ModernFilesViewModel()
     @Namespace private var filesNamespace
     
-    // 状态管理
-    @State private var selectedFolders: Set<UUID> = []
-    @State private var searchText: String = ""
-    @State private var viewMode: FileViewMode = .grid
-    @State private var sortOption: FileSortOption = .dateNewest
-    
-    // 动画状态
+    // 状态管理（搜索/视图模式/排序唯一数据源在 viewModel，视图不再自持副本）
     @State private var dragOver = false
     
     var body: some View {
@@ -52,15 +46,12 @@ struct ModernFilesView: View {
         .onAppear {
             Task { await viewModel.refresh() }
         }
-        // 使用原生 Searchable
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Search folders...")
-        .onChange(of: searchText) { _, newValue in
-             viewModel.searchText = newValue
-        }
+        // 使用原生 Searchable（直绑 VM，无手工同步）
+        .searchable(text: $viewModel.searchText, placement: .toolbar, prompt: "Search folders...")
         // 使用原生 Toolbar
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Picker("View Mode", selection: $viewMode) {
+                Picker("View Mode", selection: $viewModel.viewMode) {
                     ForEach(FileViewMode.allCases, id: \.self) { mode in
                         Image(systemName: mode.systemImage).tag(mode)
                     }
@@ -71,7 +62,6 @@ struct ModernFilesView: View {
                     ForEach(FileSortOption.allCases, id: \.self) { option in
                         Button(action: {
                             viewModel.sortOption = option
-                            sortOption = option
                         }) {
                             HStack {
                                 Image(systemName: option.systemImage)
@@ -165,7 +155,7 @@ struct ModernFilesView: View {
     
     private var foldersList: some View {
         Group {
-            switch viewMode {
+            switch viewModel.viewMode {
             case .grid:
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 16)], spacing: 16) {
                     ForEach(viewModel.filteredFolders) { folder in
