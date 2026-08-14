@@ -24,6 +24,9 @@ final class ModernClipboardViewModel: ObservableObject {
     // 多选模式（合并粘贴）
     @Published var isMultiSelectMode = false
     @Published var selectedItemIds: Set<UUID> = []
+
+    /// 当前高亮项（单选光标，键盘导航/回车激活的唯一数据源；视图不再自持副本）
+    @Published var selectedItemID: UUID?
     
     // 统计信息
     @Published var statistics: [ClipboardStatistic] = []
@@ -91,10 +94,14 @@ final class ModernClipboardViewModel: ObservableObject {
             let before = clipboardItems.count
             clipboardItems.removeAll { $0.id == id }
             if clipboardItems.count != before {
+                if selectedItemID == id {
+                    selectedItemID = nil
+                }
                 applyFilters()
             }
         case .cleared:
             clipboardItems.removeAll()
+            selectedItemID = nil
             applyFilters()
         }
     }
@@ -206,6 +213,56 @@ final class ModernClipboardViewModel: ObservableObject {
     /// 清除非 pin 项目（对齐 Maccy 的 Clear Unpinned）
     func clearUnpinned() async {
         await repository.clearUnpinned()
+    }
+
+    // MARK: - 键盘导航（P0 键盘优先操作流）
+
+    /// 当前高亮项
+    var selectedItem: ClipboardItem? {
+        guard let id = selectedItemID else { return nil }
+        return clipboardItems.first { $0.id == id }
+    }
+
+    /// 当前高亮项在过滤列表中的位置
+    var selectedIndex: Int? {
+        guard let id = selectedItemID else { return nil }
+        return filteredItems.firstIndex { $0.id == id }
+    }
+
+    /// 选中指定项（单选光标）
+    func select(_ item: ClipboardItem) {
+        selectedItemID = item.id
+    }
+
+    /// 方向键上移高亮
+    func moveSelectionUp() {
+        guard !filteredItems.isEmpty else { return }
+        if let index = selectedIndex {
+            selectedItemID = filteredItems[max(0, index - 1)].id
+        } else {
+            selectedItemID = filteredItems.first?.id
+        }
+    }
+
+    /// 方向键下移高亮
+    func moveSelectionDown() {
+        guard !filteredItems.isEmpty else { return }
+        if let index = selectedIndex {
+            let next = min(filteredItems.count - 1, index + 1)
+            selectedItemID = filteredItems[next].id
+        } else {
+            selectedItemID = filteredItems.first?.id
+        }
+    }
+
+    /// 回车激活高亮项：多选模式下切换选择；否则复制到剪贴板（含自动隐藏）
+    func activateSelection() async {
+        guard let item = selectedItem else { return }
+        if isMultiSelectMode {
+            toggleSelection(item)
+        } else {
+            await copyToClipboard(item)
+        }
     }
 
     // MARK: - 多选与合并粘贴

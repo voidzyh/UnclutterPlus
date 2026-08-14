@@ -6,11 +6,11 @@ struct ModernClipboardView: View {
     @StateObject private var viewModel = ModernClipboardViewModel()
     @Namespace private var clipboardNamespace
     
-    // 状态管理
-    @State private var selectedItem: UUID?
+    // 状态管理（高亮项唯一数据源在 viewModel.selectedItemID）
     @State private var searchText: String = ""
     @State private var showFilters = false
     @State private var showInsights = false
+    @FocusState private var isListFocused: Bool
     
     // 动画状态
     @State private var isHovered = false
@@ -40,6 +40,7 @@ struct ModernClipboardView: View {
         .background(ModernDesignSystem.shared.color(.bgCanvas))
         .onAppear {
             Task { await viewModel.loadInitialData() }
+            isListFocused = true
         }
         // 使用原生 Searchable
         .searchable(text: $searchText, placement: .toolbar, prompt: "Search history...")
@@ -187,14 +188,14 @@ struct ModernClipboardView: View {
             ForEach(viewModel.filteredItems) { item in
                 ClipboardItemRow(
                     item: item,
-                    isSelected: selectedItem == item.id,
+                    isSelected: viewModel.selectedItemID == item.id,
                     isMultiSelectMode: viewModel.isMultiSelectMode,
                     isMultiSelected: viewModel.selectedItemIds.contains(item.id),
                     onSelect: {
                         if viewModel.isMultiSelectMode {
                             viewModel.toggleSelection(item)
                         } else {
-                            selectedItem = item.id
+                            viewModel.select(item)
                         }
                     },
                     onCopy: { Task { await viewModel.copyToClipboard(item) } },
@@ -202,6 +203,21 @@ struct ModernClipboardView: View {
                     onDelete: { Task { await viewModel.deleteItem(item) } }
                 )
             }
+        }
+        .focusable()
+        .focused($isListFocused)
+        // 键盘优先操作流（P0）：方向键移动高亮，回车复制/切换选择
+        .onKeyPress(.upArrow) {
+            viewModel.moveSelectionUp()
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            viewModel.moveSelectionDown()
+            return .handled
+        }
+        .onKeyPress(.return) {
+            Task { await viewModel.activateSelection() }
+            return .handled
         }
     }
     
