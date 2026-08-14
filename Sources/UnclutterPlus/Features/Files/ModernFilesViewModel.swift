@@ -13,7 +13,7 @@ final class ModernFilesViewModel: ObservableObject {
     @Published var stagedFiles: [TempFileItem] = []
     @Published var searchText: String = "" {
         didSet {
-            debouncedSearch.send(searchText)
+            debouncer.queryChanged(searchText)
         }
     }
     
@@ -36,10 +36,8 @@ final class ModernFilesViewModel: ObservableObject {
     private let foldersManager = FavoriteFoldersManager.shared
     private let tempFileManager = TempFileManager.shared
     private var cancellables = Set<AnyCancellable>()
-    private let debouncedSearch = PassthroughSubject<String, Never>()
-    
-    // 搜索防抖
-    private let searchDebounceInterval: TimeInterval = 0.3
+    /// 搜索防抖器（Task 化，替代 Combine debounce 样板）
+    private lazy var debouncer = SearchDebouncer { [weak self] _ in self?.applyFilters() }
     
     // 性能优化
     private var searchTask: Task<Void, Never>?
@@ -52,7 +50,6 @@ final class ModernFilesViewModel: ObservableObject {
     
     init() {
         setupBindings()
-        setupDebouncedSearch()
         loadInitialData()
     }
     
@@ -73,15 +70,6 @@ final class ModernFilesViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] files in
                 self?.stagedFiles = files
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func setupDebouncedSearch() {
-        debouncedSearch
-            .debounce(for: .seconds(searchDebounceInterval), scheduler: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.applyFilters()
             }
             .store(in: &cancellables)
     }

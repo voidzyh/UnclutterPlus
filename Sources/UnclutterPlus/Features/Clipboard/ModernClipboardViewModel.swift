@@ -12,7 +12,7 @@ final class ModernClipboardViewModel: ObservableObject {
     @Published var filteredItems: [ClipboardItem] = []
     @Published var searchText: String = "" {
         didSet {
-            debouncedSearch.send(searchText)
+            debouncer.queryChanged(searchText)
         }
     }
     
@@ -40,10 +40,10 @@ final class ModernClipboardViewModel: ObservableObject {
     /// ClipboardMonitor 采集的新内容会写入此 repository，从而驱动 UI 实时更新。
     let repository: ClipboardRepository
     private var cancellables = Set<AnyCancellable>()
-    private let debouncedSearch = PassthroughSubject<String, Never>()
+    /// 搜索防抖器（Task 化，替代 Combine debounce 样板）
+    private lazy var debouncer = SearchDebouncer { [weak self] _ in self?.applyFilters() }
 
     // 搜索防抖
-    private let searchDebounceInterval: TimeInterval = 0.3
 
     // 性能优化
     private var searchTask: Task<Void, Never>?
@@ -56,7 +56,6 @@ final class ModernClipboardViewModel: ObservableObject {
         // 默认参数在非隔离上下文求值，不能直接引用 MainActor 单例（Swift 6 会报错）
         self.repository = repository ?? AppStorageManager.shared.clipboardRepository
         setupBindings()
-        setupDebouncedSearch()
         loadInitialData()
     }
 
@@ -104,15 +103,6 @@ final class ModernClipboardViewModel: ObservableObject {
             selectedItemID = nil
             applyFilters()
         }
-    }
-
-    private func setupDebouncedSearch() {
-        debouncedSearch
-            .debounce(for: .seconds(searchDebounceInterval), scheduler: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.applyFilters()
-            }
-            .store(in: &cancellables)
     }
 
     func loadInitialData() async {

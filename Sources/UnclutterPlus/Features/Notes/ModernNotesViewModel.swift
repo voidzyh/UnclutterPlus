@@ -13,7 +13,7 @@ final class ModernNotesViewModel: ObservableObject {
     @Published var selectedNote: Note?
     @Published var searchText: String = "" {
         didSet {
-            debouncedSearch.send(searchText)
+            debouncer.queryChanged(searchText)
         }
     }
 
@@ -51,10 +51,10 @@ final class ModernNotesViewModel: ObservableObject {
     private let isAIConfigured: () -> Bool
     private let makeAIService: () -> AIService?
     private var cancellables = Set<AnyCancellable>()
-    private let debouncedSearch = PassthroughSubject<String, Never>()
+    /// 搜索防抖器（Task 化，替代 Combine debounce 样板）
+    private lazy var debouncer = SearchDebouncer { [weak self] _ in self?.applyFilters() }
 
     // 搜索防抖
-    private let searchDebounceInterval: TimeInterval = 0.3
 
     // 性能优化
     private var searchTask: Task<Void, Never>?
@@ -77,7 +77,6 @@ final class ModernNotesViewModel: ObservableObject {
         self.isAIConfigured = isAIConfigured
         self.makeAIService = makeAIService
         setupBindings()
-        setupDebouncedSearch()
     }
 
     // MARK: - 私有方法
@@ -87,15 +86,6 @@ final class ModernNotesViewModel: ObservableObject {
             .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 self?.scheduleServiceRefresh()
-            }
-            .store(in: &cancellables)
-    }
-
-    private func setupDebouncedSearch() {
-        debouncedSearch
-            .debounce(for: .seconds(searchDebounceInterval), scheduler: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.applyFilters()
             }
             .store(in: &cancellables)
     }
