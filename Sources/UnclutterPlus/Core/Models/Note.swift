@@ -202,15 +202,17 @@ enum NoteSortOption: String, CaseIterable, DisplayableEnum {
     var displayName: String { rawValue }
 }
 
-/// 笔记错误类型
-enum NotesError: LocalizedError {
+/// 笔记错误类型（统一错误体系：UnclutterError）
+enum NotesError: UnclutterError {
     case loadFailed(String)
     case saveFailed(String)
     case updateFailed(String)
     case deleteFailed(String)
     case createFailed(String)
-    
-    var errorDescription: String? {
+
+    var category: ErrorCategory { .storage }
+
+    var userMessage: String {
         switch self {
         case .loadFailed(let message):
             return "Failed to load notes: \(message)"
@@ -223,5 +225,23 @@ enum NotesError: LocalizedError {
         case .createFailed(let message):
             return "Failed to create note: \(message)"
         }
+    }
+
+    var recoverySuggestion: String? { "请重试操作或检查存储路径设置" }
+
+    var underlyingError: Error? { nil }
+
+    var errorCode: String {
+        switch self {
+        case .loadFailed:   return "NOTES_001"
+        case .saveFailed:   return "NOTES_002"
+        case .updateFailed: return "NOTES_003"
+        case .deleteFailed: return "NOTES_004"
+        case .createFailed: return "NOTES_005"
+        }
+    }
+
+    var errorDescription: String? {
+        "[\(errorCode)] \(userMessage)"
     }
 }

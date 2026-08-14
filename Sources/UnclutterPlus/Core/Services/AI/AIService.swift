@@ -91,8 +91,8 @@ struct DocumentDraft: Identifiable, Sendable, Codable {
 
 // MARK: - 错误
 
-/// AI 服务错误
-enum AIServiceError: LocalizedError, Sendable {
+/// AI 服务错误（统一错误体系：UnclutterError）
+enum AIServiceError: UnclutterError, Sendable {
     case notConfigured          // 未配置（缺 endpoint / key / CLI 路径）
     case invalidEndpoint(String)
     case requestFailed(String)  // 网络/HTTP 错误
@@ -101,7 +101,9 @@ enum AIServiceError: LocalizedError, Sendable {
     case executionFailed(String) // CLI 执行失败
     case timedOut
 
-    var errorDescription: String? {
+    var category: ErrorCategory { .network }
+
+    var userMessage: String {
         switch self {
         case .notConfigured:
             return "AI 服务未配置"
@@ -118,5 +120,38 @@ enum AIServiceError: LocalizedError, Sendable {
         case .timedOut:
             return "AI 请求超时"
         }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .notConfigured:
+            return "请在偏好设置中配置 AI 服务"
+        case .invalidEndpoint:
+            return "请检查 AI 端点 URL 配置"
+        case .requestFailed, .timedOut:
+            return "请检查网络连接或稍后重试"
+        case .apiError:
+            return "请检查 API Key 与模型配置"
+        default:
+            return "请重试或检查本地 AI 工具"
+        }
+    }
+
+    var underlyingError: Error? { nil }
+
+    var errorCode: String {
+        switch self {
+        case .notConfigured:    return "AI_001"
+        case .invalidEndpoint:  return "AI_002"
+        case .requestFailed:    return "AI_003"
+        case .invalidResponse:  return "AI_004"
+        case .apiError:         return "AI_005"
+        case .executionFailed:  return "AI_006"
+        case .timedOut:         return "AI_007"
+        }
+    }
+
+    var errorDescription: String? {
+        "[\(errorCode)] \(userMessage)"
     }
 }

@@ -26,7 +26,6 @@ final class ModernClipboardViewModel: ObservableObject {
     
     // 状态管理
     @Published var isLoading = false
-    @Published var error: ClipboardError?
     
     // MARK: - 私有属性
 
@@ -45,9 +44,10 @@ final class ModernClipboardViewModel: ObservableObject {
 
     // MARK: - 初始化
 
-    /// - Parameter repository: 数据仓库（默认生产单例；测试可注入 mock 支撑的实例）
-    init(repository: ClipboardRepository = AppStorageManager.shared.clipboardRepository) {
-        self.repository = repository
+    /// - Parameter repository: 数据仓库（nil 时使用生产单例；测试可注入 mock 支撑的实例）
+    init(repository: ClipboardRepository? = nil) {
+        // 默认参数在非隔离上下文求值，不能直接引用 MainActor 单例（Swift 6 会报错）
+        self.repository = repository ?? AppStorageManager.shared.clipboardRepository
         setupBindings()
         setupDebouncedSearch()
         loadInitialData()
@@ -343,32 +343,6 @@ enum SortOption: String, CaseIterable, DisplayableEnum {
         case .oldest: return "arrow.up.circle"
         case .mostUsed: return "star.circle"
         case .alphabetical: return "textformat"
-        }
-    }
-}
-
-enum ClipboardError: LocalizedError {
-    case loadFailed(String)
-    case copyFailed(String)
-    case deleteFailed(String)
-    case clearFailed(String)
-    case pinFailed(String)
-    case updateFailed(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .loadFailed(let message):
-            return "Failed to load clipboard items: \(message)"
-        case .copyFailed(let message):
-            return "Failed to copy to clipboard: \(message)"
-        case .deleteFailed(let message):
-            return "Failed to delete item: \(message)"
-        case .clearFailed(let message):
-            return "Failed to clear clipboard: \(message)"
-        case .pinFailed(let message):
-            return "Failed to pin item: \(message)"
-        case .updateFailed(let message):
-            return "Failed to update item: \(message)"
         }
     }
 }

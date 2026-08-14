@@ -27,7 +27,6 @@ final class ModernFilesViewModel: ObservableObject {
     
     // 状态管理
     @Published var isLoading = false
-    @Published var error: FileError?
     
     // 选择状态
     @Published var selectedFolders: Set<UUID> = []
@@ -294,26 +293,6 @@ enum FileSortOption: String, CaseIterable, DisplayableEnum {
             return "arrow.up.circle"
         case .accessCount:
             return "number"
-        }
-    }
-}
-
-enum FileError: LocalizedError {
-    case loadFailed(String)
-    case deleteFailed(String)
-    case renameFailed(String)
-    case addFailed(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .loadFailed(let message):
-            return "Failed to load files: \(message)"
-        case .deleteFailed(let message):
-            return "Failed to delete file: \(message)"
-        case .renameFailed(let message):
-            return "Failed to rename file: \(message)"
-        case .addFailed(let message):
-            return "Failed to add file: \(message)"
         }
     }
 }

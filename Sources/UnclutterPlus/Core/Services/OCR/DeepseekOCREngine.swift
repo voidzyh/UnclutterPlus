@@ -69,14 +69,17 @@ class DeepseekOCREngine: OCREngine {
     }
 }
 
-enum OCRError: LocalizedError {
+/// OCR 错误（统一错误体系：UnclutterError）
+enum OCRError: UnclutterError {
     case binaryNotConfigured
     case binaryNotFound
     case binaryNotExecutable
     case executionFailed(String)
     case invalidOutput
-    
-    var errorDescription: String? {
+
+    var category: ErrorCategory { .system }
+
+    var userMessage: String {
         switch self {
         case .binaryNotConfigured:
             return "DeepSeek OCR binary path is not configured"
@@ -89,5 +92,32 @@ enum OCRError: LocalizedError {
         case .invalidOutput:
             return "Invalid OCR output format"
         }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .binaryNotConfigured, .binaryNotFound:
+            return "请在偏好设置中配置 OCR 可执行文件路径"
+        case .binaryNotExecutable:
+            return "请检查文件是否具有可执行权限（chmod +x）"
+        default:
+            return "请重试或检查 OCR 工具输出"
+        }
+    }
+
+    var underlyingError: Error? { nil }
+
+    var errorCode: String {
+        switch self {
+        case .binaryNotConfigured:  return "OCR_001"
+        case .binaryNotFound:       return "OCR_002"
+        case .binaryNotExecutable:  return "OCR_003"
+        case .executionFailed:      return "OCR_004"
+        case .invalidOutput:        return "OCR_005"
+        }
+    }
+
+    var errorDescription: String? {
+        "[\(errorCode)] \(userMessage)"
     }
 }

@@ -19,17 +19,43 @@ enum ObsidianExporter {
         let openURI: URL?
     }
 
-    enum ObsidianError: LocalizedError {
+    /// 导出错误（统一错误体系：UnclutterError）
+    enum ObsidianError: UnclutterError {
         case vaultNotConfigured
         case invalidTitle(String)
         case writeFailed(String)
 
-        var errorDescription: String? {
+        var category: ErrorCategory { .storage }
+
+        var userMessage: String {
             switch self {
             case .vaultNotConfigured: return "Obsidian 仓库路径未配置"
             case .invalidTitle(let t): return "标题无效，无法生成文件名：\(t)"
             case .writeFailed(let m): return "写入文件失败：\(m)"
             }
+        }
+
+        var recoverySuggestion: String? {
+            switch self {
+            case .vaultNotConfigured:
+                return "请在偏好设置中配置 Obsidian 仓库路径"
+            default:
+                return "请检查磁盘空间与目录权限"
+            }
+        }
+
+        var underlyingError: Error? { nil }
+
+        var errorCode: String {
+            switch self {
+            case .vaultNotConfigured: return "OBSIDIAN_001"
+            case .invalidTitle:       return "OBSIDIAN_002"
+            case .writeFailed:        return "OBSIDIAN_003"
+            }
+        }
+
+        var errorDescription: String? {
+            "[\(errorCode)] \(userMessage)"
         }
     }
 

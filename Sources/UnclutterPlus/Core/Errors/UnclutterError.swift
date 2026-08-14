@@ -156,6 +156,7 @@ enum ServiceError: UnclutterError {
     case invalidConfiguration(String)                               // 配置无效
     case resourceExhausted(String)                                  // 资源耗尽
     case serviceUnavailable(String)                                 // 服务不可用
+    case unknown(underlying: Error)                                 // 未分类错误（asUnclutterError 兜底）
 
     var category: ErrorCategory {
         return .system
@@ -175,6 +176,8 @@ enum ServiceError: UnclutterError {
             return "资源耗尽：\(resource)"
         case .serviceUnavailable(let service):
             return "\(service) 服务暂时不可用"
+        case .unknown:
+            return "发生未知错误"
         }
     }
 
@@ -192,12 +195,16 @@ enum ServiceError: UnclutterError {
             return "关闭其他应用释放资源"
         case .serviceUnavailable:
             return "稍后重试或联系技术支持"
+        case .unknown:
+            return "重试操作或联系技术支持"
         }
     }
 
     var underlyingError: Error? {
         switch self {
         case .initializationFailed(_, let error):
+            return error
+        case .unknown(let error):
             return error
         default:
             return nil
@@ -212,6 +219,7 @@ enum ServiceError: UnclutterError {
         case .invalidConfiguration: return "SERVICE_004"
         case .resourceExhausted:    return "SERVICE_005"
         case .serviceUnavailable:   return "SERVICE_006"
+        case .unknown:              return "SERVICE_007"
         }
     }
 
@@ -462,8 +470,8 @@ extension Error {
             }
         }
 
-        // 默认包装为系统错误
-        return ServiceError.operationFailed(service: "系统", operation: "未知操作")
+        // 默认包装为系统错误（保留底层错误信息）
+        return ServiceError.unknown(underlying: self)
     }
 
     /// 提取用户友好的错误描述

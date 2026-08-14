@@ -12,7 +12,7 @@ final class MockNoteStorage: UnifiedStorageProtocol {
     
     // 模拟行为配置
     var shouldFailNextRequest: Bool = false
-    var simulatedError: StorageOperationError = .unknown(underlying: NSError(domain: "Mock", code: -1))
+    var simulatedError: StorageError = .writeFailed(underlying: NSError(domain: "Mock", code: -1))
     var simulatedDelay: TimeInterval = 0
     
     // 调用记录（用于验证）
@@ -85,7 +85,7 @@ final class MockNoteStorage: UnifiedStorageProtocol {
                 self.items[item.id] = item
                 self.indexes[item.id] = NoteIndex(from: item)
             } else {
-                throw StorageOperationError.itemNotFound(id: item.id)
+                throw StorageError.notFound(item.id)
             }
         }
     }
