@@ -184,15 +184,32 @@ class WindowManager: NSObject, ObservableObject {
         stopAutoHideProgress()
 
         if !window.isVisible {
+            // 性能打点：从唤出入口到首帧/动画完成（真机回归采集，见 logger.performance 日志）
+            let showStartTime = CFAbsoluteTimeGetCurrent()
+
             // 在显示前，先定位到鼠标当前所在的屏幕
             positionWindowOnCurrentScreen()
 
             // 先让窗口显示，但不激活
             window.orderFront(nil)
 
+            // 首帧提交：orderFront 之后的下一次 runloop 迭代近似首帧上屏
+            DispatchQueue.main.async {
+                let firstFrameMs = (CFAbsoluteTimeGetCurrent() - showStartTime) * 1000
+                logger.performance("面板唤出首帧 \(String(format: "%.0f", firstFrameMs))ms")
+                if let memoryMB = MemoryFootprint.currentMB() {
+                    logger.performance("面板唤出时内存 \(String(format: "%.0f", memoryMB))MB")
+                }
+            }
+
             // 执行动画，并在动画完成后激活窗口
             // 在 showWindow 方法的动画完成回调中
             animateWindowIn {
+                let totalMs = (CFAbsoluteTimeGetCurrent() - showStartTime) * 1000
+                logger.performance(
+                    "面板唤出动画完成 \(String(format: "%.0f", totalMs))ms（固定动画 250ms）"
+                )
+
                 window.makeKey()
                 NSApp.activate(ignoringOtherApps: true)
 
@@ -230,8 +247,12 @@ class WindowManager: NSObject, ObservableObject {
     
     func hideWindow() {
         guard let window = window else { return }
-        
+
+        // 性能打点：从隐藏入口到滑出动画完成（固定动画 180ms）
+        let hideStartTime = CFAbsoluteTimeGetCurrent()
         animateWindowOut {
+            let hideMs = (CFAbsoluteTimeGetCurrent() - hideStartTime) * 1000
+            logger.performance("面板隐藏完成 \(String(format: "%.0f", hideMs))ms")
             window.orderOut(nil)
         }
     }

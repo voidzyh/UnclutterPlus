@@ -30,6 +30,9 @@ final class ModernAppDelegate: NSObject, NSApplicationDelegate {
             "UnclutterPlus v2.0.0 启动完成（耗时 \(String(format: "%.0f", launchDurationMs))ms）",
             category: "Service"
         )
+        if let memoryMB = MemoryFootprint.currentMB() {
+            logger.performance("启动完成内存 \(String(format: "%.0f", memoryMB))MB")
+        }
 
         // 依赖注入：面板内容视图（App 层 → Core 层）与文件夹/暂存文件动作的自动隐藏回调
         WindowManager.shared.contentFactory = { AnyView(ModernMainContentView()) }
