@@ -32,7 +32,7 @@
 
 ## 🔧 技术 Backlog（结构 P2，详见 refactor_findings.md 与 architecture/reassessment_2026-08.md）
 
-- [ ] 错误系统收敛：13 个错误枚举 → 1 套
+- [x] 错误系统收敛：13 个错误枚举 → 1 套——2026-08 完成（4 个游离枚举并入 UnclutterError 协议，3 个死枚举删除，asUnclutterError 兜底保留底层错误）
 - [x] 存储层并发统一（actor 化，消除 NSLock-in-async 的 Swift 6 隐患）——2026-08 完成（ShardedStorage/UnifiedNoteStorage actor 化，waitForInit 改 Task 化等待）
 - [ ] ViewModel 模板去重（Notes/Clipboard/Files 三段式重复）
 - [ ] View/VM 状态双轨消除（Clipboard 视图 @State searchText/selectedItem 与 VM 并存）
@@ -57,6 +57,12 @@
 ---
 
 ## ✅ 已完成（历史记录）
+
+### 2026-08 R4 错误系统收敛
+- 4 个游离 LocalizedError 枚举（NotesError/ObsidianError/OCRError/AIServiceError）并入统一 `UnclutterError` 协议：分类、错误码、恢复建议、结构化 errorDescription
+- 删除死枚举 `StorageOperationError`/`FileError`/`ClipboardError` 与未使用的 VM error 属性
+- `ServiceError.unknown(underlying:)` 作为 asUnclutterError 兜底，保留底层错误信息（此前丢失为泛化文案）
+- 新增 8 个收敛测试（协议遵循/分类错误码/包装透传/文件系统映射/处理器结构化输出），133 测试全绿
 
 ### 2026-08 R3 存储层并发统一
 - `ShardedStorage` actor 化：移除 GCD 并发队列与 barrier，shardIndex 由 actor 隔离；`loadAll` 跨分片并行 IO 经不捕获 self 的子任务 + 静态编解码器保留；索引防抖保存改 Task 化

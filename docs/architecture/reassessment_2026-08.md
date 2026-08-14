@@ -95,7 +95,7 @@
 1. **R1（完成 2026-08-14）剪贴板基线补全**：指纹持久化修复、密码管理器 ConcealedType 忽略 + 瞬态忽略、应用排除规则、pin/取消 pin/清除非 pin 接线、copy 后自动隐藏（提交 `066c073`、`4a0558a`）。
 2. **R2（完成 2026-08-14）文件暂存架重建**：`TempFileManager`（引用式暂存 + 访问统计 + 持久化 + 缺失容忍）、拖入路由（文件→暂存，目录→收藏文件夹）、拖出到任意应用、Quick Look、Finder 揭示。
 3. **R3（完成 2026-08-14）存储层并发统一**：`ShardedStorage`/`UnifiedNoteStorage` actor 化（移除 GCD barrier 与 NSLock）、`waitForInit` 忙等改 Task 化等待、剪贴板增量刷新（repository 变更明细 + VM 增量合并）。
-4. **R4 错误系统收敛 + 小修**：统一错误枚举。
+4. **R4（完成 2026-08-14）错误系统收敛**：NotesError/ObsidianError/OCRError/AIServiceError 并入 `UnclutterError` 协议（分类 + 错误码 + 恢复建议）；删除死枚举 `StorageOperationError`/`FileError`/`ClipboardError` 及未使用的 VM error 属性；`ServiceError.unknown` 兜底保留底层错误。
 5. **R5 差异化启动**：iCloud 技术调研报告 → 立项。
 
 每轮以"测试全绿 + 独立提交"为完成标准；文档随轮更新 [pending_tasks.md](../pending_tasks.md) 勾选状态。
