@@ -1,6 +1,7 @@
 # UnclutterPlus 待办事项
 
 ## 更新时间
+2026-08-14（勾选同步：Shortcuts/迷你速记/VM 去重/PreferencesView 拆分与提交记录对齐）
 2026-07-17（重构后重排，依据 [市场调研](product/market_research.md) 与 [代码结构调研](architecture/refactor_findings.md)）
 
 ---
@@ -9,19 +10,20 @@
 
 ### P0 — 立足基本盘（对齐原版 Unclutter 体验并修其短板）
 
-- [ ] 浮动面板全链路稳定（唤出/隐藏/自动隐藏/多屏定位）——重构后首要验收项（代码侧已收敛，需真机回归）
+- [ ] 浮动面板全链路稳定（唤出/隐藏/自动隐藏/多屏定位）——重构后首要验收项（代码侧已收敛，需真机回归；回归清单与性能埋点已备：[maintenance/panel_regression_2026-08.md](maintenance/panel_regression_2026-08.md)）
 - [x] 剪贴板基线：pin、纯文本粘贴、应用排除规则、密码管理器内容自动忽略（对齐 Maccy）——2026-08 完成
 - [x] 文件暂存基线：拖入拖出、Quick Look 预览、Finder 揭示——2026-08 完成（暂存架重建，与收藏文件夹共存）
 - [x] 全局快捷键 + 键盘优先操作流——2026-08 完成（⌘⇧U 唤出/隐藏、Esc 隐藏、剪贴板方向键高亮 + 回车复制）
-- [ ] 面板唤出速度与内存占用达标——启动 99ms 已达标（2026-08 实测打点）；面板唤出动画与内存占用待真机交互测量
+- [ ] 面板唤出速度与内存占用达标——启动 99ms 已达标（2026-08 实测打点）；唤出/隐藏耗时与内存埋点已上线（logger.performance），待真机按回归清单采集定标
+- [ ] UI 原生化改造（三阶段）——2026-08-14 真机评审结论「不像苹果商业软件」，评估与方案见 [product/ui_native_polish_plan.md](product/ui_native_polish_plan.md)；建议在面板回归采集完成后启动
 
 ### P1 — 差异化（原版没有或用户反复要求的）
 
 - [ ] iCloud/CloudKit 同步（原版用户第一大痛点）——技术调研完成（[产品级报告](product/icloud_sync_research.md)：推荐 CloudKit 私有库 + CKSyncEngine，首域笔记；P0 立项验证需 Apple Developer 账号）
 - [x] 截图管理：自动归集 + Vision 本地 OCR 全文搜索（做"管理"不做"拍摄"）——2026-08 完成（Vision 本地 OCR 引擎替代 Deepseek CLI 为默认）
-- [ ] Shortcuts / App Intents 集成（竞品标配）
+- [x] Shortcuts / App Intents 集成（竞品标配）——2026-08 完成（显示/隐藏面板、复制最近剪贴板项，AppShortcutsProvider 暴露）
 - [x] 剪贴板智能：高频片段统计（已有洞察引擎基础）、多项合并粘贴——合并粘贴 2026-08 完成（多选 + 按列表顺序合并 + 可配置分隔符）
-- [ ] 菜单栏迷你速记（Tot 式快速入口）
+- [x] 菜单栏迷你速记（Tot 式快速入口）——2026-08 完成（⌘⇧N 浮动小窗，⌘↩︎ 保存为笔记）
 
 ### P2 — 前沿布局
 
@@ -34,9 +36,10 @@
 
 - [x] 错误系统收敛：13 个错误枚举 → 1 套——2026-08 完成（4 个游离枚举并入 UnclutterError 协议，3 个死枚举删除，asUnclutterError 兜底保留底层错误）
 - [x] 存储层并发统一（actor 化，消除 NSLock-in-async 的 Swift 6 隐患）——2026-08 完成（ShardedStorage/UnifiedNoteStorage actor 化，waitForInit 改 Task 化等待）
-- [ ] ViewModel 模板去重（Notes/Clipboard/Files 三段式重复）
-- [ ] View/VM 状态双轨消除（Clipboard 视图 @State searchText/selectedItem 与 VM 并存）
-- [ ] PreferencesView 拆分（849 行）与命名统一（去 Modern 前缀）
+- [x] ViewModel 模板去重（Notes/Clipboard/Files 三段式重复）——2026-08 完成（SearchDebouncer 统一防抖）
+- [ ] View/VM 状态双轨消除——Files/Screenshots 已完成（2026-08），仅剩 Clipboard 视图 @State searchText 经 onChange 手工同步进 VM
+- [x] PreferencesView 拆分（849 行）——2026-08 完成（容器 + 5 个 tab 扩展 + TabOrderEditor 三文件）
+- [ ] 命名统一（去 Modern 前缀，ModernClipboardView 等）
 - [x] `@StateObject` 包单例反模式修正（应 `@ObservedObject`）——2026-08 完成（仅剩 InsightsView 一处）
 - [x] 剪贴板列表 O(N) 全量重载改增量刷新——2026-08 完成（repository 变更明细 + VM 增量合并）
 
